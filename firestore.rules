@@ -53,11 +53,13 @@ service cloud.firestore {
       allow create: if isWriter()
         && request.resource.data.title is string
         && request.resource.data.slug is string
+        && request.resource.data.description is string
         && request.resource.data.content is string
         && request.resource.data.category in ['reviews', 'music', 'videos', 'news']
         && request.resource.data.coverImageUrl is string
         && request.resource.data.searchIndex is list
         && request.resource.data.status in ['draft', 'published']
+        && request.resource.data.isEditorPick is bool
         && request.resource.data.authorId == request.auth.uid
         && request.resource.data.authorName is string
         && request.resource.data.views is number

@@ -1,40 +1,7 @@
 import * as React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, ArrowRight, Play, Eye } from "lucide-react";
-
-// Mock Featured Stories Data
-const SLIDES = [
-  {
-    category: "Music",
-    title: "Exclusive Launch: DJ Davisy's Summer Heat Mix Performance",
-    description:
-      "Go behind the scenes of the high-contrast studio session and stream the full high-definition set now.",
-    link: "/category/music",
-    image: "/assets/DJ-Davisy-Grime-Trap-Mixtape.jpg",
-    meta: "By DJ Davisy · 6 Min Read",
-    ctaText: "Stream Mixtape",
-  },
-  {
-    category: "Reviews",
-    title: "Review: Burna Boy's Live Orchestral Showcase in London",
-    description:
-      "An editorial analysis of the historic night at the Royal Albert Hall where Afrobeats fused with classical orchestration.",
-    link: "/category/reviews",
-    image: "/assets/live_concert_orchestral.png",
-    meta: "By Editorial Team · 5 Min Read",
-    ctaText: "Read Review",
-  },
-  {
-    category: "Videos",
-    title: "Davido's 'No. 11': A Masterclass in Global Afrobeats",
-    description:
-      "An editorial analysis of the visual storytelling and cultural impact of the latest major music video release from the Afrobeats titan.",
-    link: "/category/videos",
-    image: "/assets/Davido-No11-Gimme-Dat-Ting-Official-Music-Video.jpg",
-    meta: "By Video Desk · 4 Min Read",
-    ctaText: "Watch Mix",
-  },
-];
+import { useHeroSlides } from "../../hooks/useBlogData";
 
 // Animation Variants for Text Stagger Slide-ins
 const textContainerVariants = {
@@ -61,17 +28,18 @@ const textItemVariants = {
 } as const;
 
 export function HeroSection() {
+  const { slides } = useHeroSlides();
   const [activeIndex, setActiveIndex] = React.useState(0);
 
   const handleNext = React.useCallback(() => {
-    setActiveIndex((prev) => (prev + 1) % SLIDES.length);
-  }, []);
+    setActiveIndex((prev) => (prev + 1) % slides.length);
+  }, [slides.length]);
 
   const handlePrev = () => {
-    setActiveIndex((prev) => (prev - 1 + SLIDES.length) % SLIDES.length);
+    setActiveIndex((prev) => (prev - 1 + slides.length) % slides.length);
   };
 
-  const activeSlide = SLIDES[activeIndex];
+  const activeSlide = slides[activeIndex];
 
   return (
     <section className="relative w-full border-b border-zinc-200/50 dark:border-zinc-900 bg-zinc-50 dark:bg-zinc-950 transition-colors duration-300 overflow-hidden">
@@ -188,7 +156,7 @@ export function HeroSection() {
         <div className="border-t border-zinc-200/50 dark:border-zinc-900/60 py-4 flex items-center justify-between gap-6">
           {/* Progress indicators */}
           <div className="flex-1 flex items-center gap-2 max-w-md">
-            {SLIDES.map((_, idx) => (
+            {slides.map((_, idx) => (
               <button
                 key={idx}
                 onClick={() => {

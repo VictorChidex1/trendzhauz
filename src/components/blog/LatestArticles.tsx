@@ -1,124 +1,10 @@
 import * as React from "react";
 import { motion, AnimatePresence } from "framer-motion";
-
-// Base Mock Stories
-const BASE_STORIES = [
-  {
-    category: "Reviews",
-    title:
-      "Wizkid & Asake’s Real Vol.1 Climbs to No. 2 on Audiomack’s 2026 Nigerian Projects List",
-    description:
-      "Wizkid and Asake continue to dominate the streaming landscape as their collaborative EP, Real Vol.1, has officially become the second most-streamed Nigerian project of 2026 on Audiomack.",
-    coverImageUrl: "/assets/Wizkid-Asake-Real-Vol.-1-EP.webp",
-    createdAt: "Jul 18, 2026",
-    slug: "wizkid-asake-real-vol1-audiomack",
-  },
-  {
-    category: "Music",
-    title:
-      "Blaqbonez’s “Chanel ft. Asake” Becomes His Most Streamed Spotify Song",
-    description:
-      "Blaqbonez has reached a new career milestone as his hit collaboration with Asake, Chanel, has officially become his most streamed song on Spotify.",
-    coverImageUrl: "/assets/Blaqbonez-Chanel.jpg",
-    createdAt: "Jul 17, 2026",
-    slug: "blaqbonez-chanel-asake",
-  },
-  {
-    category: "News",
-    title:
-      "Burna Boy Reaches 17 Million Spotify Followers, Remains Africa’s Most Followed Artist",
-    description:
-      "Over the years, Burna Boy has consistently broken barriers for African music on streaming platforms, setting new benchmarks with his albums, singles, and international collaborations. His Spotify following continues to climb as listeners around the world discover and revisit his music.",
-    coverImageUrl: "/assets/Burna-Boy.webp",
-    createdAt: "Jul 16, 2026",
-    slug: "burna-boy-17-million-spotify-followers",
-  },
-  {
-    category: "Videos",
-    title: "Davido & No11 – Gimme Dat Ting (Official Music Video)",
-    description:
-      "The official music video for Davido and NO11‘s infectious collaboration, Gimme Dat Ting, is finally here.",
-    coverImageUrl:
-      "/assets/Davido-No11-Gimme-Dat-Ting-Official-Music-Video.jpg",
-    createdAt: "Jul 15, 2026",
-    slug: "davido-no11-gimme-dat-ting",
-  },
-];
-
-// Generate 24 stories (duplicating the 4 base stories 6 times)
-const MAIN_STORIES = Array.from({ length: 24 }).map((_, index) => {
-  const baseStory = BASE_STORIES[index % BASE_STORIES.length];
-  return {
-    ...baseStory,
-    id: `story-${index + 1}`,
-  };
-});
-
-// Mock Data for Right Sidebar: Trending Now
-const TRENDING_POSTS = [
-  {
-    rank: 1,
-    title:
-      "Rema's 'Calm Down' Becomes First Afrobeats Song to Cross 2 Billion Streams",
-    coverImageUrl: "/assets/crowd_concert.png",
-    createdAt: "Jul 15, 2026",
-    slug: "rema-2-billion",
-  },
-  {
-    rank: 2,
-    title: "Burna Boy Announces Epic New Stadium Tour Across North America",
-    coverImageUrl: "/assets/live_concert_orchestral.png",
-    createdAt: "Jul 14, 2026",
-    slug: "burna-stadium-tour",
-  },
-  {
-    rank: 3,
-    title:
-      "Olamide Drops Surprise EP 'Unruly' Featuring Young Jonn and Fireboy DML",
-    coverImageUrl: "/assets/Olamide-Unruly.png",
-    createdAt: "Jul 13, 2026",
-    slug: "olamide-unruly",
-  },
-  {
-    rank: 4,
-    title: "DJ Davisy's Top 50 Summer Club Mix Playlist: Listen Now",
-    coverImageUrl: "/assets/DJ-Davisy-Grime-Trap-Mixtape.jpg",
-    createdAt: "Jul 12, 2026",
-    slug: "dj-davisy-summer-mix",
-  },
-  {
-    rank: 5,
-    title: "Tems Earns Historic Diamond Certification for Summer Hit Single",
-    coverImageUrl: "/assets/afrobeats_performance.png",
-    createdAt: "Jul 11, 2026",
-    slug: "tems-diamond-certification",
-  },
-];
-
-// Mock Data for Right Sidebar: Editor Picks / Latest Reviews
-const EDITOR_PICKS = [
-  {
-    category: "Reviews",
-    title: "Review: Fireboy DML's 'Adore' Showcases Artistic Maturity",
-    coverImageUrl: "/assets/Fireboy-DML.jpg",
-    createdAt: "Jul 17, 2026",
-    slug: "fireboy-adore-review",
-  },
-  {
-    category: "Reviews",
-    title: "Review: Omah Lay's Dark Afrobeats Production Rules the Night",
-    coverImageUrl: "/assets/live_concert_orchestral.png",
-    createdAt: "Jul 16, 2026",
-    slug: "omah-lay-review",
-  },
-  {
-    category: "Reviews",
-    title: "Review: Seyi Vibez's 'Lagos Memoirs' EP Review",
-    coverImageUrl: "/assets/crowd_concert.png",
-    createdAt: "Jul 15, 2026",
-    slug: "seyi-vibez-review",
-  },
-];
+import {
+  useLatestStories,
+  useTrendingPosts,
+  useEditorPicks,
+} from "../../hooks/useBlogData";
 
 // Framer Motion Grid Variants
 const containerVariants = {
@@ -131,20 +17,21 @@ const containerVariants = {
   },
 } as const;
 
-
-
 export function LatestArticles() {
-  const [currentPage, setCurrentPage] = React.useState(1);
-  const POSTS_PER_PAGE = 12;
+  const {
+    stories,
+    currentPage,
+    setCurrentPage,
+    totalPages,
+  } = useLatestStories(12);
 
-  const totalPages = Math.ceil(MAIN_STORIES.length / POSTS_PER_PAGE);
-  const startIndex = (currentPage - 1) * POSTS_PER_PAGE;
-  const paginatedStories = MAIN_STORIES.slice(startIndex, startIndex + POSTS_PER_PAGE);
+  const { posts: trendingPosts } = useTrendingPosts();
+  const { picks: editorPicks } = useEditorPicks();
 
   // Scroll to top of section on page change for good user experience
   const sectionRef = React.useRef<HTMLDivElement>(null);
   React.useEffect(() => {
-    if (sectionRef.current) {
+    if (currentPage > 1 && sectionRef.current) {
       sectionRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   }, [currentPage]);
@@ -181,7 +68,7 @@ export function LatestArticles() {
                   transition={{ duration: 0.3 }}
                   className="flex flex-col gap-10"
                 >
-                  {paginatedStories.map((story) => (
+                  {stories.map((story) => (
                     <a
                       key={story.id}
                       href={`/blog/${story.slug}`}
@@ -270,7 +157,7 @@ export function LatestArticles() {
               </h3>
 
               <div className="flex flex-col">
-                {TRENDING_POSTS.map((post) => (
+                {trendingPosts.map((post) => (
                   <a
                     key={post.rank}
                     href={`/blog/${post.slug}`}
@@ -309,7 +196,7 @@ export function LatestArticles() {
               </h3>
 
               <div className="flex flex-col gap-5">
-                {EDITOR_PICKS.map((pick, index) => (
+                {editorPicks.map((pick, index) => (
                   <a
                     key={index}
                     href={`/blog/${pick.slug}`}
