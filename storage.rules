@@ -1,8 +1,56 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
+
+    // ──────────────────────────────────────────────
+    // HELPER FUNCTIONS
+    // ──────────────────────────────────────────────
+
+    // Returns true if the request comes from a logged-in user.
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Checks the requesting user's role by reading their Firestore profile document.
+    // This cross-service lookup ensures only verified writers/admins can upload files.
+    function getUserRole() {
+      return firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role;
+    }
+
+    // Returns true if the logged-in user is a writer or super-admin.
+    function isWriter() {
+      return isAuthenticated() && getUserRole() in ['writer', 'super-admin'];
+    }
+
+    // ──────────────────────────────────────────────
+    // BLOG COVER IMAGES — blog-covers/{fileName}
+    // ──────────────────────────────────────────────
+    match /blog-covers/{fileName} {
+      // PUBLIC READ: Anyone can view/download blog cover images.
+      // These are displayed on the public homepage and article pages.
+      allow read: if true;
+
+      // PROTECTED UPLOAD: To write (upload/overwrite/delete) a cover image,
+      // ALL of the following conditions must be met:
+      //
+      // 1. The user must be authenticated (logged in).
+      // 2. The user must hold a "writer" or "super-admin" role in Firestore.
+      // 3. The uploaded file MUST be an image (MIME type starts with "image/").
+      //    This blocks scripts, executables, and non-image files.
+      // 4. The file size MUST be under 5MB (5 * 1024 * 1024 = 5,242,880 bytes).
+      //    This protects storage quota from oversized uploads.
+      allow write: if isWriter()
+        && request.resource.contentType.matches('image/.*')
+        && request.resource.size < 5 * 1024 * 1024;
+    }
+
+    // ──────────────────────────────────────────────
+    // CATCH-ALL — Block everything else
+    // ──────────────────────────────────────────────
+    // Any path NOT explicitly matched above is completely denied.
+    // This prevents unauthorized uploads to arbitrary storage paths.
     match /{allPaths=**} {
-      allow read, write: if true;
+      allow read, write: if false;
     }
   }
 }

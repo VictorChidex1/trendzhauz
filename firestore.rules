@@ -1,8 +1,104 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /{document=**} {
-      allow read, write: if true;
+
+    // ──────────────────────────────────────────────
+    // HELPER FUNCTIONS (Reusable security checks)
+    // ──────────────────────────────────────────────
+
+    // Returns true if the request comes from a logged-in user.
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Fetches the requesting user's profile document from the 'users' collection
+    // and returns their assigned role string ("super-admin" or "writer").
+    function getUserRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+
+    // Returns true if the logged-in user's role is "super-admin".
+    function isSuperAdmin() {
+      return isAuthenticated() && getUserRole() == 'super-admin';
+    }
+
+    // Returns true if the logged-in user's role is either "writer" or "super-admin".
+    // Writers can create/edit posts; super-admins can do everything.
+    function isWriter() {
+      return isAuthenticated() && getUserRole() in ['writer', 'super-admin'];
+    }
+
+    // ──────────────────────────────────────────────
+    // 1. USERS COLLECTION — Role management profiles
+    // ──────────────────────────────────────────────
+    match /users/{userId} {
+      // Any authenticated user can read user profiles (needed to display author names).
+      allow read: if isAuthenticated();
+
+      // Only a super-admin can create, update, or delete user profile documents.
+      // This prevents writers from escalating their own role to super-admin.
+      allow write: if isSuperAdmin();
+    }
+
+    // ──────────────────────────────────────────────
+    // 2. POSTS COLLECTION — Blog article documents
+    // ──────────────────────────────────────────────
+    match /posts/{postId} {
+      // PUBLIC READ: Anyone (including anonymous visitors) can read published posts.
+      // Draft posts are hidden from the public; only writers/admins can see them.
+      allow read: if resource.data.status == 'published' || isWriter();
+
+      // CREATE: Only authenticated writers or super-admins can create new posts.
+      // Schema validation ensures every new post has required fields with correct types.
+      allow create: if isWriter()
+        && request.resource.data.title is string
+        && request.resource.data.slug is string
+        && request.resource.data.content is string
+        && request.resource.data.category in ['reviews', 'music', 'entertainment', 'news']
+        && request.resource.data.coverImageUrl is string
+        && request.resource.data.searchIndex is list
+        && request.resource.data.status in ['draft', 'published']
+        && request.resource.data.authorId == request.auth.uid
+        && request.resource.data.authorName is string
+        && request.resource.data.views is number
+        && request.resource.data.createdAt is timestamp;
+
+      // UPDATE: Only authenticated writers or super-admins can update existing posts.
+      // The authorId and createdAt fields are immutable after creation (cannot be changed).
+      allow update: if isWriter()
+        && request.resource.data.authorId == resource.data.authorId
+        && request.resource.data.createdAt == resource.data.createdAt;
+
+      // DELETE: Only a super-admin can permanently remove a post.
+      allow delete: if isSuperAdmin();
+    }
+
+    // ──────────────────────────────────────────────
+    // 3. LINKTREE COLLECTION — Bio link items
+    // ──────────────────────────────────────────────
+    match /linktree/{linkId} {
+      // PUBLIC READ: Anyone can read bio links (the /links page is public).
+      allow read: if true;
+
+      // PUBLIC CLICK TRACKING: Anonymous visitors can increment clickCount
+      // when they tap a link. This rule ensures that the ONLY field being changed
+      // is clickCount, and it is incremented by exactly 1. All other fields
+      // (title, targetUrl, isActive, order, iconType) must remain unchanged.
+      allow update: if !isAuthenticated()
+        && request.resource.data.clickCount == resource.data.clickCount + 1
+        && request.resource.data.title == resource.data.title
+        && request.resource.data.targetUrl == resource.data.targetUrl
+        && request.resource.data.iconType == resource.data.iconType
+        && request.resource.data.order == resource.data.order
+        && request.resource.data.isActive == resource.data.isActive;
+
+      // ADMIN UPDATE: Super-admins can update any field on a link
+      // (reorder, rename, enable/disable, change URL).
+      // Writers can also update links if needed.
+      allow update: if isSuperAdmin();
+
+      // CREATE & DELETE: Only a super-admin can add or remove bio links.
+      allow create, delete: if isSuperAdmin();
     }
   }
 }
