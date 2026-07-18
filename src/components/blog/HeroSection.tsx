@@ -6,17 +6,19 @@ import { ArrowLeft, ArrowRight, Play, Eye } from "lucide-react";
 const SLIDES = [
   {
     category: "Music",
-    title: "The Rise of Amapiano: How the South African Sound Conquered Global Dance Floors",
-    description: "Explore the rhythmic evolution, underground origins, and production geniuses bringing the hypnotic log-drum bassline to global prominence.",
+    title: "Exclusive Launch: DJ Davisy's Summer Heat Mix Performance",
+    description:
+      "Go behind the scenes of the high-contrast studio session and stream the full high-definition set now.",
     link: "/category/music",
-    image: "/assets/amapiano_decks_hero.png",
+    image: "/assets/DJ-Davisy-Grime-Trap-Mixtape.jpg",
     meta: "By DJ Davisy · 6 Min Read",
-    ctaText: "Read Coverage",
+    ctaText: "Stream Mixtape",
   },
   {
     category: "Reviews",
     title: "Review: Burna Boy's Live Orchestral Showcase in London",
-    description: "An editorial analysis of the historic night at the Royal Albert Hall where Afrobeats fused with classical orchestration.",
+    description:
+      "An editorial analysis of the historic night at the Royal Albert Hall where Afrobeats fused with classical orchestration.",
     link: "/category/reviews",
     image: "/assets/live_concert_orchestral.png",
     meta: "By Editorial Team · 5 Min Read",
@@ -24,10 +26,11 @@ const SLIDES = [
   },
   {
     category: "Videos",
-    title: "Exclusive Launch: DJ Davisy's Summer Heat Mix Performance",
-    description: "Go behind the scenes of the high-contrast studio session and stream the full high-definition set now.",
+    title: "Davido's 'No. 11': A Masterclass in Global Afrobeats",
+    description:
+      "An editorial analysis of the visual storytelling and cultural impact of the latest major music video release from the Afrobeats titan.",
     link: "/category/videos",
-    image: "/assets/dj_studio_performance.png",
+    image: "/assets/Davido-No11-Gimme-Dat-Ting-Official-Music-Video.jpg",
     meta: "By Video Desk · 4 Min Read",
     ctaText: "Watch Mix",
   },
@@ -74,7 +77,6 @@ export function HeroSection() {
     <section className="relative w-full border-b border-zinc-200/50 dark:border-zinc-900 bg-zinc-50 dark:bg-zinc-950 transition-colors duration-300 overflow-hidden">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 py-12 lg:py-20 items-center">
-          
           {/* Left Column: Staggered Content Area */}
           <div className="lg:col-span-7 flex flex-col justify-center min-h-[380px] lg:min-h-[440px] z-10">
             <AnimatePresence mode="wait">
@@ -160,7 +162,7 @@ export function HeroSection() {
                   alt={activeSlide.title}
                   className="w-full h-full object-cover transition-transform duration-[6000ms] ease-out scale-100 group-hover:scale-105"
                 />
-                
+
                 {/* Soft gradient overlay for dark mode depth */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-black/10 dark:from-zinc-950/80 dark:to-transparent" />
 
@@ -204,7 +206,9 @@ export function HeroSection() {
                     className="h-full bg-brand"
                   />
                 )}
-                {idx < activeIndex && <div className="absolute inset-0 bg-brand" />}
+                {idx < activeIndex && (
+                  <div className="absolute inset-0 bg-brand" />
+                )}
               </button>
             ))}
           </div>

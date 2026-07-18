@@ -1,9 +1,9 @@
-import { motion } from "framer-motion";
+import * as React from "react";
+import { motion, AnimatePresence } from "framer-motion";
 
-// Mock Data for Left Feed: Main Editorial Stories
-const MAIN_STORIES = [
+// Base Mock Stories
+const BASE_STORIES = [
   {
-    id: "story-1",
     category: "Reviews",
     title:
       "Wizkid & Asake’s Real Vol.1 Climbs to No. 2 on Audiomack’s 2026 Nigerian Projects List",
@@ -14,7 +14,6 @@ const MAIN_STORIES = [
     slug: "wizkid-asake-real-vol1-audiomack",
   },
   {
-    id: "story-2",
     category: "Music",
     title:
       "Blaqbonez’s “Chanel ft. Asake” Becomes His Most Streamed Spotify Song",
@@ -25,7 +24,6 @@ const MAIN_STORIES = [
     slug: "blaqbonez-chanel-asake",
   },
   {
-    id: "story-3",
     category: "News",
     title:
       "Burna Boy Reaches 17 Million Spotify Followers, Remains Africa’s Most Followed Artist",
@@ -36,7 +34,6 @@ const MAIN_STORIES = [
     slug: "burna-boy-17-million-spotify-followers",
   },
   {
-    id: "story-4",
     category: "Videos",
     title: "Davido & No11 – Gimme Dat Ting (Official Music Video)",
     description:
@@ -47,6 +44,15 @@ const MAIN_STORIES = [
     slug: "davido-no11-gimme-dat-ting",
   },
 ];
+
+// Generate 24 stories (duplicating the 4 base stories 6 times)
+const MAIN_STORIES = Array.from({ length: 24 }).map((_, index) => {
+  const baseStory = BASE_STORIES[index % BASE_STORIES.length];
+  return {
+    ...baseStory,
+    id: `story-${index + 1}`,
+  };
+});
 
 // Mock Data for Right Sidebar: Trending Now
 const TRENDING_POSTS = [
@@ -69,14 +75,14 @@ const TRENDING_POSTS = [
     rank: 3,
     title:
       "Olamide Drops Surprise EP 'Unruly' Featuring Young Jonn and Fireboy DML",
-    coverImageUrl: "/assets/studio_recording.png",
+    coverImageUrl: "/assets/Olamide-Unruly.png",
     createdAt: "Jul 13, 2026",
     slug: "olamide-unruly",
   },
   {
     rank: 4,
     title: "DJ Davisy's Top 50 Summer Club Mix Playlist: Listen Now",
-    coverImageUrl: "/assets/amapiano_decks_hero.png",
+    coverImageUrl: "/assets/DJ-Davisy-Grime-Trap-Mixtape.jpg",
     createdAt: "Jul 12, 2026",
     slug: "dj-davisy-summer-mix",
   },
@@ -94,7 +100,7 @@ const EDITOR_PICKS = [
   {
     category: "Reviews",
     title: "Review: Fireboy DML's 'Adore' Showcases Artistic Maturity",
-    coverImageUrl: "/assets/studio_recording.png",
+    coverImageUrl: "/assets/Fireboy-DML.jpg",
     createdAt: "Jul 17, 2026",
     slug: "fireboy-adore-review",
   },
@@ -125,22 +131,26 @@ const containerVariants = {
   },
 } as const;
 
-const itemVariants = {
-  hidden: { y: 20, opacity: 0 },
-  visible: {
-    y: 0,
-    opacity: 1,
-    transition: {
-      type: "spring",
-      stiffness: 100,
-      damping: 18,
-    },
-  },
-} as const;
+
 
 export function LatestArticles() {
+  const [currentPage, setCurrentPage] = React.useState(1);
+  const POSTS_PER_PAGE = 12;
+
+  const totalPages = Math.ceil(MAIN_STORIES.length / POSTS_PER_PAGE);
+  const startIndex = (currentPage - 1) * POSTS_PER_PAGE;
+  const paginatedStories = MAIN_STORIES.slice(startIndex, startIndex + POSTS_PER_PAGE);
+
+  // Scroll to top of section on page change for good user experience
+  const sectionRef = React.useRef<HTMLDivElement>(null);
+  React.useEffect(() => {
+    if (sectionRef.current) {
+      sectionRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [currentPage]);
+
   return (
-    <section className="w-full bg-background py-16 px-4 sm:px-6 lg:px-8 transition-colors duration-300">
+    <section ref={sectionRef} className="w-full bg-background py-16 px-4 sm:px-6 lg:px-8 transition-colors duration-300">
       <div className="max-w-7xl mx-auto">
         <motion.div
           variants={containerVariants}
@@ -156,51 +166,99 @@ export function LatestArticles() {
                 Latest Stories
               </h2>
               <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">
-                Fresh Content
+                Page {currentPage} of {totalPages}
               </span>
             </div>
 
             {/* Stories List */}
             <div className="flex flex-col gap-10">
-              {MAIN_STORIES.map((story) => (
-                <motion.a
-                  key={story.id}
-                  href={`/blog/${story.slug}`}
-                  variants={itemVariants}
-                  className="group flex flex-col sm:flex-row gap-6 p-4 rounded-sm border border-transparent hover:border-zinc-100 dark:hover:border-zinc-900/60 hover:bg-zinc-50/50 dark:hover:bg-zinc-950/20 transition-all duration-300"
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={currentPage}
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -15 }}
+                  transition={{ duration: 0.3 }}
+                  className="flex flex-col gap-10"
                 >
-                  {/* Thumbnail */}
-                  <div className="w-full sm:w-60 aspect-[16/10] bg-zinc-100 dark:bg-zinc-900/60 rounded-sm overflow-hidden shrink-0 relative border border-zinc-200/20 dark:border-zinc-800/20">
-                    <img
-                      src={story.coverImageUrl}
-                      alt={story.title}
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                    />
-                    <span className="absolute bottom-3 left-3 text-[9px] font-bold uppercase tracking-widest bg-brand text-white px-2.5 py-1 rounded-sm shadow-sm">
-                      {story.category}
-                    </span>
-                  </div>
+                  {paginatedStories.map((story) => (
+                    <a
+                      key={story.id}
+                      href={`/blog/${story.slug}`}
+                      className="group flex flex-col sm:flex-row gap-6 p-4 rounded-sm border border-transparent hover:border-zinc-100 dark:hover:border-zinc-900/60 hover:bg-zinc-50/50 dark:hover:bg-zinc-950/20 transition-all duration-300"
+                    >
+                      {/* Thumbnail */}
+                      <div className="w-full sm:w-60 aspect-[16/10] bg-zinc-100 dark:bg-zinc-900/60 rounded-sm overflow-hidden shrink-0 relative border border-zinc-200/20 dark:border-zinc-800/20">
+                        <img
+                          src={story.coverImageUrl}
+                          alt={story.title}
+                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        />
+                        <span className="absolute bottom-3 left-3 text-[9px] font-bold uppercase tracking-widest bg-brand text-white px-2.5 py-1 rounded-sm shadow-sm">
+                          {story.category}
+                        </span>
+                      </div>
 
-                  {/* Metadata Content */}
-                  <div className="flex flex-col justify-between py-1">
-                    <div className="space-y-2">
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">
-                        {story.createdAt}
-                      </p>
-                      <h3 className="text-lg sm:text-xl font-black uppercase tracking-tight text-zinc-900 dark:text-zinc-100 group-hover:text-brand transition-colors duration-200 leading-snug">
-                        {story.title}
-                      </h3>
-                      <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 line-clamp-2 leading-relaxed">
-                        {story.description}
-                      </p>
-                    </div>
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-brand group-hover:translate-x-1 inline-flex items-center gap-1 transition-transform duration-200 mt-4 sm:mt-0">
-                      Read Story →
-                    </span>
-                  </div>
-                </motion.a>
-              ))}
+                      {/* Metadata Content */}
+                      <div className="flex flex-col justify-between py-1">
+                        <div className="space-y-2">
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">
+                            {story.createdAt}
+                          </p>
+                          <h3 className="text-lg sm:text-xl font-black uppercase tracking-tight text-zinc-900 dark:text-zinc-100 group-hover:text-brand transition-colors duration-200 leading-snug">
+                            {story.title}
+                          </h3>
+                          <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 line-clamp-2 leading-relaxed">
+                            {story.description}
+                          </p>
+                        </div>
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-brand group-hover:translate-x-1 inline-flex items-center gap-1 transition-transform duration-200 mt-4 sm:mt-0">
+                          Read Story →
+                        </span>
+                      </div>
+                    </a>
+                  ))}
+                </motion.div>
+              </AnimatePresence>
             </div>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-2 mt-12 border-t border-zinc-200/60 dark:border-zinc-800/60 pt-8">
+                <button
+                  onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                  className="px-4 py-2 border border-zinc-300 dark:border-zinc-800 text-[10px] font-bold uppercase tracking-wider text-zinc-700 dark:text-zinc-300 rounded-sm hover:bg-zinc-100 dark:hover:bg-zinc-900 disabled:opacity-40 disabled:hover:bg-transparent disabled:cursor-not-allowed transition-colors cursor-pointer"
+                >
+                  Previous
+                </button>
+
+                {Array.from({ length: totalPages }).map((_, i) => {
+                  const pageNum = i + 1;
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => setCurrentPage(pageNum)}
+                      className={`w-9 h-9 flex items-center justify-center text-xs font-black rounded-sm transition-colors cursor-pointer ${
+                        currentPage === pageNum
+                          ? "bg-brand text-white"
+                          : "border border-zinc-300 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-900"
+                      }`}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
+
+                <button
+                  onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                  className="px-4 py-2 border border-zinc-300 dark:border-zinc-800 text-[10px] font-bold uppercase tracking-wider text-zinc-700 dark:text-zinc-300 rounded-sm hover:bg-zinc-100 dark:hover:bg-zinc-900 disabled:opacity-40 disabled:hover:bg-transparent disabled:cursor-not-allowed transition-colors cursor-pointer"
+                >
+                  Next
+                </button>
+              </div>
+            )}
           </div>
 
           {/* ── Right Column: Sticky Sidebar Feed (1/3 width) ── */}
