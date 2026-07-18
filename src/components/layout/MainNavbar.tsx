@@ -21,7 +21,7 @@ export function MainNavbar() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-zinc-200/50 dark:border-zinc-800/50 bg-background/90 backdrop-blur-lg transition-colors duration-300">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Brand Logo */}
         <div className="flex items-center">
           <Link to="/" className="flex items-center group">
@@ -33,7 +33,7 @@ export function MainNavbar() {
               <img
                 src="/assets/Trendzhauz-logo.png"
                 alt="TrendzHauz Logo"
-                className="h-10 w-auto object-contain dark:invert dark:hue-rotate-180 transition-all duration-300"
+                className="h-14 w-auto object-contain dark:invert dark:hue-rotate-180 transition-all duration-300"
               />
             </motion.div>
           </Link>
