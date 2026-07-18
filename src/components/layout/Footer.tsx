@@ -26,9 +26,9 @@ export function Footer() {
           <div className="flex flex-col gap-4">
             <Link to="/" className="inline-flex items-center">
               <img
-                src="/assets/TrendzHauz logo white.jpg"
+                src="/assets/Trendzhauz-logo.png"
                 alt="TrendzHauz Logo"
-                className="h-9 w-auto object-contain"
+                className="h-9 w-auto object-contain invert hue-rotate-180"
               />
             </Link>
             <p className="text-sm text-zinc-500 leading-relaxed max-w-xs">

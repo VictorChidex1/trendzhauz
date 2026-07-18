@@ -22,19 +22,18 @@ export function MainNavbar() {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-zinc-200/50 dark:border-zinc-800/50 bg-background/90 backdrop-blur-lg transition-colors duration-300">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-        
-        {/* Brand Logo inside premium dark tab */}
+        {/* Brand Logo */}
         <div className="flex items-center">
           <Link to="/" className="flex items-center group">
-            <motion.div 
+            <motion.div
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className="bg-zinc-950 px-3 py-1.5 rounded-sm flex items-center transition-shadow hover:shadow-md border border-zinc-800"
+              className="flex items-center"
             >
-              <img 
-                src="/assets/TrendzHauz logo white.jpg" 
-                alt="TrendzHauz Logo" 
-                className="h-7 w-auto object-contain"
+              <img
+                src="/assets/Trendzhauz-logo.png"
+                alt="TrendzHauz Logo"
+                className="h-10 w-auto object-contain dark:invert dark:hue-rotate-180 transition-all duration-300"
               />
             </motion.div>
           </Link>
@@ -43,9 +42,10 @@ export function MainNavbar() {
         {/* Desktop Navigation Links with sliding background bar */}
         <nav className="hidden md:flex items-center space-x-1 text-xs font-bold tracking-widest uppercase">
           {navItems.map((item) => {
-            const isActive = location.pathname === item.path || 
+            const isActive =
+              location.pathname === item.path ||
               (item.path !== "/" && location.pathname.startsWith(item.path));
-            
+
             return (
               <NavLink
                 key={item.name}
@@ -67,7 +67,6 @@ export function MainNavbar() {
 
         {/* Action Controls (Theme Toggle & Mobile Menu Switch) */}
         <div className="flex items-center space-x-2">
-          
           {/* Theme Toggle Button with Rotate & Scale Morph */}
           <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
             <Button
@@ -123,7 +122,7 @@ export function MainNavbar() {
       {/* Mobile Drawer Menu with AnimatePresence slide and stagger links */}
       <AnimatePresence>
         {isMobileMenuOpen && (
-          <motion.div 
+          <motion.div
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
@@ -132,9 +131,11 @@ export function MainNavbar() {
           >
             <nav className="flex flex-col space-y-1 px-4 py-4 text-xs font-bold uppercase tracking-widest">
               {navItems.map((item, index) => {
-                const isActive = location.pathname === item.path || 
-                  (item.path !== "/" && location.pathname.startsWith(item.path));
-                
+                const isActive =
+                  location.pathname === item.path ||
+                  (item.path !== "/" &&
+                    location.pathname.startsWith(item.path));
+
                 return (
                   <motion.div
                     key={item.name}
@@ -146,8 +147,8 @@ export function MainNavbar() {
                       to={item.path}
                       onClick={() => setIsMobileMenuOpen(false)}
                       className={`block py-3 px-4 rounded-sm transition-colors ${
-                        isActive 
-                          ? "text-brand bg-zinc-100 dark:bg-zinc-900" 
+                        isActive
+                          ? "text-brand bg-zinc-100 dark:bg-zinc-900"
                           : "text-foreground/80 hover:bg-zinc-50 dark:hover:bg-zinc-900/50 hover:text-brand"
                       }`}
                     >
