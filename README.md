@@ -101,7 +101,7 @@ interface BlogPost {
   title: string;
   slug: string;
   content: string;
-  category: "reviews" | "music" | "entertainment" | "news";
+  category: "reviews" | "music" | "videos" | "news";
   coverImageUrl: string;
   musicUrl?: string;
   searchIndex: string[]; // Lowercase sanitized tokens for search

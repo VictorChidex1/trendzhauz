@@ -5,12 +5,10 @@ const footerLinks = {
     { name: "Home", path: "/" },
     { name: "Reviews", path: "/category/reviews" },
     { name: "Music", path: "/category/music" },
-    { name: "Entertainment", path: "/category/entertainment" },
+    { name: "Videos", path: "/category/videos" },
     { name: "News", path: "/category/news" },
   ],
-  Platform: [
-    { name: "Bio Links", path: "/links" },
-  ],
+  Platform: [{ name: "Bio Links", path: "/links" }],
 };
 
 export function Footer() {
@@ -21,7 +19,6 @@ export function Footer() {
       {/* Main Footer Grid */}
       <div className="w-full px-4 sm:px-6 lg:px-8 py-14">
         <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-3 gap-10">
-
           {/* Brand Column */}
           <div className="flex flex-col gap-4">
             <Link to="/" className="inline-flex items-center">
@@ -32,7 +29,7 @@ export function Footer() {
               />
             </Link>
             <p className="text-sm text-zinc-500 dark:text-zinc-500 leading-relaxed max-w-xs">
-              DJ Davisy's editorial home for premium music reviews,
+              TrendHauz's editorial home for premium music reviews,
               entertainment news, and exclusive African music culture coverage.
             </p>
           </div>

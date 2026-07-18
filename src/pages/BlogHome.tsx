@@ -50,42 +50,42 @@ const cardVariants = {
 export default function BlogHome() {
   return (
     <div className="flex-1 flex flex-col w-full bg-background transition-colors duration-300">
-
       {/* ── Hero Banner ── Dynamic Theme & Staggered Motion */}
       <section className="w-full bg-zinc-50 dark:bg-zinc-950 py-20 sm:py-28 px-4 sm:px-6 lg:px-8 border-b border-zinc-200/50 dark:border-zinc-900 transition-colors duration-300">
-        <motion.div 
+        <motion.div
           variants={containerVariants}
           initial="hidden"
           animate="visible"
           className="max-w-7xl mx-auto flex flex-col items-start gap-6"
         >
           {/* Category Label */}
-          <motion.span 
+          <motion.span
             variants={itemVariants}
             className="text-[10px] sm:text-xs font-bold uppercase tracking-[0.25em] text-brand bg-brand/10 dark:bg-brand/20 border border-brand/20 dark:border-brand/30 px-3.5 py-1.5 rounded-sm"
           >
-            Music · Entertainment · News
+            Music · Videos · News
           </motion.span>
 
           {/* Headline */}
-          <motion.h1 
+          <motion.h1
             variants={itemVariants}
             className="text-4xl sm:text-6xl lg:text-7xl font-black uppercase tracking-tighter text-zinc-900 dark:text-white leading-[0.95] max-w-4xl"
           >
-            The Pulse of <span className="text-brand">African</span> Music Culture
+            The Pulse of <span className="text-brand">African</span> Music
+            Culture
           </motion.h1>
 
           {/* Sub-text */}
-          <motion.p 
+          <motion.p
             variants={itemVariants}
             className="text-sm sm:text-base text-zinc-600 dark:text-zinc-400 max-w-xl leading-relaxed"
           >
-            DJ Davisy's editorial home — blazing-fast reviews, exclusive drops,
+            TrendHauz's editorial home — blazing-fast reviews, exclusive drops,
             and entertainment news straight from the deck.
           </motion.p>
 
           {/* CTA Row */}
-          <motion.div 
+          <motion.div
             variants={itemVariants}
             className="flex flex-wrap items-center gap-4 mt-2"
           >
@@ -115,7 +115,6 @@ export default function BlogHome() {
       {/* ── Content Grid Area ── Animated Skeleton Cards */}
       <section className="w-full bg-background py-16 px-4 sm:px-6 lg:px-8 transition-colors duration-300">
         <div className="max-w-7xl mx-auto">
-          
           {/* Section Header */}
           <div className="flex items-center justify-between mb-10 border-b border-zinc-200/60 dark:border-zinc-800 pb-4">
             <h2 className="text-xl sm:text-2xl font-black uppercase tracking-tighter text-foreground">
@@ -130,7 +129,7 @@ export default function BlogHome() {
           </div>
 
           {/* Cards Grid */}
-          <motion.div 
+          <motion.div
             variants={cardGridVariants}
             initial="hidden"
             animate="visible"
@@ -147,7 +146,7 @@ export default function BlogHome() {
                 <div className="w-full aspect-[16/10] bg-zinc-100 dark:bg-zinc-900/60 rounded-sm overflow-hidden relative border border-zinc-200/20 dark:border-zinc-800/20">
                   {/* Subtle shimmer effect */}
                   <div className="absolute inset-0 bg-gradient-to-r from-transparent via-zinc-200/10 dark:via-zinc-800/20 to-transparent -translate-x-full animate-[shimmer_2s_infinite]" />
-                  
+
                   {/* Category tag */}
                   <span className="absolute bottom-3 left-3 text-[9px] font-bold uppercase tracking-widest bg-brand text-white px-2.5 py-1 rounded-sm shadow-sm">
                     Music
@@ -160,19 +159,19 @@ export default function BlogHome() {
                     Jul 18, 2026
                   </p>
                   <h3 className="text-base font-black uppercase tracking-tight text-zinc-900 dark:text-zinc-100 group-hover:text-brand transition-colors duration-200 leading-snug">
-                    African Soundwaves: How DJ Davisy is Redefining the Mix Landscape
+                    African Soundwaves: How DJ Davisy is Redefining the Mix
+                    Landscape
                   </h3>
                   <p className="text-xs text-zinc-500 dark:text-zinc-400 line-clamp-2 leading-relaxed">
-                    Explore the production tactics, software ecosystems, and local music trends forming the new wave of sound.
+                    Explore the production tactics, software ecosystems, and
+                    local music trends forming the new wave of sound.
                   </p>
                 </div>
               </motion.div>
             ))}
           </motion.div>
-
         </div>
       </section>
-
     </div>
   );
 }

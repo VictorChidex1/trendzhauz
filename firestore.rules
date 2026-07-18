@@ -54,7 +54,7 @@ service cloud.firestore {
         && request.resource.data.title is string
         && request.resource.data.slug is string
         && request.resource.data.content is string
-        && request.resource.data.category in ['reviews', 'music', 'entertainment', 'news']
+        && request.resource.data.category in ['reviews', 'music', 'videos', 'news']
         && request.resource.data.coverImageUrl is string
         && request.resource.data.searchIndex is list
         && request.resource.data.status in ['draft', 'published']

@@ -9,7 +9,7 @@ const navItems = [
   { name: "Home", path: "/" },
   { name: "Reviews", path: "/category/reviews" },
   { name: "Music", path: "/category/music" },
-  { name: "Entertainment", path: "/category/entertainment" },
+  { name: "Videos", path: "/category/videos" },
   { name: "News", path: "/category/news" },
   { name: "Bio Links", path: "/links" },
 ];

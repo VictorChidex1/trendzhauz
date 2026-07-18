@@ -56,7 +56,7 @@ To bypass Firestore’s 1MB document size limitations, image properties are comp
 6. Route Map & Structural Division
    A. Public Frontend Core
 
-- / (Homepage): Displays the Featured Hero Slider followed by a masonry query layout grid sorting posts across Reviews, Music, and Entertainment News categories.
+- / (Homepage): Displays the Featured Hero Slider followed by a masonry query layout grid sorting posts across Reviews, Music, and Videos/News categories.
 - /blog/:slug: Renders dynamic individual articles, pairing the rich text element smoothly alongside the context-aware UniversalMusicPlayer.
 - /links (The Linktree Hub): A mobile-first, distraction-free landing page feeding active vertical call-to-action redirect links coupled with direct backend click increment logs.
 
@@ -73,7 +73,7 @@ B. Protected Administration Hub
    title: string;
    slug: string;
    content: string;
-   category: "reviews" | "music" | "entertainment" | "news";
+   category: "reviews" | "music" | "videos" | "news";
    coverImageUrl: string;
    musicUrl?: string;
    searchIndex: string[];
