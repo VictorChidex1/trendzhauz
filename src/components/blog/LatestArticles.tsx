@@ -5,38 +5,46 @@ const MAIN_STORIES = [
   {
     id: "story-1",
     category: "Reviews",
-    title: "Review: Tems' Debut Album Is a Vocal Masterclass",
-    description: "An in-depth review of Tems' highly anticipated debut studio LP, exploring its rich sonic palette, emotional depth, and genre-bending production.",
-    coverImageUrl: "/assets/studio_recording.png",
+    title:
+      "Wizkid & Asake’s Real Vol.1 Climbs to No. 2 on Audiomack’s 2026 Nigerian Projects List",
+    description:
+      "Wizkid and Asake continue to dominate the streaming landscape as their collaborative EP, Real Vol.1, has officially become the second most-streamed Nigerian project of 2026 on Audiomack.",
+    coverImageUrl: "/assets/Wizkid-Asake-Real-Vol.-1-EP.webp",
     createdAt: "Jul 18, 2026",
-    slug: "tems-album-review",
+    slug: "wizkid-asake-real-vol1-audiomack",
   },
   {
     id: "story-2",
     category: "Music",
-    title: "Amapiano's Next Wave: Artists to Watch in 2026",
-    description: "Highlighting the emerging producers and singers pushing the log-drum bassline to brand new experimental heights across African club scenes.",
-    coverImageUrl: "/assets/amapiano_decks_hero.png",
+    title:
+      "Blaqbonez’s “Chanel ft. Asake” Becomes His Most Streamed Spotify Song",
+    description:
+      "Blaqbonez has reached a new career milestone as his hit collaboration with Asake, Chanel, has officially become his most streamed song on Spotify.",
+    coverImageUrl: "/assets/Blaqbonez-Chanel.jpg",
     createdAt: "Jul 17, 2026",
-    slug: "amapiano-next-wave",
+    slug: "blaqbonez-chanel-asake",
   },
   {
     id: "story-3",
     category: "News",
-    title: "Wizkid Hints at Surprise Collaboration Album",
-    description: "The Starboy records boss teased a joint project with a major international artist during a late-night London studio session.",
-    coverImageUrl: "/assets/dj_studio_performance.png",
+    title:
+      "Burna Boy Reaches 17 Million Spotify Followers, Remains Africa’s Most Followed Artist",
+    description:
+      "Over the years, Burna Boy has consistently broken barriers for African music on streaming platforms, setting new benchmarks with his albums, singles, and international collaborations. His Spotify following continues to climb as listeners around the world discover and revisit his music.",
+    coverImageUrl: "/assets/Burna-Boy.webp",
     createdAt: "Jul 16, 2026",
-    slug: "wizkid-collaboration",
+    slug: "burna-boy-17-million-spotify-followers",
   },
   {
     id: "story-4",
     category: "Videos",
-    title: "Asake Redefines Visual Aesthetics in New Afrobeats Music Video",
-    description: "A detailed breakdown of Asake's cinematic music video shot in Lagos, showcasing high-concept styling and traditional Yoruba motifs.",
-    coverImageUrl: "/assets/afrobeats_performance.png",
+    title: "Davido & No11 – Gimme Dat Ting (Official Music Video)",
+    description:
+      "The official music video for Davido and NO11‘s infectious collaboration, Gimme Dat Ting, is finally here.",
+    coverImageUrl:
+      "/assets/Davido-No11-Gimme-Dat-Ting-Official-Music-Video.jpg",
     createdAt: "Jul 15, 2026",
-    slug: "asake-visuals",
+    slug: "davido-no11-gimme-dat-ting",
   },
 ];
 
@@ -44,31 +52,38 @@ const MAIN_STORIES = [
 const TRENDING_POSTS = [
   {
     rank: 1,
-    title: "Rema's 'Calm Down' Becomes First Afrobeats Song to Cross 2 Billion Streams",
+    title:
+      "Rema's 'Calm Down' Becomes First Afrobeats Song to Cross 2 Billion Streams",
+    coverImageUrl: "/assets/crowd_concert.png",
     createdAt: "Jul 15, 2026",
     slug: "rema-2-billion",
   },
   {
     rank: 2,
     title: "Burna Boy Announces Epic New Stadium Tour Across North America",
+    coverImageUrl: "/assets/live_concert_orchestral.png",
     createdAt: "Jul 14, 2026",
     slug: "burna-stadium-tour",
   },
   {
     rank: 3,
-    title: "Olamide Drops Surprise EP 'Unruly' Featuring Young Jonn and Fireboy DML",
+    title:
+      "Olamide Drops Surprise EP 'Unruly' Featuring Young Jonn and Fireboy DML",
+    coverImageUrl: "/assets/studio_recording.png",
     createdAt: "Jul 13, 2026",
     slug: "olamide-unruly",
   },
   {
     rank: 4,
     title: "DJ Davisy's Top 50 Summer Club Mix Playlist: Listen Now",
+    coverImageUrl: "/assets/amapiano_decks_hero.png",
     createdAt: "Jul 12, 2026",
     slug: "dj-davisy-summer-mix",
   },
   {
     rank: 5,
     title: "Tems Earns Historic Diamond Certification for Summer Hit Single",
+    coverImageUrl: "/assets/afrobeats_performance.png",
     createdAt: "Jul 11, 2026",
     slug: "tems-diamond-certification",
   },
@@ -133,7 +148,6 @@ export function LatestArticles() {
           animate="visible"
           className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start"
         >
-          
           {/* ── Left Column: Main Editorial Feed (2/3 width) ── */}
           <div className="lg:col-span-8 space-y-10">
             {/* Header */}
@@ -191,27 +205,34 @@ export function LatestArticles() {
 
           {/* ── Right Column: Sticky Sidebar Feed (1/3 width) ── */}
           <div className="lg:col-span-4 space-y-12 lg:sticky lg:top-24">
-            
             {/* Trending Now Section */}
             <div className="bg-zinc-50/50 dark:bg-zinc-950/20 p-6 rounded-md border border-zinc-200/40 dark:border-zinc-900/60 shadow-sm">
               <h3 className="text-sm font-black uppercase tracking-widest text-foreground border-b border-zinc-200 dark:border-zinc-800 pb-3 mb-5">
                 Trending Now
               </h3>
-              
+
               <div className="flex flex-col">
                 {TRENDING_POSTS.map((post) => (
                   <a
                     key={post.rank}
                     href={`/blog/${post.slug}`}
-                    className="group flex gap-4 items-start py-4 border-b border-zinc-100 dark:border-zinc-900/40 last:border-0"
+                    className="group flex gap-4 items-center py-4 border-b border-zinc-100 dark:border-zinc-900/40 last:border-0"
                   >
-                    {/* Rank Number */}
-                    <span className="font-black text-3xl sm:text-4xl text-brand/30 group-hover:text-brand w-10 shrink-0 leading-none transition-colors duration-200">
-                      {post.rank.toString().padStart(2, "0")}
-                    </span>
+                    {/* Image with Rank Badge */}
+                    <div className="relative w-16 h-16 rounded-sm overflow-hidden shrink-0 border border-zinc-200/20 dark:border-zinc-800/20">
+                      <img
+                        src={post.coverImageUrl}
+                        alt={post.title}
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      />
+                      {/* Absolute Rank Badge */}
+                      <span className="absolute top-0 left-0 bg-brand text-white font-black text-[9px] w-5 h-5 flex items-center justify-center rounded-br-sm shadow-sm">
+                        {post.rank}
+                      </span>
+                    </div>
                     {/* Details */}
                     <div className="space-y-1">
-                      <h4 className="text-xs sm:text-sm font-bold uppercase tracking-tight text-zinc-800 dark:text-zinc-200 group-hover:text-brand transition-colors duration-200 leading-tight">
+                      <h4 className="text-xs sm:text-sm font-bold uppercase tracking-tight text-zinc-800 dark:text-zinc-200 group-hover:text-brand transition-colors duration-200 leading-tight line-clamp-2">
                         {post.title}
                       </h4>
                       <p className="text-[9px] font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">
@@ -260,9 +281,7 @@ export function LatestArticles() {
                 ))}
               </div>
             </div>
-
           </div>
-
         </motion.div>
       </div>
     </section>
