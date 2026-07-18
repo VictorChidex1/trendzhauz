@@ -9,14 +9,15 @@ export function Footer() {
         <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
           
           {/* Logo & Brand Identity */}
-          <div className="text-center sm:text-left">
-            <Link 
-              to="/" 
-              className="font-sans text-lg font-black tracking-tighter text-foreground uppercase"
-            >
-              Trendz<span className="text-brand font-black">hauz</span>
+          <div className="text-center sm:text-left flex flex-col items-center sm:items-start">
+            <Link to="/" className="flex items-center">
+              <img 
+                src="/assets/TrendzHauz logo white.jpg" 
+                alt="TrendzHauz Logo" 
+                className="h-8 w-auto object-contain"
+              />
             </Link>
-            <p className="mt-1 text-xs text-muted-foreground">
+            <p className="mt-2 text-xs text-muted-foreground">
               Premium Music & Entertainment Blog for DJ Davisy.
             </p>
           </div>

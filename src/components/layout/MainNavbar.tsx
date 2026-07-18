@@ -23,11 +23,12 @@ export function MainNavbar() {
         
         {/* Brand Logo */}
         <div className="flex items-center">
-          <Link 
-            to="/" 
-            className="font-sans text-2xl font-black tracking-tighter text-foreground uppercase"
-          >
-            Trendz<span className="text-brand font-black">hauz</span>
+          <Link to="/" className="flex items-center">
+            <img 
+              src="/assets/TrendzHauz logo white.jpg" 
+              alt="TrendzHauz Logo" 
+              className="h-10 w-auto object-contain"
+            />
           </Link>
         </div>
 
