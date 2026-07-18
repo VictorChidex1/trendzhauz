@@ -28,4 +28,5 @@ When given a task from the Execution Roadmap:
 
 1. Briefly acknowledge the task.
 2. Provide the precise, typed code for that specific step.
-3. Stop and ask: "Are we ready to proceed to the next step?"
+3. Explain the specific step so that the lead developer understands the code and how it works.
+4. Stop and ask: "Are we ready to proceed to the next step?"
