@@ -12,7 +12,7 @@ function App() {
   return (
     <ThemeProvider>
       <BrowserRouter>
-        <div className="min-h-screen flex flex-col bg-background text-foreground transition-colors duration-300">
+        <div className="theme min-h-screen flex flex-col bg-background text-foreground transition-colors duration-300">
           {/* Main Navigation Bar */}
           <MainNavbar />
 
