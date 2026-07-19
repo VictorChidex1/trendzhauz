@@ -64,7 +64,7 @@ export function Footer() {
             &copy; {currentYear} TRENDZHAUZ MEDIA. All rights reserved.
           </p>
           <p className="text-xs text-zinc-400 dark:text-zinc-600 uppercase tracking-widest">
-            Powered by CV Digital
+            Built with ❤️ by CV Digital
           </p>
         </div>
       </div>

@@ -28,10 +28,16 @@ export function LatestArticles() {
   const { posts: trendingPosts } = useTrendingPosts();
   const { picks: editorPicks } = useEditorPicks();
 
-  // Scroll to top of section on page change for good user experience
+  // Scroll to top of section on page change for good user experience (skipping initial mount)
   const sectionRef = React.useRef<HTMLDivElement>(null);
+  const isFirstRender = React.useRef(true);
+
   React.useEffect(() => {
-    if (currentPage > 1 && sectionRef.current) {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    if (sectionRef.current) {
       sectionRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   }, [currentPage]);
