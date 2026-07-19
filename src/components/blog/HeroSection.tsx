@@ -30,6 +30,7 @@ const textItemVariants = {
 export function HeroSection() {
   const { slides } = useHeroSlides();
   const [activeIndex, setActiveIndex] = React.useState(0);
+  const [isPaused, setIsPaused] = React.useState(false);
 
   const handleNext = React.useCallback(() => {
     setActiveIndex((prev) => (prev + 1) % slides.length);
@@ -39,14 +40,41 @@ export function HeroSection() {
     setActiveIndex((prev) => (prev - 1 + slides.length) % slides.length);
   };
 
+  // Prefetch all slide images to prevent loading flashes on transition
+  React.useEffect(() => {
+    if (slides && slides.length > 0) {
+      slides.forEach((slide) => {
+        if (slide.image) {
+          const img = new Image();
+          img.src = slide.image;
+        }
+      });
+    }
+  }, [slides]);
+
+  // Pause autoplay when browser tab is hidden/inactive
+  React.useEffect(() => {
+    const handleVisibility = () => {
+      setIsPaused(document.hidden);
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, []);
+
   const activeSlide = slides[activeIndex];
 
   return (
-    <section className="relative w-full border-b border-zinc-200/50 dark:border-zinc-900 bg-zinc-50 dark:bg-zinc-950 transition-colors duration-300 overflow-hidden">
+    <section
+      onMouseEnter={() => setIsPaused(true)}
+      onMouseLeave={() => setIsPaused(false)}
+      className="relative w-full border-b border-zinc-200/50 dark:border-zinc-900 bg-zinc-50 dark:bg-zinc-950 transition-colors duration-300 overflow-hidden"
+    >
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 py-12 lg:py-20 items-center">
           {/* Left Column: Staggered Content Area */}
-          <div className="lg:col-span-7 flex flex-col justify-center min-h-[380px] lg:min-h-[440px] z-10">
+          <div className="lg:col-span-7 flex flex-col justify-center min-h-[380px] lg:min-h-[440px] z-10" style={{ willChange: "transform, opacity" }}>
             <AnimatePresence mode="wait">
               <motion.div
                 key={activeIndex}
@@ -54,7 +82,7 @@ export function HeroSection() {
                 initial="hidden"
                 animate="visible"
                 exit={{ opacity: 0, y: -10 }}
-                className="flex flex-col gap-4 sm:gap-6 items-start"
+                className="flex flex-col gap-4 sm:gap-6 items-start transform-gpu"
               >
                 {/* Category tag */}
                 <motion.span
@@ -115,7 +143,7 @@ export function HeroSection() {
           </div>
 
           {/* Right Column: High-Impact Cinematic Photo Canvas */}
-          <div className="lg:col-span-5 relative w-full aspect-[16/10] sm:aspect-[16/9] lg:aspect-square bg-zinc-200 dark:bg-zinc-900 rounded-sm overflow-hidden border border-zinc-200/40 dark:border-zinc-800/40 group shadow-lg">
+          <div className="lg:col-span-5 relative w-full aspect-[16/10] sm:aspect-[16/9] lg:aspect-square bg-zinc-200 dark:bg-zinc-900 rounded-sm overflow-hidden border border-zinc-200/40 dark:border-zinc-800/40 group shadow-lg" style={{ willChange: "transform" }}>
             <AnimatePresence mode="wait">
               <motion.div
                 key={activeIndex}
@@ -123,7 +151,7 @@ export function HeroSection() {
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.98 }}
                 transition={{ duration: 0.5, ease: "easeInOut" }}
-                className="absolute inset-0 w-full h-full"
+                className="absolute inset-0 w-full h-full transform-gpu"
               >
                 <img
                   src={activeSlide.image}
@@ -167,11 +195,11 @@ export function HeroSection() {
               >
                 {idx === activeIndex && (
                   <motion.div
-                    key={idx} // Trigger motion restart on slide changes
+                    key={`${idx}-${isPaused}`} // Trigger motion restart/pause on state updates
                     initial={{ width: "0%" }}
-                    animate={{ width: "100%" }}
-                    transition={{ duration: 6, ease: "linear" }}
-                    onAnimationComplete={handleNext}
+                    animate={{ width: isPaused ? "0%" : "100%" }}
+                    transition={{ duration: isPaused ? 0 : 6, ease: "linear" }}
+                    onAnimationComplete={isPaused ? undefined : handleNext}
                     className="h-full bg-brand"
                   />
                 )}

@@ -457,15 +457,24 @@ export function useLatestStories(postsPerPage = 12) {
   return { stories, loading, currentPage, setCurrentPage, totalPages };
 }
 
+// Global in-memory cache for sidebar feeds to prevent redundant database fetches across routes/mounts
+let cachedTrending: TrendingPost[] | null = null;
+let cachedEditorPicks: EditorPick[] | null = null;
+
 // ─────────────────────────────────────────────
 // HOOK 3: useTrendingPosts
 // Fetches top 5 published posts sorted by views desc, then createdAt desc (cold-start safe).
 // ─────────────────────────────────────────────
 export function useTrendingPosts() {
-  const [posts, setPosts] = React.useState<TrendingPost[]>(FALLBACK_TRENDING);
-  const [loading, setLoading] = React.useState(true);
+  const [posts, setPosts] = React.useState<TrendingPost[]>(cachedTrending || FALLBACK_TRENDING);
+  const [loading, setLoading] = React.useState(!cachedTrending);
 
   React.useEffect(() => {
+    if (cachedTrending) {
+      setLoading(false);
+      return;
+    }
+
     let cancelled = false;
 
     async function fetchTrending() {
@@ -492,6 +501,7 @@ export function useTrendingPosts() {
                 slug: data.slug,
               };
             });
+            cachedTrending = livePosts;
             setPosts(livePosts);
           }
           setLoading(false);
@@ -516,10 +526,15 @@ export function useTrendingPosts() {
 // Fetches top 3 published posts where isEditorPick == true, sorted by createdAt desc.
 // ─────────────────────────────────────────────
 export function useEditorPicks() {
-  const [picks, setPicks] = React.useState<EditorPick[]>(FALLBACK_EDITOR_PICKS);
-  const [loading, setLoading] = React.useState(true);
+  const [picks, setPicks] = React.useState<EditorPick[]>(cachedEditorPicks || FALLBACK_EDITOR_PICKS);
+  const [loading, setLoading] = React.useState(!cachedEditorPicks);
 
   React.useEffect(() => {
+    if (cachedEditorPicks) {
+      setLoading(false);
+      return;
+    }
+
     let cancelled = false;
 
     async function fetchPicks() {
@@ -546,6 +561,7 @@ export function useEditorPicks() {
                 slug: data.slug,
               };
             });
+            cachedEditorPicks = livePicks;
             setPicks(livePicks);
           }
           setLoading(false);
