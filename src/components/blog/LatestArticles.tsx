@@ -79,6 +79,8 @@ export function LatestArticles() {
                         <img
                           src={story.coverImageUrl}
                           alt={story.title}
+                          loading="lazy"
+                          decoding="async"
                           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                         />
                         <span className="absolute bottom-3 left-3 text-[9px] font-bold uppercase tracking-widest bg-brand text-white px-2.5 py-1 rounded-sm shadow-sm">
@@ -168,6 +170,8 @@ export function LatestArticles() {
                       <img
                         src={post.coverImageUrl}
                         alt={post.title}
+                        loading="lazy"
+                        decoding="async"
                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                       />
                       {/* Absolute Rank Badge */}
@@ -207,6 +211,8 @@ export function LatestArticles() {
                       <img
                         src={pick.coverImageUrl}
                         alt={pick.title}
+                        loading="lazy"
+                        decoding="async"
                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                       />
                     </div>

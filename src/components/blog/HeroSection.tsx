@@ -128,6 +128,7 @@ export function HeroSection() {
                 <img
                   src={activeSlide.image}
                   alt={activeSlide.title}
+                  fetchPriority="high"
                   className="w-full h-full object-cover transition-transform duration-[6000ms] ease-out scale-100 group-hover:scale-105"
                 />
 

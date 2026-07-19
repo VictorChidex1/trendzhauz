@@ -7,6 +7,7 @@ import {
   limit,
   getDocs,
   startAfter,
+  getCountFromServer,
   type DocumentSnapshot,
   type QueryDocumentSnapshot,
 } from "firebase/firestore";
@@ -195,7 +196,7 @@ const CTA_MAP: Record<string, string> = {
 };
 
 // HOOK 1: useHeroSlides
-// Fetches the latest published post from each of the 4 categories (parallel fetch).
+// Fetches the latest published posts in a single query, then filters for the latest post of each category in memory (consolidates database reads).
 export function useHeroSlides() {
   const [slides, setSlides] = React.useState<HeroSlide[]>(FALLBACK_HERO_SLIDES);
   const [loading, setLoading] = React.useState(true);
@@ -206,40 +207,41 @@ export function useHeroSlides() {
 
     async function fetchSlides() {
       try {
-        const promises = categories.map((cat) => {
-          const q = query(
-            collection(db, "posts"),
-            where("status", "==", "published"),
-            where("category", "==", cat.toLowerCase()),
-            orderBy("createdAt", "desc"),
-            limit(1)
-          );
-          return getDocs(q);
-        });
-
-        const snapshots = await Promise.all(promises);
-        const liveSlides: HeroSlide[] = [];
-
-        snapshots.forEach((snap, idx) => {
-          if (!snap.empty) {
-            const doc = snap.docs[0];
-            const data = doc.data() as Post;
-            liveSlides.push({
-              category: categories[idx],
-              title: data.title,
-              description: data.description,
-              link: `/category/${categories[idx].toLowerCase()}`,
-              image: data.coverImageUrl,
-              meta: `By ${data.authorName} · ${Math.ceil(
-                data.content.length / 1500
-              )} Min Read`,
-              ctaText: CTA_MAP[categories[idx]] || "Read Story",
-              slug: data.slug,
-            });
-          }
-        });
+        // Query the 12 most recent published posts at once
+        const q = query(
+          collection(db, "posts"),
+          where("status", "==", "published"),
+          orderBy("createdAt", "desc"),
+          limit(12)
+        );
+        const snap = await getDocs(q);
 
         if (!cancelled) {
+          const liveSlides: HeroSlide[] = [];
+          if (!snap.empty) {
+            const posts = snap.docs.map((doc) => doc.data() as Post);
+
+            categories.forEach((cat) => {
+              const found = posts.find(
+                (p) => p.category.toLowerCase() === cat.toLowerCase()
+              );
+              if (found) {
+                liveSlides.push({
+                  category: cat,
+                  title: found.title,
+                  description: found.description,
+                  link: `/category/${cat.toLowerCase()}`,
+                  image: found.coverImageUrl,
+                  meta: `By ${found.authorName} · ${Math.ceil(
+                    found.content.length / 1500
+                  )} Min Read`,
+                  ctaText: CTA_MAP[cat] || "Read Story",
+                  slug: found.slug,
+                });
+              }
+            });
+          }
+
           // Only use live data if we got at least 2 slides
           if (liveSlides.length >= 2) {
             setSlides(liveSlides);
@@ -263,6 +265,7 @@ export function useHeroSlides() {
 
 // HOOK 2: useLatestStories
 // Fetches published posts ordered by createdAt desc, with cursor pagination (12 per page).
+// Utilizes getCountFromServer to query counts efficiently and caches page payloads in-memory.
 export function useLatestStories(postsPerPage = 12) {
   const [stories, setStories] = React.useState<StoryCard[]>([]);
   const [loading, setLoading] = React.useState(true);
@@ -272,46 +275,35 @@ export function useLatestStories(postsPerPage = 12) {
 
   // Cache document cursors for each page boundary
   const cursorCache = React.useRef<Map<number, DocumentSnapshot>>(new Map());
+  // Cache actual page items locally to prevent re-querying visited pages
+  const localPageCache = React.useRef<Map<number, StoryCard[]>>(new Map());
 
-  // On mount, estimate total published posts count
+  // On mount, get the total published posts count (uses ultra-cheap metadata count query)
   React.useEffect(() => {
     let cancelled = false;
 
     async function countPosts() {
       try {
-        // Firestore doesn't have a native count on free tier,
-        // so we fetch IDs only to estimate
         const q = query(
           collection(db, "posts"),
-          where("status", "==", "published"),
-          orderBy("createdAt", "desc"),
-          limit(100) // Cap at 100 for estimation
+          where("status", "==", "published")
         );
-        const snap = await getDocs(q);
+        const countSnap = await getCountFromServer(q);
 
         if (!cancelled) {
-          if (snap.empty) {
+          const count = countSnap.data().count;
+          if (count === 0) {
             // No posts in Firestore — use fallback data
             setUsingFallback(true);
             setStories(FALLBACK_STORIES.slice(0, postsPerPage));
             setTotalEstimate(FALLBACK_STORIES.length);
             setLoading(false);
           } else {
-            setTotalEstimate(snap.size);
-            // Cache the cursors for pagination
-            snap.docs.forEach((doc, idx) => {
-              // Store cursor at the end of each page boundary
-              if ((idx + 1) % postsPerPage === 0) {
-                cursorCache.current.set(
-                  Math.floor(idx / postsPerPage) + 2,
-                  doc
-                );
-              }
-            });
+            setTotalEstimate(count);
           }
         }
       } catch (error) {
-        console.error("Failed to count posts:", error);
+        console.error("Failed to count posts using server aggregation:", error);
         if (!cancelled) {
           setUsingFallback(true);
           setStories(FALLBACK_STORIES.slice(0, postsPerPage));
@@ -327,12 +319,19 @@ export function useLatestStories(postsPerPage = 12) {
     };
   }, [postsPerPage]);
 
-  // Fetch actual page data
+  // Fetch actual page data (loads from cache if already fetched)
   React.useEffect(() => {
     if (usingFallback) {
       // Paginate fallback data locally
       const start = (currentPage - 1) * postsPerPage;
       setStories(FALLBACK_STORIES.slice(start, start + postsPerPage));
+      setLoading(false);
+      return;
+    }
+
+    // Serve from cache if we have already fetched this page
+    if (localPageCache.current.has(currentPage)) {
+      setStories(localPageCache.current.get(currentPage)!);
       setLoading(false);
       return;
     }
@@ -343,10 +342,43 @@ export function useLatestStories(postsPerPage = 12) {
       setLoading(true);
       try {
         let q;
-        const cursor = cursorCache.current.get(currentPage);
+        let cursor = cursorCache.current.get(currentPage);
+
+        // On-demand cursor locator: if the cursor for this page is not yet cached (e.g. page jump),
+        // we locate the closest previous cached cursor and retrieve the intermediate cursors.
+        if (!cursor && currentPage > 1) {
+          let prevPage = currentPage - 1;
+          while (prevPage > 1 && !cursorCache.current.has(prevPage)) {
+            prevPage--;
+          }
+          const prevCursor = cursorCache.current.get(prevPage);
+          const skipCount = (currentPage - prevPage) * postsPerPage;
+
+          const tempQ = query(
+            collection(db, "posts"),
+            where("status", "==", "published"),
+            orderBy("createdAt", "desc"),
+            ...(prevCursor ? [startAfter(prevCursor)] : []),
+            limit(skipCount)
+          );
+          
+          const tempSnap = await getDocs(tempQ);
+          
+          tempSnap.docs.forEach((doc, idx) => {
+            const docPage = prevPage + Math.floor((idx + 1) / postsPerPage);
+            if ((idx + 1) % postsPerPage === 0 && docPage < currentPage) {
+              cursorCache.current.set(docPage + 1, doc);
+            }
+          });
+
+          if (tempSnap.docs.length === skipCount) {
+            cursor = tempSnap.docs[tempSnap.docs.length - 1];
+            cursorCache.current.set(currentPage, cursor);
+          }
+        }
 
         if (currentPage === 1 || !cursor) {
-          // First page or no cached cursor: start from the beginning
+          // First page or start from beginning
           q = query(
             collection(db, "posts"),
             where("status", "==", "published"),
@@ -387,6 +419,9 @@ export function useLatestStories(postsPerPage = 12) {
                 };
               }
             );
+
+            // Save page items to memory cache
+            localPageCache.current.set(currentPage, pageStories);
             setStories(pageStories);
 
             // Cache last doc as cursor for next page
