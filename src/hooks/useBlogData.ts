@@ -32,7 +32,7 @@ const FALLBACK_HERO_SLIDES: HeroSlide[] = [
     link: "/category/music",
     image: "/assets/DJ-Davisy-Grime-Trap-Mixtape.jpg",
     meta: "By DJ Davisy · 6 Min Read",
-    ctaText: "Stream Mixtape",
+    ctaText: "Stream Music",
     slug: "dj-davisy-summer-heat-mix",
   },
   {
@@ -188,7 +188,7 @@ function formatDate(timestamp: Post["createdAt"]): string {
 
 // CTA text mapping per category
 const CTA_MAP: Record<string, string> = {
-  Music: "Read Coverage",
+  Music: "Stream Music",
   Reviews: "Read Review",
   Videos: "Watch Video",
   News: "Read Story",
@@ -232,7 +232,9 @@ export function useHeroSlides() {
               description: data.description,
               link: `/category/${categories[idx].toLowerCase()}`,
               image: data.coverImageUrl,
-              meta: `By ${data.authorName} · ${Math.ceil(data.content.length / 1500)} Min Read`,
+              meta: `By ${data.authorName} · ${Math.ceil(
+                data.content.length / 1500
+              )} Min Read`,
               ctaText: CTA_MAP[categories[idx]] || "Read Story",
               slug: data.slug,
             });
@@ -483,9 +485,7 @@ export function useTrendingPosts() {
 // Fetches top 3 published posts where isEditorPick == true, sorted by createdAt desc.
 // ─────────────────────────────────────────────
 export function useEditorPicks() {
-  const [picks, setPicks] = React.useState<EditorPick[]>(
-    FALLBACK_EDITOR_PICKS
-  );
+  const [picks, setPicks] = React.useState<EditorPick[]>(FALLBACK_EDITOR_PICKS);
   const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {

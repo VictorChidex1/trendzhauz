@@ -29,7 +29,7 @@ export function Footer() {
               />
             </Link>
             <p className="text-sm text-zinc-500 dark:text-zinc-500 leading-relaxed max-w-xs">
-              TrendHauz's editorial home for premium music reviews,
+              TrendzHauz Media is your destination for premium music reviews,
               entertainment news, and exclusive African music culture coverage.
             </p>
           </div>
@@ -61,7 +61,7 @@ export function Footer() {
       <div className="w-full border-t border-zinc-200 dark:border-zinc-900 px-4 sm:px-6 lg:px-8 py-5 transition-colors duration-300">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
           <p className="text-xs text-zinc-400 dark:text-zinc-600 uppercase tracking-widest">
-            &copy; {currentYear} TRENDZHAUZ. All rights reserved.
+            &copy; {currentYear} TRENDZHAUZ MEDIA. All rights reserved.
           </p>
           <p className="text-xs text-zinc-400 dark:text-zinc-600 uppercase tracking-widest">
             Powered by CV Digital
