@@ -19,6 +19,7 @@ import type {
   TrendingPost,
   EditorPick,
 } from "../types/post";
+import { getCachedData, isCacheFresh, setCachedData } from "../utils/queryCache";
 
 // ─────────────────────────────────────────────
 // FALLBACK MOCK DATA (shown when Firestore is empty)
@@ -174,9 +175,8 @@ const FALLBACK_EDITOR_PICKS: EditorPick[] = [
   },
 ];
 
-// ─────────────────────────────────────────────
 // HELPER: Format Firestore Timestamp to readable string
-// ─────────────────────────────────────────────
+
 function formatDate(timestamp: Post["createdAt"]): string {
   if (!timestamp || !timestamp.toDate) return "Unknown Date";
   const date = timestamp.toDate();
@@ -198,10 +198,16 @@ const CTA_MAP: Record<string, string> = {
 // HOOK 1: useHeroSlides
 // Fetches the latest published posts in a single query, then filters for the latest post of each category in memory (consolidates database reads).
 export function useHeroSlides() {
-  const [slides, setSlides] = React.useState<HeroSlide[]>(FALLBACK_HERO_SLIDES);
-  const [loading, setLoading] = React.useState(true);
+  const cached = getCachedData<HeroSlide[]>("hero_slides");
+  const [slides, setSlides] = React.useState<HeroSlide[]>(cached || FALLBACK_HERO_SLIDES);
+  const [loading, setLoading] = React.useState(!cached);
 
   React.useEffect(() => {
+    if (isCacheFresh("hero_slides")) {
+      setLoading(false);
+      return;
+    }
+
     let cancelled = false;
     const categories = ["Music", "Reviews", "Videos", "News"];
 
@@ -244,6 +250,7 @@ export function useHeroSlides() {
 
           // Only use live data if we got at least 2 slides
           if (liveSlides.length >= 2) {
+            setCachedData("hero_slides", liveSlides);
             setSlides(liveSlides);
           }
           setLoading(false);
@@ -267,10 +274,15 @@ export function useHeroSlides() {
 // Fetches published posts ordered by createdAt desc, with cursor pagination (12 per page).
 // Utilizes getCountFromServer to query counts efficiently and caches page payloads in-memory.
 export function useLatestStories(postsPerPage = 12) {
-  const [stories, setStories] = React.useState<StoryCard[]>([]);
-  const [loading, setLoading] = React.useState(true);
+  const cachedPage1 = getCachedData<StoryCard[]>("latest_stories_p1");
+  const cachedCount = getCachedData<number>("latest_stories_total_count");
+
+  const [stories, setStories] = React.useState<StoryCard[]>(
+    cachedPage1 && cachedCount ? cachedPage1 : []
+  );
+  const [loading, setLoading] = React.useState(!(cachedPage1 && cachedCount));
   const [currentPage, setCurrentPage] = React.useState(1);
-  const [totalEstimate, setTotalEstimate] = React.useState(0);
+  const [totalEstimate, setTotalEstimate] = React.useState(cachedCount || 0);
   const [usingFallback, setUsingFallback] = React.useState(false);
 
   // Cache document cursors for each page boundary
@@ -278,8 +290,19 @@ export function useLatestStories(postsPerPage = 12) {
   // Cache actual page items locally to prevent re-querying visited pages
   const localPageCache = React.useRef<Map<number, StoryCard[]>>(new Map());
 
+  // Prefill localPageCache with cachedPage1 so that pagination knows page 1 is loaded
+  React.useEffect(() => {
+    if (cachedPage1) {
+      localPageCache.current.set(1, cachedPage1);
+    }
+  }, [cachedPage1]);
+
   // On mount, get the total published posts count (uses ultra-cheap metadata count query)
   React.useEffect(() => {
+    if (isCacheFresh("latest_stories_total_count") && isCacheFresh("latest_stories_p1")) {
+      return;
+    }
+
     let cancelled = false;
 
     async function countPosts() {
@@ -300,6 +323,7 @@ export function useLatestStories(postsPerPage = 12) {
             setLoading(false);
           } else {
             setTotalEstimate(count);
+            setCachedData("latest_stories_total_count", count);
           }
         }
       } catch (error) {
@@ -329,9 +353,16 @@ export function useLatestStories(postsPerPage = 12) {
       return;
     }
 
-    // Serve from cache if we have already fetched this page
+    // Serve from memory cache if we have already fetched this page
     if (localPageCache.current.has(currentPage)) {
       setStories(localPageCache.current.get(currentPage)!);
+      setLoading(false);
+      return;
+    }
+
+    // If cache is fresh and we are loading page 1, skip network call
+    if (currentPage === 1 && isCacheFresh("latest_stories_p1") && cachedPage1) {
+      setStories(cachedPage1);
       setLoading(false);
       return;
     }
@@ -361,9 +392,9 @@ export function useLatestStories(postsPerPage = 12) {
             ...(prevCursor ? [startAfter(prevCursor)] : []),
             limit(skipCount)
           );
-          
+
           const tempSnap = await getDocs(tempQ);
-          
+
           tempSnap.docs.forEach((doc, idx) => {
             const docPage = prevPage + Math.floor((idx + 1) / postsPerPage);
             if ((idx + 1) % postsPerPage === 0 && docPage < currentPage) {
@@ -424,6 +455,11 @@ export function useLatestStories(postsPerPage = 12) {
             localPageCache.current.set(currentPage, pageStories);
             setStories(pageStories);
 
+            // Cache page 1 locally
+            if (currentPage === 1) {
+              setCachedData("latest_stories_p1", pageStories);
+            }
+
             // Cache last doc as cursor for next page
             if (snap.docs.length === postsPerPage) {
               cursorCache.current.set(
@@ -457,20 +493,15 @@ export function useLatestStories(postsPerPage = 12) {
   return { stories, loading, currentPage, setCurrentPage, totalPages };
 }
 
-// Global in-memory cache for sidebar feeds to prevent redundant database fetches across routes/mounts
-let cachedTrending: TrendingPost[] | null = null;
-let cachedEditorPicks: EditorPick[] | null = null;
-
-// ─────────────────────────────────────────────
 // HOOK 3: useTrendingPosts
 // Fetches top 5 published posts sorted by views desc, then createdAt desc (cold-start safe).
-// ─────────────────────────────────────────────
 export function useTrendingPosts() {
-  const [posts, setPosts] = React.useState<TrendingPost[]>(cachedTrending || FALLBACK_TRENDING);
-  const [loading, setLoading] = React.useState(!cachedTrending);
+  const cached = getCachedData<TrendingPost[]>("trending");
+  const [posts, setPosts] = React.useState<TrendingPost[]>(cached || FALLBACK_TRENDING);
+  const [loading, setLoading] = React.useState(!cached);
 
   React.useEffect(() => {
-    if (cachedTrending) {
+    if (isCacheFresh("trending")) {
       setLoading(false);
       return;
     }
@@ -501,7 +532,7 @@ export function useTrendingPosts() {
                 slug: data.slug,
               };
             });
-            cachedTrending = livePosts;
+            setCachedData("trending", livePosts);
             setPosts(livePosts);
           }
           setLoading(false);
@@ -521,16 +552,15 @@ export function useTrendingPosts() {
   return { posts, loading };
 }
 
-// ─────────────────────────────────────────────
 // HOOK 4: useEditorPicks
 // Fetches top 3 published posts where isEditorPick == true, sorted by createdAt desc.
-// ─────────────────────────────────────────────
 export function useEditorPicks() {
-  const [picks, setPicks] = React.useState<EditorPick[]>(cachedEditorPicks || FALLBACK_EDITOR_PICKS);
-  const [loading, setLoading] = React.useState(!cachedEditorPicks);
+  const cached = getCachedData<EditorPick[]>("editor_picks");
+  const [picks, setPicks] = React.useState<EditorPick[]>(cached || FALLBACK_EDITOR_PICKS);
+  const [loading, setLoading] = React.useState(!cached);
 
   React.useEffect(() => {
-    if (cachedEditorPicks) {
+    if (isCacheFresh("editor_picks")) {
       setLoading(false);
       return;
     }
@@ -561,7 +591,7 @@ export function useEditorPicks() {
                 slug: data.slug,
               };
             });
-            cachedEditorPicks = livePicks;
+            setCachedData("editor_picks", livePicks);
             setPicks(livePicks);
           }
           setLoading(false);
