@@ -194,10 +194,8 @@ const CTA_MAP: Record<string, string> = {
   News: "Read Story",
 };
 
-// ─────────────────────────────────────────────
 // HOOK 1: useHeroSlides
 // Fetches the latest published post from each of the 4 categories (parallel fetch).
-// ─────────────────────────────────────────────
 export function useHeroSlides() {
   const [slides, setSlides] = React.useState<HeroSlide[]>(FALLBACK_HERO_SLIDES);
   const [loading, setLoading] = React.useState(true);
@@ -263,10 +261,8 @@ export function useHeroSlides() {
   return { slides, loading };
 }
 
-// ─────────────────────────────────────────────
 // HOOK 2: useLatestStories
 // Fetches published posts ordered by createdAt desc, with cursor pagination (12 per page).
-// ─────────────────────────────────────────────
 export function useLatestStories(postsPerPage = 12) {
   const [stories, setStories] = React.useState<StoryCard[]>([]);
   const [loading, setLoading] = React.useState(true);
