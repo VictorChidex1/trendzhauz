@@ -102,5 +102,16 @@ service cloud.firestore {
       // CREATE & DELETE: Only a super-admin can add or remove bio links.
       allow create, delete: if isSuperAdmin();
     }
+
+    // ──────────────────────────────────────────────
+    // 4. AGGREGATIONS COLLECTION — Pre-computed homepage feeds
+    // ──────────────────────────────────────────────
+    // Written by the server-side Cloud Function (Admin SDK bypasses rules).
+    // Public read access so any visitor can load the pre-aggregated homepage data.
+    match /aggregations/{docId} {
+      allow read: if true;
+      // No client-side writes allowed — only the Admin SDK (Cloud Function) can write.
+      allow write: if false;
+    }
   }
 }

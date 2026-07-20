@@ -6,6 +6,8 @@ import {
   orderBy,
   limit,
   getDocs,
+  doc,
+  getDoc,
   startAfter,
   getCountFromServer,
   type DocumentSnapshot,
@@ -201,7 +203,7 @@ const CTA_MAP: Record<string, string> = {
 };
 
 // HOOK 1: useHeroSlides
-// Fetches the latest published posts in a single query, then filters for the latest post of each category in memory (consolidates database reads).
+// Reads from pre-aggregated document first, falls back to direct query.
 export function useHeroSlides() {
   const cached = getCachedData<HeroSlide[]>("hero_slides");
   const [slides, setSlides] = React.useState<HeroSlide[]>(cached || FALLBACK_HERO_SLIDES);
@@ -218,7 +220,19 @@ export function useHeroSlides() {
 
     async function fetchSlides() {
       try {
-        // Query the 12 most recent published posts at once
+        // ── TRY AGGREGATED DOCUMENT FIRST (1 read instead of 12) ──
+        const aggDoc = await getDoc(doc(db, "aggregations", "homepage"));
+        if (aggDoc.exists() && aggDoc.data()?.heroSlides?.length >= 2) {
+          const aggSlides = aggDoc.data().heroSlides as HeroSlide[];
+          if (!cancelled) {
+            setCachedData("hero_slides", aggSlides);
+            setSlides(aggSlides);
+            setLoading(false);
+          }
+          return;
+        }
+
+        // ── FALLBACK: Direct query (used before first aggregation runs) ──
         const q = query(
           collection(db, "posts"),
           where("status", "==", "published"),
@@ -230,7 +244,7 @@ export function useHeroSlides() {
         if (!cancelled) {
           const liveSlides: HeroSlide[] = [];
           if (!snap.empty) {
-            const posts = snap.docs.map((doc) => doc.data() as Post);
+            const posts = snap.docs.map((d) => d.data() as Post);
 
             categories.forEach((cat) => {
               const found = posts.find(
@@ -253,7 +267,6 @@ export function useHeroSlides() {
             });
           }
 
-          // Only use live data if we got at least 2 slides
           if (liveSlides.length >= 2) {
             setCachedData("hero_slides", liveSlides);
             setSlides(liveSlides);
@@ -504,7 +517,7 @@ export function useLatestStories(postsPerPage = 12) {
 }
 
 // HOOK 3: useTrendingPosts
-// Fetches top 5 published posts sorted by views desc, then createdAt desc (cold-start safe).
+// Reads from pre-aggregated document first, falls back to direct query.
 export function useTrendingPosts() {
   const cached = getCachedData<TrendingPost[]>("trending");
   const [posts, setPosts] = React.useState<TrendingPost[]>(cached || FALLBACK_TRENDING);
@@ -520,6 +533,19 @@ export function useTrendingPosts() {
 
     async function fetchTrending() {
       try {
+        // ── TRY AGGREGATED DOCUMENT FIRST (1 read instead of 5) ──
+        const aggDoc = await getDoc(doc(db, "aggregations", "homepage"));
+        if (aggDoc.exists() && aggDoc.data()?.trending?.length > 0) {
+          const aggTrending = aggDoc.data().trending as TrendingPost[];
+          if (!cancelled) {
+            setCachedData("trending", aggTrending);
+            setPosts(aggTrending);
+            setLoading(false);
+          }
+          return;
+        }
+
+        // ── FALLBACK: Direct query ──
         const q = query(
           collection(db, "posts"),
           where("status", "==", "published"),
@@ -532,8 +558,8 @@ export function useTrendingPosts() {
 
         if (!cancelled) {
           if (!snap.empty) {
-            const livePosts: TrendingPost[] = snap.docs.map((doc, idx) => {
-              const data = doc.data() as Post;
+            const livePosts: TrendingPost[] = snap.docs.map((d, idx) => {
+              const data = d.data() as Post;
               return {
                 rank: idx + 1,
                 title: data.title,
@@ -563,7 +589,7 @@ export function useTrendingPosts() {
 }
 
 // HOOK 4: useEditorPicks
-// Fetches top 3 published posts where isEditorPick == true, sorted by createdAt desc.
+// Reads from pre-aggregated document first, falls back to direct query.
 export function useEditorPicks() {
   const cached = getCachedData<EditorPick[]>("editor_picks");
   const [picks, setPicks] = React.useState<EditorPick[]>(cached || FALLBACK_EDITOR_PICKS);
@@ -579,6 +605,19 @@ export function useEditorPicks() {
 
     async function fetchPicks() {
       try {
+        // ── TRY AGGREGATED DOCUMENT FIRST (1 read instead of 3) ──
+        const aggDoc = await getDoc(doc(db, "aggregations", "homepage"));
+        if (aggDoc.exists() && aggDoc.data()?.editorPicks?.length > 0) {
+          const aggPicks = aggDoc.data().editorPicks as EditorPick[];
+          if (!cancelled) {
+            setCachedData("editor_picks", aggPicks);
+            setPicks(aggPicks);
+            setLoading(false);
+          }
+          return;
+        }
+
+        // ── FALLBACK: Direct query ──
         const q = query(
           collection(db, "posts"),
           where("status", "==", "published"),
@@ -591,8 +630,8 @@ export function useEditorPicks() {
 
         if (!cancelled) {
           if (!snap.empty) {
-            const livePicks: EditorPick[] = snap.docs.map((doc) => {
-              const data = doc.data() as Post;
+            const livePicks: EditorPick[] = snap.docs.map((d) => {
+              const data = d.data() as Post;
               return {
                 category: data.category,
                 title: data.title,
