@@ -71,6 +71,11 @@ const FALLBACK_BASE_STORIES = [
     coverImageUrl: "/assets/Wizkid-Asake-Real-Vol.-1-EP.webp",
     createdAt: "Jul 18, 2026",
     slug: "wizkid-asake-real-vol1-audiomack",
+    artistName: "Wizkid & Asake",
+    projectTitle: "Real Vol. 1",
+    projectType: "EP" as const,
+    rating: 8.7,
+    verdict: "A dazzling, rhythm-heavy collaboration showcasing two of Afrobeats' finest forces in peak synergy.",
   },
   {
     category: "Music",
@@ -447,6 +452,11 @@ export function useLatestStories(postsPerPage = 12) {
                   coverImageUrl: data.coverImageUrl,
                   createdAt: formatDate(data.createdAt),
                   slug: data.slug,
+                  artistName: data.artistName,
+                  projectTitle: data.projectTitle,
+                  projectType: data.projectType,
+                  rating: data.rating,
+                  verdict: data.verdict,
                 };
               }
             );

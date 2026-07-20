@@ -19,6 +19,11 @@ export interface Post {
   authorId: string;
   authorName: string;
   searchIndex: string[];
+  artistName?: string;
+  projectTitle?: string;
+  projectType?: "Album" | "EP" | "Single" | "Mixtape";
+  rating?: number;
+  verdict?: string;
 }
 
 /**
@@ -68,4 +73,9 @@ export interface StoryCard {
   coverImageUrl: string;
   createdAt: string;
   slug: string;
+  artistName?: string;
+  projectTitle?: string;
+  projectType?: "Album" | "EP" | "Single" | "Mixtape";
+  rating?: number;
+  verdict?: string;
 }

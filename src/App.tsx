@@ -4,6 +4,7 @@ import { MainNavbar } from "@/components/layout/MainNavbar";
 import { Footer } from "@/components/layout/Footer";
 import { ScrollToTop } from "@/components/ui/ScrollToTop";
 import BlogHome from "@/pages/BlogHome";
+import ReviewsPage from "@/pages/ReviewsPage";
 import BlogPostView from "@/pages/BlogPostView";
 import LinkHub from "@/pages/LinkHub";
 import AdminLogin from "@/pages/AdminLogin";
@@ -22,6 +23,7 @@ function App() {
             <Routes>
               {/* Public Routing */}
               <Route path="/" element={<BlogHome />} />
+              <Route path="/category/reviews" element={<ReviewsPage />} />
               <Route path="/category/:category" element={<BlogHome />} />
               <Route path="/post/:slug" element={<BlogPostView />} />
               <Route path="/links" element={<LinkHub />} />
