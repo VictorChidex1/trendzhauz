@@ -54,7 +54,7 @@ export function ScrollToTop() {
           aria-label="Scroll to Top"
         >
           {/* Radial Progress Ring */}
-          <svg className="absolute inset-0 h-full w-full -rotate-90">
+          <svg viewBox="0 0 48 48" className="absolute inset-0 h-full w-full -rotate-90">
             {/* Background thin circle */}
             <circle
               cx="24"
