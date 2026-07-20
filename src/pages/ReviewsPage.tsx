@@ -100,7 +100,7 @@ export default function ReviewsPage() {
     <div className="flex-1 flex flex-col w-full bg-background transition-colors duration-300 pb-20">
       {/* ── SPOTLIGHT BILLBOARD (Hero Banner) ── */}
       {spotlightReview && currentPage === 1 && (
-        <section className="relative w-full h-[65vh] min-h-[480px] bg-zinc-950 overflow-hidden flex items-end">
+        <section className="relative w-full min-h-[580px] md:h-[65vh] md:min-h-[500px] bg-zinc-950 overflow-hidden flex items-end pt-24 md:pt-0">
           {/* Background Widescreen Project Cover Image */}
           <div className="absolute inset-0 w-full h-full transform-gpu">
             <img
@@ -116,7 +116,7 @@ export default function ReviewsPage() {
           </div>
 
           {/* Hero Content Overlay */}
-          <div className="relative z-10 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 pb-12 sm:pb-16 flex flex-col md:flex-row md:items-end md:justify-between gap-8">
+          <div className="relative z-10 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 pb-8 md:pb-16 flex flex-col md:flex-row md:items-end md:justify-between gap-6 md:gap-8">
             <div className="max-w-2xl space-y-4">
               <div className="inline-flex items-center space-x-2 bg-brand text-white text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-sm shadow-md">
                 <Flame className="h-3 w-3 fill-current" />
