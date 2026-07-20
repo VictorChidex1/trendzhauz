@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "@/hooks/useTheme";
 import { MainNavbar } from "@/components/layout/MainNavbar";
 import { Footer } from "@/components/layout/Footer";
+import { ScrollToTop } from "@/components/ui/ScrollToTop";
 import BlogHome from "@/pages/BlogHome";
 import BlogPostView from "@/pages/BlogPostView";
 import LinkHub from "@/pages/LinkHub";
@@ -46,6 +47,9 @@ function App() {
 
           {/* Core Footer */}
           <Footer />
+
+          {/* Floating UI widgets */}
+          <ScrollToTop />
         </div>
       </BrowserRouter>
     </ThemeProvider>
@@ -53,3 +57,4 @@ function App() {
 }
 
 export default App;
+
