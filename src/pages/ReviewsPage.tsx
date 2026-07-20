@@ -151,14 +151,14 @@ export default function ReviewsPage() {
             </div>
 
             {/* Large Score Plate */}
-            <div className="flex flex-col items-center justify-center self-start md:self-end bg-zinc-950/40 backdrop-blur-xl border border-white/10 p-6 rounded-md shadow-[0_0_50px_-12px_rgba(249,115,22,0.25)] text-center min-w-[140px]">
-              <div className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase mb-2">
+            <div className="flex flex-col items-center justify-center self-start md:self-end bg-zinc-950/70 backdrop-blur-xl border border-white/10 p-6 rounded-md shadow-[0_0_50px_-12px_rgba(249,115,22,0.25)] text-center min-w-[140px]">
+              <div className="text-[10px] font-black tracking-widest text-zinc-200 uppercase mb-2">
                 Score
               </div>
               <div className="text-5xl font-black tracking-tighter text-brand leading-none mb-1 drop-shadow-[0_0_12px_rgba(249,115,22,0.4)]">
                 {spotlightReview.rating?.toFixed(1)}
               </div>
-              <div className="text-[9px] font-bold text-zinc-500 uppercase">
+              <div className="text-[9px] font-black tracking-widest text-zinc-300 uppercase">
                 {spotlightReview.projectType || "ALBUM"} REVIEW
               </div>
             </div>
