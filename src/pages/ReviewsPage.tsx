@@ -108,8 +108,8 @@ export default function ReviewsPage() {
               alt={spotlightReview.title}
               className="w-full h-full object-cover object-center opacity-40 scale-105 filter blur-xs"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-background via-background/30 to-transparent" />
-            <div className="absolute inset-0 bg-radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.6)_100%)" />
+            <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-r from-zinc-950/90 via-zinc-950/40 to-transparent" />
             {/* Ambient orange brand glows */}
             <div className="absolute -top-40 -right-40 w-96 h-96 rounded-full bg-brand/10 blur-[120px] pointer-events-none" />
             <div className="absolute -bottom-40 -left-40 w-96 h-96 rounded-full bg-brand/5 blur-[120px] pointer-events-none" />
@@ -131,8 +131,15 @@ export default function ReviewsPage() {
                 {spotlightReview.projectTitle}
               </h1>
 
+              {/* Description */}
+              {spotlightReview.description && (
+                <p className="text-zinc-200 text-sm sm:text-base font-semibold max-w-xl leading-relaxed">
+                  {spotlightReview.description}
+                </p>
+              )}
+
               {spotlightReview.verdict && (
-                <p className="text-zinc-300 text-sm sm:text-base font-medium max-w-lg italic border-l-2 border-brand pl-3">
+                <p className="text-zinc-100 text-xs sm:text-sm font-medium max-w-lg italic border-l-2 border-brand pl-3">
                   "{spotlightReview.verdict}"
                 </p>
               )}
