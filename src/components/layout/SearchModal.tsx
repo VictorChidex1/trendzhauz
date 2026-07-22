@@ -50,23 +50,26 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center pt-16 sm:pt-24 px-4">
-          {/* Backdrop Overlay */}
+        <div
+          onClick={onClose}
+          className="fixed inset-0 z-50 flex items-start justify-center pt-16 sm:pt-24 px-4 cursor-pointer"
+        >
+          {/* Backdrop Blur Overlay */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={onClose}
-            className="fixed inset-0 bg-black/60 backdrop-blur-md transition-opacity"
+            className="fixed inset-0 bg-black/60 backdrop-blur-md transition-opacity pointer-events-none"
           />
 
-          {/* Modal Container Card */}
+          {/* Modal Container Card (Click Propagation Stopped) */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: -20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: -20 }}
             transition={{ type: "spring", stiffness: 350, damping: 28 }}
-            className="relative w-full max-w-2xl bg-background border border-zinc-200 dark:border-zinc-800 rounded-md shadow-2xl overflow-hidden z-10 flex flex-col max-h-[80vh]"
+            onClick={(e) => e.stopPropagation()}
+            className="relative w-full max-w-2xl bg-background border border-zinc-200 dark:border-zinc-800 rounded-md shadow-2xl overflow-hidden z-10 flex flex-col max-h-[80vh] cursor-default"
           >
             {/* Input Bar Layer */}
             <div className="flex items-center px-4 border-b border-zinc-200/60 dark:border-zinc-800/80 py-3 gap-3 bg-zinc-50/50 dark:bg-zinc-950/40">
@@ -82,16 +85,22 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
               {loading && <Loader2 className="h-4 w-4 animate-spin text-brand shrink-0" />}
               {searchTerm && (
                 <button
+                  type="button"
                   onClick={clearSearch}
-                  className="p-1 rounded-sm text-muted-foreground hover:text-foreground transition-colors"
+                  className="p-1 rounded-sm text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                   aria-label="Clear input"
                 >
                   <X className="h-4 w-4" />
                 </button>
               )}
-              <kbd className="hidden sm:inline-block px-2 py-0.5 text-[9px] font-black uppercase text-muted-foreground bg-zinc-200/60 dark:bg-zinc-800/60 border border-zinc-300 dark:border-zinc-700 rounded-sm shrink-0">
-                ESC
-              </kbd>
+              {/* Explicit Cancel Button */}
+              <button
+                type="button"
+                onClick={onClose}
+                className="text-[10px] font-black uppercase tracking-wider text-muted-foreground hover:text-brand px-2.5 py-1 rounded-sm border border-zinc-200/80 dark:border-zinc-800/80 hover:border-brand/40 bg-zinc-100/50 dark:bg-zinc-900/50 transition-colors shrink-0 cursor-pointer"
+              >
+                Cancel
+              </button>
             </div>
 
             {/* Content Display Layer */}
