@@ -80,28 +80,35 @@ const MOCK_SEARCH_POOL: StoryCard[] = [
   },
 ];
 
+export type SearchCategoryFilter = "All" | "Music" | "Reviews" | "Videos" | "News";
+
 export interface UseSearchResult {
   results: StoryCard[];
   loading: boolean;
   searchTerm: string;
   setSearchTerm: (term: string) => void;
+  selectedCategory: SearchCategoryFilter;
+  setSelectedCategory: (cat: SearchCategoryFilter) => void;
   clearSearch: () => void;
 }
 
 /**
  * Custom hook providing 300ms debounced Firestore token array search queries
- * with automatic local memory fallback for rapid testing.
+ * with category filtering and automatic local memory fallback.
  *
  * @param initialQuery - Initial query string
+ * @param initialCategory - Initial category filter (default: "All")
  * @param debounceMs - Debounce delay in milliseconds (default: 300ms)
  * @param maxResults - Maximum result items to return (default: 8)
  */
 export function useSearch(
   initialQuery = "",
+  initialCategory: SearchCategoryFilter = "All",
   debounceMs = 300,
   maxResults = 8
 ): UseSearchResult {
   const [searchTerm, setSearchTerm] = React.useState(initialQuery);
+  const [selectedCategory, setSelectedCategory] = React.useState<SearchCategoryFilter>(initialCategory);
   const [debouncedQuery, setDebouncedQuery] = React.useState(initialQuery);
   const [results, setResults] = React.useState<StoryCard[]>([]);
   const [loading, setLoading] = React.useState(false);
@@ -117,7 +124,7 @@ export function useSearch(
     };
   }, [searchTerm, debounceMs]);
 
-  // 2. Query Firestore or memory fallback when debounced query changes
+  // 2. Query Firestore or memory fallback when debounced query or selected category changes
   React.useEffect(() => {
     const cleanQuery = debouncedQuery.trim();
     if (!cleanQuery) {
@@ -138,13 +145,18 @@ export function useSearch(
     async function executeSearch() {
       setLoading(true);
       try {
-        // Query Firestore using array-contains evaluation on searchIndex field
-        const q = query(
+        // Build query matching status == published and searchIndex array-contains token
+        let q = query(
           collection(db, "posts"),
           where("status", "==", "published"),
-          where("searchIndex", "array-contains", token),
-          limit(maxResults)
+          where("searchIndex", "array-contains", token)
         );
+
+        if (selectedCategory !== "All") {
+          q = query(q, where("category", "==", selectedCategory));
+        }
+
+        q = query(q, limit(maxResults));
 
         const snap = await getDocs(q);
 
@@ -180,6 +192,11 @@ export function useSearch(
             // Firestore returned empty results — perform local memory fallback search
             const normalizedQuery = normalizeText(cleanQuery);
             const memoryHits = MOCK_SEARCH_POOL.filter((item) => {
+              const matchesCategory =
+                selectedCategory === "All" ||
+                item.category.toLowerCase() === selectedCategory.toLowerCase();
+              if (!matchesCategory) return false;
+
               const itemText = normalizeText(
                 `${item.title} ${item.description || ""} ${item.artistName || ""} ${item.category}`
               );
@@ -195,6 +212,11 @@ export function useSearch(
         if (!cancelled) {
           const normalizedQuery = normalizeText(cleanQuery);
           const memoryHits = MOCK_SEARCH_POOL.filter((item) => {
+            const matchesCategory =
+              selectedCategory === "All" ||
+              item.category.toLowerCase() === selectedCategory.toLowerCase();
+            if (!matchesCategory) return false;
+
             const itemText = normalizeText(
               `${item.title} ${item.description || ""} ${item.artistName || ""} ${item.category}`
             );
@@ -212,7 +234,7 @@ export function useSearch(
     return () => {
       cancelled = true;
     };
-  }, [debouncedQuery, maxResults]);
+  }, [debouncedQuery, selectedCategory, maxResults]);
 
   const clearSearch = React.useCallback(() => {
     setSearchTerm("");
@@ -225,6 +247,8 @@ export function useSearch(
     loading,
     searchTerm,
     setSearchTerm,
+    selectedCategory,
+    setSelectedCategory,
     clearSearch,
   };
 }
