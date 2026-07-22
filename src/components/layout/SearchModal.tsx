@@ -1,4 +1,5 @@
 import * as React from "react";
+import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, X, Loader2, Calendar, Award, Flame } from "lucide-react";
@@ -22,6 +23,7 @@ const POPULAR_SEARCH_TAGS = [
 export function SearchModal({ isOpen, onClose }: SearchModalProps) {
   const { results, loading, searchTerm, setSearchTerm, clearSearch } = useSearch();
   const inputRef = React.useRef<HTMLInputElement>(null);
+  const modalRef = React.useRef<HTMLDivElement>(null);
 
   // Focus input field when modal opens
   React.useEffect(() => {
@@ -33,6 +35,23 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
       clearSearch();
     }
   }, [isOpen, clearSearch]);
+
+  // Global mousedown listener for instant click-outside detection anywhere on screen
+  React.useEffect(() => {
+    const handleMouseDown = (e: MouseEvent) => {
+      if (modalRef.current && !modalRef.current.contains(e.target as Node)) {
+        onClose();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener("mousedown", handleMouseDown);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleMouseDown);
+    };
+  }, [isOpen, onClose]);
 
   // Handle ESC key to close modal
   React.useEffect(() => {
@@ -47,29 +66,26 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
 
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     <AnimatePresence>
       {isOpen && (
-        <div
-          onClick={onClose}
-          className="fixed inset-0 z-50 flex items-start justify-center pt-16 sm:pt-24 px-4 cursor-pointer"
-        >
-          {/* Backdrop Blur Overlay */}
+        <div className="fixed inset-0 z-[100] flex items-start justify-center pt-16 sm:pt-24 px-4">
+          {/* Uniform Full-Screen Backdrop Overlay */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 backdrop-blur-md transition-opacity pointer-events-none"
+            className="fixed inset-0 bg-black/60 backdrop-blur-md transition-opacity"
           />
 
-          {/* Modal Container Card (Click Propagation Stopped) */}
+          {/* Modal Container Card (modalRef tracked for click-outside) */}
           <motion.div
+            ref={modalRef}
             initial={{ opacity: 0, scale: 0.95, y: -20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: -20 }}
             transition={{ type: "spring", stiffness: 350, damping: 28 }}
-            onClick={(e) => e.stopPropagation()}
-            className="relative w-full max-w-2xl bg-background border border-zinc-200 dark:border-zinc-800 rounded-md shadow-2xl overflow-hidden z-10 flex flex-col max-h-[80vh] cursor-default"
+            className="relative w-full max-w-2xl bg-background border border-zinc-200 dark:border-zinc-800 rounded-md shadow-2xl overflow-hidden z-10 flex flex-col max-h-[80vh]"
           >
             {/* Input Bar Layer */}
             <div className="flex items-center px-4 border-b border-zinc-200/60 dark:border-zinc-800/80 py-3 gap-3 bg-zinc-50/50 dark:bg-zinc-950/40">
@@ -207,6 +223,7 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
           </motion.div>
         </div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }
