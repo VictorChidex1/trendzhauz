@@ -21,7 +21,7 @@ import type {
   TrendingPost,
   EditorPick,
 } from "../types/post";
-import { getCachedData, isCacheFresh, setCachedData } from "../utils/queryCache";
+import { getCachedData, isCacheFresh, setCachedData, TTL } from "../utils/queryCache";
 
 // FALLBACK MOCK DATA (shown when Firestore is empty)
 
@@ -208,7 +208,7 @@ export function useHeroSlides() {
   const [loading, setLoading] = React.useState(!cached);
 
   React.useEffect(() => {
-    if (isCacheFresh("hero_slides")) {
+    if (isCacheFresh("hero_slides", TTL.HOMEPAGE)) {
       setLoading(false);
       return;
     }
@@ -522,7 +522,7 @@ export function useTrendingPosts() {
   const [loading, setLoading] = React.useState(!cached);
 
   React.useEffect(() => {
-    if (isCacheFresh("trending")) {
+    if (isCacheFresh("trending", TTL.HOMEPAGE)) {
       setLoading(false);
       return;
     }
@@ -594,7 +594,7 @@ export function useEditorPicks() {
   const [loading, setLoading] = React.useState(!cached);
 
   React.useEffect(() => {
-    if (isCacheFresh("editor_picks")) {
+    if (isCacheFresh("editor_picks", TTL.HOMEPAGE)) {
       setLoading(false);
       return;
     }
