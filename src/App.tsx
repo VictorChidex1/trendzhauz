@@ -1,8 +1,10 @@
+import { useEffect } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "@/hooks/useTheme";
 import { MainNavbar } from "@/components/layout/MainNavbar";
 import { Footer } from "@/components/layout/Footer";
 import { ScrollToTop } from "@/components/ui/ScrollToTop";
+import { pruneExpiredCache } from "@/utils/queryCache";
 import BlogHome from "@/pages/BlogHome";
 import ReviewsPage from "@/pages/ReviewsPage";
 import BlogPostView from "@/pages/BlogPostView";
@@ -11,6 +13,10 @@ import AdminLogin from "@/pages/AdminLogin";
 import AdminPanel from "@/pages/AdminPanel";
 
 function App() {
+  // Automatically prune expired localStorage cache entries on app boot
+  useEffect(() => {
+    pruneExpiredCache();
+  }, []);
   return (
     <ThemeProvider>
       <BrowserRouter>

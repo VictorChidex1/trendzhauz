@@ -17,6 +17,7 @@ import {
   getCachedData,
   isCacheFresh,
   setCachedData,
+  TTL,
 } from "../utils/queryCache";
 
 // RICH MOCK REVIEWS FOR FALLBACK
@@ -190,7 +191,7 @@ export function useReviews(
 
   // 1. Get the total reviews count under this filter configuration
   React.useEffect(() => {
-    if (isCacheFresh(cacheKeyCount) && isCacheFresh(cacheKeyPage1)) {
+    if (isCacheFresh(cacheKeyCount, TTL.LISTS) && isCacheFresh(cacheKeyPage1, TTL.LISTS)) {
       return;
     }
 
@@ -270,7 +271,7 @@ export function useReviews(
     }
 
     // Skip network call if page 1 is fresh
-    if (currentPage === 1 && isCacheFresh(cacheKeyPage1) && cachedPage1) {
+    if (currentPage === 1 && isCacheFresh(cacheKeyPage1, TTL.LISTS) && cachedPage1) {
       setReviews(cachedPage1);
       setLoading(false);
       return;

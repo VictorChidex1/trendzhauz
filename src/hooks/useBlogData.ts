@@ -23,9 +23,7 @@ import type {
 } from "../types/post";
 import { getCachedData, isCacheFresh, setCachedData } from "../utils/queryCache";
 
-// ─────────────────────────────────────────────
 // FALLBACK MOCK DATA (shown when Firestore is empty)
-// ─────────────────────────────────────────────
 
 const FALLBACK_HERO_SLIDES: HeroSlide[] = [
   {

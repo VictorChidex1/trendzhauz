@@ -10,7 +10,17 @@ interface CacheEntry<T> {
 }
 
 const CACHE_PREFIX = "tz_cache_";
-const DEFAULT_TTL = 5 * 60 * 1000; // 5 minutes
+
+/**
+ * Centralized Time-To-Live (TTL) configuration constants in milliseconds.
+ */
+export const TTL = {
+  HOMEPAGE: 30 * 60 * 1000,   // 30 Minutes (Hero Slides, Trending, Editor Picks)
+  LISTS: 15 * 60 * 1000,      // 15 Minutes (Latest Stories, Reviews Pagination)
+  ARTICLE: 2 * 60 * 60 * 1000, // 2 Hours (Single Article Detail View)
+} as const;
+
+const DEFAULT_TTL = TTL.LISTS;
 
 /**
  * Retrieve cached data from localStorage.
@@ -31,7 +41,7 @@ export function getCachedData<T>(key: string): T | null {
  * Check if cached data is still within its TTL window.
  * Returns false if no cache exists or if the data has expired.
  */
-export function isCacheFresh(key: string, ttl = DEFAULT_TTL): boolean {
+export function isCacheFresh(key: string, ttl: number = DEFAULT_TTL): boolean {
   try {
     const raw = localStorage.getItem(`${CACHE_PREFIX}${key}`);
     if (!raw) return false;
@@ -65,3 +75,36 @@ export function clearCachedData(key: string): void {
     // fail silently
   }
 }
+
+/**
+ * Scans localStorage for stale Trendzhauz cache keys and removes expired entries
+ * to keep local storage clean and prevent QuotaExceededError.
+ */
+export function pruneExpiredCache(defaultMaxAge = TTL.ARTICLE): void {
+  try {
+    const now = Date.now();
+    const keysToRemove: string[] = [];
+
+    for (let i = 0; i < localStorage.length; i++) {
+      const fullKey = localStorage.key(i);
+      if (fullKey && fullKey.startsWith(CACHE_PREFIX)) {
+        const raw = localStorage.getItem(fullKey);
+        if (raw) {
+          try {
+            const entry: CacheEntry<unknown> = JSON.parse(raw);
+            if (now - entry.timestamp > defaultMaxAge) {
+              keysToRemove.push(fullKey);
+            }
+          } catch {
+            keysToRemove.push(fullKey);
+          }
+        }
+      }
+    }
+
+    keysToRemove.forEach((key) => localStorage.removeItem(key));
+  } catch {
+    // fail silently if localStorage unavailable
+  }
+}
+
