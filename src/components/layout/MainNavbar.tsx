@@ -1,9 +1,10 @@
 import * as React from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
-import { Sun, Moon, Menu, X } from "lucide-react";
+import { Sun, Moon, Menu, X, Search } from "lucide-react";
 import { useTheme } from "@/hooks/useTheme";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
+import { SearchModal } from "@/components/layout/SearchModal";
 
 const navItems = [
   { name: "Home", path: "/" },
@@ -17,7 +18,20 @@ const navItems = [
 export function MainNavbar() {
   const { theme, toggleTheme } = useTheme();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
+  const [isSearchOpen, setIsSearchOpen] = React.useState(false);
   const location = useLocation();
+
+  // Listen for Cmd+K (Mac) or Ctrl+K (Windows) to trigger search modal
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setIsSearchOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-zinc-200/50 dark:border-zinc-800/50 bg-background/90 backdrop-blur-lg transition-colors duration-300">
@@ -65,15 +79,34 @@ export function MainNavbar() {
           })}
         </nav>
 
-        {/* Action Controls (Theme Toggle & Mobile Menu Switch) */}
+        {/* Action Controls (Search Button, Theme Toggle & Mobile Menu Switch) */}
         <div className="flex items-center space-x-2">
+          {/* Search Trigger Button */}
+          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsSearchOpen(true)}
+              className="relative h-9 px-3 rounded-md border border-zinc-200/60 dark:border-zinc-800/60 bg-transparent hover:bg-zinc-100 dark:hover:bg-zinc-900 text-foreground flex items-center gap-2 cursor-pointer"
+              aria-label="Open search modal"
+            >
+              <Search className="h-[1.1rem] w-[1.1rem] text-brand" />
+              <span className="hidden sm:inline text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                Search
+              </span>
+              <kbd className="hidden lg:inline-block px-1.5 py-0.5 text-[9px] font-black uppercase text-muted-foreground bg-zinc-200/50 dark:bg-zinc-800/50 border border-zinc-300/60 dark:border-zinc-700/60 rounded-sm ml-1">
+                ⌘K
+              </kbd>
+            </Button>
+          </motion.div>
+
           {/* Theme Toggle Button with Rotate & Scale Morph */}
           <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
             <Button
               variant="ghost"
               size="icon"
               onClick={toggleTheme}
-              className="relative h-9 w-9 rounded-md border border-zinc-200/60 dark:border-zinc-800/60 bg-transparent hover:bg-zinc-100 dark:hover:bg-zinc-900 text-foreground"
+              className="relative h-9 w-9 rounded-md border border-zinc-200/60 dark:border-zinc-800/60 bg-transparent hover:bg-zinc-100 dark:hover:bg-zinc-900 text-foreground cursor-pointer"
               aria-label="Toggle theme"
             >
               <AnimatePresence mode="wait" initial={false}>
@@ -107,7 +140,7 @@ export function MainNavbar() {
             variant="ghost"
             size="icon"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="md:hidden h-9 w-9 rounded-md border border-zinc-200/60 dark:border-zinc-800/60 text-foreground"
+            className="md:hidden h-9 w-9 rounded-md border border-zinc-200/60 dark:border-zinc-800/60 text-foreground cursor-pointer"
             aria-label="Toggle menu"
           >
             {isMobileMenuOpen ? (
@@ -118,6 +151,12 @@ export function MainNavbar() {
           </Button>
         </div>
       </div>
+
+      {/* Global Search Modal */}
+      <SearchModal
+        isOpen={isSearchOpen}
+        onClose={() => setIsSearchOpen(false)}
+      />
 
       {/* Mobile Drawer Menu with AnimatePresence slide and stagger links */}
       <AnimatePresence>
