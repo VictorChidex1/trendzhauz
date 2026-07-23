@@ -247,14 +247,14 @@ export default function ReviewsPage() {
             <div className="absolute -bottom-40 -left-40 w-96 h-96 rounded-full bg-brand/5 blur-[120px] pointer-events-none" />
           </div>
 
-          <div className="relative z-10 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 pb-8 md:pb-16 flex flex-col md:flex-row md:items-end md:justify-between gap-6 md:gap-8">
-            <div className="max-w-2xl space-y-4">
-              <div className="inline-flex items-center space-x-2 bg-brand text-white text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-sm shadow-md">
+          <div className="relative z-10 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 pb-6 sm:pb-8 md:pb-16 flex flex-col md:flex-row md:items-end md:justify-between gap-4 sm:gap-6 md:gap-8">
+            <div className="max-w-2xl space-y-3 sm:space-y-4">
+              <div className="inline-flex items-center space-x-2 bg-brand text-white text-[9px] sm:text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-sm shadow-md">
                 <Flame className="h-3 w-3 fill-current" />
                 <span>Featured Review</span>
               </div>
 
-              <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black uppercase text-white tracking-tighter leading-none">
+              <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-black uppercase text-white tracking-tighter leading-tight sm:leading-none">
                 {spotlightReview.artistName}{" "}
                 <span className="text-zinc-400 font-extralight block sm:inline">
                   /
@@ -263,54 +263,53 @@ export default function ReviewsPage() {
               </h1>
 
               {spotlightReview.description && (
-                <p className="text-zinc-200 text-sm sm:text-base font-semibold max-w-xl leading-relaxed">
+                <p className="text-zinc-200 text-xs sm:text-sm md:text-base font-semibold max-w-xl leading-relaxed line-clamp-3 sm:line-clamp-none">
                   {spotlightReview.description}
                 </p>
               )}
 
               {spotlightReview.verdict && (
-                <p className="text-zinc-100 text-xs sm:text-sm font-medium max-w-lg italic border-l-2 border-brand pl-3">
+                <p className="text-zinc-100 text-[11px] sm:text-xs md:text-sm font-medium max-w-lg italic border-l-2 border-brand pl-3 line-clamp-2 sm:line-clamp-none">
                   "{spotlightReview.verdict}"
                 </p>
               )}
 
-              <div className="flex items-center space-x-4 pt-2">
+              <div className="flex flex-wrap items-center gap-3 pt-1 sm:pt-2">
                 <Link
                   to={`/post/${spotlightReview.slug}`}
-                  className="bg-white hover:bg-brand hover:text-white text-zinc-950 font-black text-xs uppercase tracking-widest px-6 py-3 rounded-sm transition-all duration-300 shadow-lg inline-block"
+                  className="bg-white hover:bg-brand hover:text-white text-zinc-950 font-black text-[10px] sm:text-xs uppercase tracking-widest px-4 sm:px-6 py-2.5 sm:py-3 rounded-sm transition-all duration-300 shadow-lg inline-block"
                 >
                   Read Full Review
                 </Link>
-                <div className="text-zinc-400 text-xs font-semibold">
+                <div className="text-zinc-400 text-[10px] sm:text-xs font-semibold">
                   Published {spotlightReview.createdAt}
                 </div>
               </div>
             </div>
 
-            {/* Spotlight Score Plate with Clickable Matrix Breakdown */}
-            <div className="relative flex flex-col items-center justify-center self-start md:self-end bg-zinc-950/70 backdrop-blur-xl border border-white/10 p-6 rounded-md shadow-[0_0_50px_-12px_rgba(249,115,22,0.25)] text-center min-w-[140px]">
-              <div className="text-[10px] font-black tracking-widest text-zinc-200 uppercase mb-2">
-                Score
+            {/* Spotlight Score Plate */}
+            <div className="relative flex flex-row md:flex-col items-center justify-between md:justify-center self-stretch md:self-end bg-zinc-950/80 backdrop-blur-xl border border-white/10 p-4 sm:p-6 rounded-md shadow-[0_0_50px_-12px_rgba(249,115,22,0.25)] text-center min-w-[120px] sm:min-w-[140px]">
+              <div className="text-[9px] sm:text-[10px] font-black tracking-widest text-zinc-300 uppercase">
+                {spotlightReview.projectType || "ALBUM"} SCORE
               </div>
-              <div className="text-5xl font-black tracking-tighter text-brand leading-none mb-1 drop-shadow-[0_0_12px_rgba(249,115,22,0.4)]">
+              <div className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tighter text-brand leading-none drop-shadow-[0_0_12px_rgba(249,115,22,0.4)] my-1">
                 {spotlightReview.rating?.toFixed(1)}
               </div>
-              <div className="text-[9px] font-black tracking-widest text-zinc-300 uppercase">
-                {spotlightReview.projectType || "ALBUM"} REVIEW
+              <div className="text-[9px] font-black tracking-widest text-zinc-400 uppercase hidden md:block">
+                OVERALL RATING
               </div>
             </div>
           </div>
         </section>
       )}
 
-      {/* ── FILTER & CONTROL BAR ── */}
-      <section className="sticky top-20 z-40 w-full border-b border-zinc-200/50 dark:border-zinc-800/50 bg-background/95 backdrop-blur-md py-4 px-4 sm:px-6 lg:px-8 transition-all space-y-4">
-        <div className="max-w-7xl mx-auto flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+      {/* ── RESPONSIVE FILTER & CONTROL BAR ── */}
+      <section className="sticky top-14 sm:top-20 z-40 w-full border-b border-zinc-200/50 dark:border-zinc-800/50 bg-background/95 backdrop-blur-md py-3 sm:py-4 px-3 sm:px-6 lg:px-8 transition-all space-y-3 sm:space-y-4">
+        <div className="max-w-7xl mx-auto flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 sm:gap-4">
           
-          {/* LEFT: Format Segmented Tabs */}
-          <div className="flex flex-wrap items-center gap-3">
-            {/* Format Filter Segment */}
-            <div className="flex items-center space-x-1 p-1 bg-zinc-100 dark:bg-zinc-900/60 rounded-md border border-zinc-200/40 dark:border-zinc-800/40">
+          {/* LEFT: Format Segmented Tabs (Touch-Scrollable on Mobile) */}
+          <div className="w-full lg:w-auto overflow-x-auto no-scrollbar pb-1 lg:pb-0">
+            <div className="inline-flex items-center space-x-1 p-1 bg-zinc-100 dark:bg-zinc-900/60 rounded-md border border-zinc-200/40 dark:border-zinc-800/40 min-w-max">
               {(["All", "Album", "EP", "Single", "Mixtape"] as const).map(
                 (type) => {
                   const isActive = projectTypeFilter === type;
@@ -318,7 +317,7 @@ export default function ReviewsPage() {
                     <button
                       key={type}
                       onClick={() => setProjectTypeFilter(type)}
-                      className={`relative px-3 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-sm transition-colors duration-200 cursor-pointer ${
+                      className={`relative px-2.5 sm:px-3 py-1 sm:py-1.5 text-[9px] sm:text-[10px] font-black uppercase tracking-widest rounded-sm transition-colors duration-200 cursor-pointer whitespace-nowrap ${
                         isActive
                           ? "text-white dark:text-zinc-950"
                           : "text-foreground/60 hover:text-foreground"
@@ -342,8 +341,8 @@ export default function ReviewsPage() {
           </div>
 
           {/* RIGHT: 2️⃣ Inline Search Bar & Sort Dropdown */}
-          <div className="flex items-center gap-3">
-            {/* 2️⃣ ARTIST & PROJECT QUICK-SEARCH INLINE FILTER */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3">
+            {/* Inline Search Bar */}
             <div className="relative flex-1 sm:w-64">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
               <input
@@ -364,29 +363,31 @@ export default function ReviewsPage() {
             </div>
 
             {/* Sort Toggles */}
-            <div className="flex items-center space-x-2 bg-zinc-100 dark:bg-zinc-900 px-3 py-1.5 rounded-md border border-zinc-200 dark:border-zinc-800">
-              <SlidersHorizontal className="h-3.5 w-3.5 text-muted-foreground" />
-              <select
-                value={sortBy}
-                onChange={(e) =>
-                  setSortBy(e.target.value as "newest" | "highest-rated")
-                }
-                className="bg-transparent border-0 text-[10px] font-black uppercase tracking-widest text-foreground focus:outline-none focus:ring-0 cursor-pointer"
-              >
-                <option value="newest" className="bg-background">
-                  Newest Reviews
-                </option>
-                <option value="highest-rated" className="bg-background">
-                  Highest Rated
-                </option>
-              </select>
+            <div className="flex items-center justify-between sm:justify-start space-x-2 bg-zinc-100 dark:bg-zinc-900 px-3 py-1.5 rounded-md border border-zinc-200 dark:border-zinc-800 shrink-0">
+              <div className="flex items-center space-x-2">
+                <SlidersHorizontal className="h-3.5 w-3.5 text-muted-foreground" />
+                <select
+                  value={sortBy}
+                  onChange={(e) =>
+                    setSortBy(e.target.value as "newest" | "highest-rated")
+                  }
+                  className="bg-transparent border-0 text-[10px] font-black uppercase tracking-widest text-foreground focus:outline-none focus:ring-0 cursor-pointer"
+                >
+                  <option value="newest" className="bg-background">
+                    Newest Reviews
+                  </option>
+                  <option value="highest-rated" className="bg-background">
+                    Highest Rated
+                  </option>
+                </select>
+              </div>
             </div>
           </div>
         </div>
 
         {/* 5️⃣ GENRE FILTER TAG BAR */}
-        <div className="max-w-7xl mx-auto flex items-center space-x-2 overflow-x-auto no-scrollbar pt-1">
-          <div className="flex items-center space-x-1.5 text-[9px] font-black uppercase tracking-widest text-muted-foreground pr-2 shrink-0">
+        <div className="max-w-7xl mx-auto flex items-center space-x-2 overflow-x-auto no-scrollbar pt-0.5">
+          <div className="flex items-center space-x-1.5 text-[9px] font-black uppercase tracking-widest text-muted-foreground pr-1 shrink-0">
             <Music2 className="h-3 w-3 text-brand" />
             <span>Genre:</span>
           </div>
@@ -398,7 +399,7 @@ export default function ReviewsPage() {
               <button
                 key={g}
                 onClick={() => setGenreFilter(g)}
-                className={`px-3 py-1 text-[9px] font-black uppercase tracking-widest rounded-full transition-all shrink-0 cursor-pointer ${
+                className={`px-2.5 sm:px-3 py-0.5 sm:py-1 text-[9px] font-black uppercase tracking-widest rounded-full transition-all shrink-0 cursor-pointer whitespace-nowrap ${
                   isActive
                     ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-950 shadow-xs"
                     : "bg-zinc-100 dark:bg-zinc-900/80 text-muted-foreground hover:text-foreground hover:bg-zinc-200 dark:hover:bg-zinc-800"
@@ -409,7 +410,7 @@ export default function ReviewsPage() {
             );
           })}
 
-          <div className="ml-auto text-[9px] font-black uppercase tracking-widest text-muted-foreground shrink-0 pl-4">
+          <div className="ml-auto text-[9px] font-black uppercase tracking-widest text-muted-foreground shrink-0 pl-3 hidden sm:block">
             Total: {totalEstimate} Reviews
           </div>
         </div>
