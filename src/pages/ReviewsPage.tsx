@@ -304,7 +304,7 @@ export default function ReviewsPage() {
       )}
 
       {/* ── RESPONSIVE FILTER & CONTROL BAR ── */}
-      <section className="sticky top-14 sm:top-20 z-40 w-full border-b border-zinc-200/50 dark:border-zinc-800/50 bg-background/95 backdrop-blur-md py-3 sm:py-4 px-3 sm:px-6 lg:px-8 transition-all space-y-3 sm:space-y-4">
+      <section className="sticky top-20 z-30 w-full border-b border-zinc-200/50 dark:border-zinc-800/50 bg-background/95 backdrop-blur-md py-3 sm:py-4 px-3 sm:px-6 lg:px-8 transition-all space-y-3 sm:space-y-4">
         <div className="max-w-7xl mx-auto flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 sm:gap-4">
           
           {/* LEFT: Format Segmented Tabs (Touch-Scrollable on Mobile) */}
