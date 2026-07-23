@@ -11,6 +11,7 @@ import BlogPostView from "@/pages/BlogPostView";
 import LinkHub from "@/pages/LinkHub";
 import AdminLogin from "@/pages/AdminLogin";
 import AdminPanel from "@/pages/AdminPanel";
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 
 function App() {
   // Automatically prune expired localStorage cache entries on app boot
@@ -36,7 +37,14 @@ function App() {
 
               {/* Administrative CMS Routing */}
               <Route path="/admin" element={<AdminLogin />} />
-              <Route path="/admin/panel" element={<AdminPanel />} />
+              <Route
+                path="/admin/panel"
+                element={
+                  <ProtectedRoute requiredRole="writer">
+                    <AdminPanel />
+                  </ProtectedRoute>
+                }
+              />
 
               {/* Catch-all 404 Route */}
               <Route 
