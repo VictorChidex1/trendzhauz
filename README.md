@@ -6,26 +6,26 @@ A premium, blazing-fast, custom serverless music and entertainment blog built fr
 
 ## 🚀 Core Features
 
-*   **Editorial Media Layout**: A high-end, high-contrast magazine layout featuring a responsive design and homepage hero slider for top trending stories.
-*   **Decoupled CMS Panel (`/admin`)**: A custom, role-protected administrative dashboard supporting multi-writer publishing workflows, real-time rich-text editing, and draft management.
-*   **Universal Media Parser**: A custom embed parser that resolves canonical streaming links (Spotify, Audiomack, YouTube, Apple Music) into responsive player widgets natively in articles.
-*   **On-Domain Linktree Hub (`/links`)**: A mobile-first, distraction-free landing page aggregating social links and tracking fan redirect click analytics using atomic Firestore transactions.
-*   **Array Tokenization Search**: Instant content search covering up to 10,000 posts via a custom title-tokenization index, completely bypassing expensive third-party full-text search subscriptions.
-*   **Binary File Decoupling**: Restricts and isolates high-resolution images via Cloud Storage rules, storing only tiny reference URLs in Firestore to keep database documents under 1MB.
+- **Editorial Media Layout**: A high-end, high-contrast magazine layout featuring a responsive design and homepage hero slider for top trending stories.
+- **Decoupled CMS Panel (`/admin`)**: A custom, role-protected administrative dashboard supporting multi-writer publishing workflows, real-time rich-text editing, and draft management.
+- **Universal Media Parser**: A custom embed parser that resolves canonical streaming links (Spotify, Audiomack, YouTube, Apple Music) into responsive player widgets natively in articles.
+- **On-Domain Linktree Hub (`/links`)**: A mobile-first, distraction-free landing page aggregating social links and tracking fan redirect click analytics using atomic Firestore transactions.
+- **Array Tokenization Search**: Instant content search covering up to 10,000 posts via a custom title-tokenization index, completely bypassing expensive third-party full-text search subscriptions.
+- **Binary File Decoupling**: Restricts and isolates high-resolution images via Cloud Storage rules, storing only tiny reference URLs in Firestore to keep database documents under 1MB.
 
 ---
 
 ## 🛠️ Technology Stack
 
-*   **Frontend Framework**: React 19, Vite, TypeScript
-*   **Styling**: Tailwind CSS, Shadcn UI (Radix / Nova preset)
-*   **Typography**: Geist Sans Variable Font
-*   **Rich Text Editor**: Headless TipTap content engine
-*   **Database**: Cloud Firestore (NoSQL, optimized for fast structured reads)
-*   **Authentication**: Firebase Authentication (Role-based access controls)
-*   **Cloud Storage**: Firebase Storage (Secure binary file hosting)
-*   **Hosting**: Firebase Hosting (CDN-backed edge deployment)
-*   **Code Diagnostics**: Oxlint (Rust-based ultra-fast linter)
+- **Frontend Framework**: React 19, Vite, TypeScript
+- **Styling**: Tailwind CSS, Shadcn UI (Radix / Nova preset)
+- **Typography**: Geist Sans Variable Font
+- **Rich Text Editor**: Headless TipTap content engine
+- **Database**: Cloud Firestore (NoSQL, optimized for fast structured reads)
+- **Authentication**: Firebase Authentication (Role-based access controls)
+- **Cloud Storage**: Firebase Storage (Secure binary file hosting)
+- **Hosting**: Firebase Hosting (CDN-backed edge deployment)
+- **Code Diagnostics**: Oxlint (Rust-based ultra-fast linter)
 
 ---
 
@@ -55,17 +55,21 @@ src/
 ## ⚙️ Local Development Setup
 
 ### Prerequisites
-*   Node.js (v18+)
-*   Java Runtime Environment (JRE) (required for running Firebase emulators locally)
-*   Firebase CLI (`npm install -g firebase-tools`)
+
+- Node.js (v18+)
+- Java Runtime Environment (JRE) (required for running Firebase emulators locally)
+- Firebase CLI (`npm install -g firebase-tools`)
 
 ### 1. Install Dependencies
+
 ```bash
 npm install
 ```
 
 ### 2. Configure Environment Variables
+
 Create a `.env` file in the root directory and add your Firebase credentials:
+
 ```env
 VITE_FIREBASE_API_KEY=your_api_key
 VITE_FIREBASE_AUTH_DOMAIN=your_auth_domain
@@ -77,17 +81,23 @@ VITE_FIREBASE_MEASUREMENT_ID=your_measurement_id
 ```
 
 ### 3. Run Firebase Emulators
+
 Boot up the local database, auth, storage, and emulator dashboard:
+
 ```bash
 firebase emulators:start
 ```
+
 The Firebase Emulator Suite dashboard will be accessible at [http://localhost:4000](http://localhost:4000).
 
 ### 4. Start Vite Dev Server
+
 In a separate terminal window, start the React application:
+
 ```bash
 npm run dev
 ```
+
 The app will detect local development and automatically route all database, storage, and auth operations to your local emulators.
 
 ---
@@ -95,31 +105,45 @@ The app will detect local development and automatically route all database, stor
 ## 🔒 Database Schemas
 
 ### BlogPost
+
 ```typescript
 interface BlogPost {
   id: string;
   title: string;
   slug: string;
+  description: string;
   content: string;
-  category: "reviews" | "music" | "videos" | "news";
+  category: "Music" | "Videos" | "Reviews" | "News";
   coverImageUrl: string;
-  musicUrl?: string;
-  searchIndex: string[]; // Lowercase sanitized tokens for search
   status: "draft" | "published";
-  authorId: string;
-  authorName: string;
+  isEditorPick: boolean;
   views: number;
   createdAt: Timestamp;
+  authorId: string;
+  authorName: string;
+  searchIndex: string[];
+  artistName?: string;
+  projectTitle?: string;
+  projectType?: "Album" | "EP" | "Single" | "Mixtape";
+  rating?: number;
+  verdict?: string;
 }
 ```
 
 ### LinktreeItem
+
 ```typescript
 interface LinktreeItem {
   id: string;
   title: string;
   targetUrl: string;
-  iconType: "spotify" | "audiomack" | "youtube" | "apple" | "instagram" | "generic";
+  iconType:
+    | "spotify"
+    | "audiomack"
+    | "youtube"
+    | "apple"
+    | "instagram"
+    | "generic";
   order: number;
   isActive: boolean;
   clickCount: number;
@@ -127,6 +151,7 @@ interface LinktreeItem {
 ```
 
 ### UserProfile
+
 ```typescript
 interface UserProfile {
   uid: string;

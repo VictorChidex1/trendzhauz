@@ -27,3 +27,17 @@ functions/node_modules
 *.njsproj
 *.sln
 *.sw?
+
+# Documents and explanations
+firestore-rules.md
+multi_tier_ttl_caching_breakdown.md
+reviews_page_architecture_plan.md
+Reviews-page-upgrade.md
+Search-Engine-Ugrade.md
+Search-Engine.md
+system_design_suggestions.md
+The Victor Chidera Global Veteran LLM Voice Prompt.docx
+caching_strategy_plan.md
+cloud_functions_breakdown.md
+context.md
+ProjectOverview.md

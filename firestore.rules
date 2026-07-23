@@ -6,29 +6,29 @@ service cloud.firestore {
     // HELPER FUNCTIONS — Enterprise-grade reusable security predicates
     // ══════════════════════════════════════════════════════════════════════
 
-    // [FIX-CORE] Returns true if the request comes from a logged-in user.
+    // Returns true if the request comes from a logged-in user.
     function isAuthenticated() {
       return request.auth != null;
     }
 
-    // [FIX-CORE] Fetches the requesting user's profile document and
+    // Fetches the requesting user's profile document and
     // returns their assigned role string ("super-admin" or "writer").
     function getUserRole() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
     }
 
-    // [FIX-CORE] Returns true if the logged-in user's role is "super-admin".
+    // Returns true if the logged-in user's role is "super-admin".
     function isSuperAdmin() {
       return isAuthenticated() && getUserRole() == 'super-admin';
     }
 
-    // [FIX-CORE] Returns true if the logged-in user's role is "writer" OR "super-admin".
+    // Returns true if the logged-in user's role is "writer" OR "super-admin".
     function isWriter() {
       return isAuthenticated() && getUserRole() in ['writer', 'super-admin'];
     }
 
     // ──────────────────────────────────────────────────────────────────────
-    // [FIX-3] Author Ownership Check: ensures a writer can only mutate
+    // Author Ownership Check: ensures a writer can only mutate
     // their OWN posts. Super-admins bypass this check and can edit anyone's.
     // ──────────────────────────────────────────────────────────────────────
     function isOwnPost() {
@@ -36,10 +36,10 @@ service cloud.firestore {
     }
 
     // ──────────────────────────────────────────────────────────────────────
-    // [FIX-4] String length validators — prevents memory bomb / oversized
+    // String length validators — prevents memory bomb / oversized
     // payload attacks. Hard caps derived from real editorial requirements.
     // ──────────────────────────────────────────────────────────────────────
-    function isValidTitle() {
+    function isValidTitle () {
       return request.resource.data.title is string
           && request.resource.data.title.size() >= 3
           && request.resource.data.title.size() <= 300;
@@ -58,17 +58,17 @@ service cloud.firestore {
     }
 
     // ──────────────────────────────────────────────────────────────────────
-    // [FIX-5] searchIndex array size cap — prevents oversized array
-    // injection. A well-tokenized title yields at most ~30 tokens; 60 is
+    // searchIndex array size cap — prevents oversized array
+    // injection. A well-tokenized title yields at most ~30 tokens; 50 is
     // a safe ceiling that still covers edge-case long headlines.
     // ──────────────────────────────────────────────────────────────────────
     function isValidSearchIndex() {
       return request.resource.data.searchIndex is list
-          && request.resource.data.searchIndex.size() <= 60;
+          && request.resource.data.searchIndex.size() <= 50;
     }
 
     // ──────────────────────────────────────────────────────────────────────
-    // [FIX-6] Rating range guard — only triggered when the 'rating' field
+    // Rating range guard — only triggered when the 'rating' field
     // is present (e.g. for review posts). Ensures value is 0.0 – 10.0.
     // ──────────────────────────────────────────────────────────────────────
     function isValidRating() {
@@ -79,7 +79,7 @@ service cloud.firestore {
     }
 
     // ──────────────────────────────────────────────────────────────────────
-    // [FIX-2] Exact field whitelist for CREATE — blocks data injection by
+    // Exact field whitelist for CREATE — blocks data injection by
     // ensuring no unexpected fields can be written into a post document.
     // Required fields + all optional fields declared in post.ts are listed.
     // ──────────────────────────────────────────────────────────────────────
@@ -98,7 +98,7 @@ service cloud.firestore {
     }
 
     // ──────────────────────────────────────────────────────────────────────
-    // [FIX-2] Exact field whitelist for UPDATE — all editable fields.
+    // Exact field whitelist for UPDATE — all editable fields.
     // authorId and createdAt are intentionally excluded (immutable).
     // ──────────────────────────────────────────────────────────────────────
     function hasValidUpdateFields() {
@@ -136,12 +136,12 @@ service cloud.firestore {
       allow read: if resource.data.status == 'published' || isWriter();
 
       // ── CREATE ──────────────────────────────────────────────────────────
-      // [FIX-1] Category enum now uses TitleCase to match the TypeScript
-      //         interface: "Music" | "Videos" | "Reviews" | "News"
-      // [FIX-2] hasValidCreateFields() enforces an exact field whitelist.
-      // [FIX-4] isValidTitle/Slug/Description() cap string lengths.
-      // [FIX-5] isValidSearchIndex() caps the token array at 60 items.
-      // [FIX-6] isValidRating() validates the optional rating field.
+      // Category enum now uses TitleCase to match the TypeScript
+      // interface: "Music" | "Videos" | "Reviews" | "News"
+      // hasValidCreateFields() enforces an exact field whitelist.
+      // isValidTitle/Slug/Description() cap string lengths.
+      // isValidSearchIndex() caps the token array at 60 items.
+      // isValidRating() validates the optional rating field.
       allow create: if isWriter()
         && hasValidCreateFields()
         && isValidTitle()
@@ -151,7 +151,7 @@ service cloud.firestore {
         && isValidRating()
         && request.resource.data.content is string
         && request.resource.data.content.size() >= 1
-        // [FIX-1] TitleCase enum matching the TypeScript type definition:
+        // TitleCase enum matching the TypeScript type definition:
         && request.resource.data.category in ['Music', 'Videos', 'Reviews', 'News']
         && request.resource.data.coverImageUrl is string
         && request.resource.data.status in ['draft', 'published']
@@ -163,9 +163,9 @@ service cloud.firestore {
         && request.resource.data.createdAt is timestamp;
 
       // ── UPDATE ──────────────────────────────────────────────────────────
-      // [FIX-2] hasValidUpdateFields() enforces an exact field whitelist.
-      // [FIX-3] Writers can ONLY update their OWN posts. Super-admins can
-      //         update any post regardless of authorship.
+      // hasValidUpdateFields() enforces an exact field whitelist.
+      // Writers can ONLY update their OWN posts. Super-admins can
+      // update any post regardless of authorship.
       // Immutability: authorId and createdAt CANNOT change after creation.
       allow update: if hasValidUpdateFields()
         && isValidTitle()
@@ -173,13 +173,13 @@ service cloud.firestore {
         && isValidDescription()
         && isValidSearchIndex()
         && isValidRating()
-        // [FIX-1] TitleCase category must still be valid on update.
+        // TitleCase category must still be valid on update.
         && request.resource.data.category in ['Music', 'Videos', 'Reviews', 'News']
         && request.resource.data.status in ['draft', 'published']
         // Immutable fields — cannot be changed after document creation.
         && request.resource.data.authorId == resource.data.authorId
         && request.resource.data.createdAt == resource.data.createdAt
-        // [FIX-3] Writers: own posts only. Super-admins: any post.
+        // Writers: own posts only. Super-admins: any post.
         && (isSuperAdmin() || (isWriter() && isOwnPost()));
 
       // ── DELETE ──────────────────────────────────────────────────────────
