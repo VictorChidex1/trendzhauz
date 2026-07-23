@@ -20,8 +20,7 @@ import {
   TTL,
 } from "../utils/queryCache";
 
-// RICH MOCK REVIEWS FOR FALLBACK
-
+// RICH MOCK REVIEWS FOR FALLBACK (COMPLETE WITH GENRE & SCORE BREAKDOWNS)
 const MOCK_REVIEWS: StoryCard[] = [
   {
     id: "review-fallback-1",
@@ -36,8 +35,15 @@ const MOCK_REVIEWS: StoryCard[] = [
     projectTitle: "Real Vol. 1",
     projectType: "EP",
     rating: 8.7,
+    genre: "Afrobeats",
     verdict:
       "A dazzling, rhythm-heavy collaboration showcasing two of Afrobeats' finest forces in peak synergy.",
+    scoreBreakdown: {
+      production: 9.0,
+      lyricism: 8.2,
+      replayValue: 9.2,
+      originality: 8.4,
+    },
   },
   {
     id: "review-fallback-2",
@@ -52,8 +58,15 @@ const MOCK_REVIEWS: StoryCard[] = [
     projectTitle: "Love, Damini",
     projectType: "Album",
     rating: 9.1,
+    genre: "Afrobeats",
     verdict:
       "A sprawling, emotional journey that reinforces Burna Boy's unmatched global songwriting capability.",
+    scoreBreakdown: {
+      production: 9.4,
+      lyricism: 9.2,
+      replayValue: 8.8,
+      originality: 9.0,
+    },
   },
   {
     id: "review-fallback-3",
@@ -68,8 +81,15 @@ const MOCK_REVIEWS: StoryCard[] = [
     projectTitle: "Adore",
     projectType: "Single",
     rating: 8.2,
+    genre: "R&B",
     verdict:
       "A smooth, vocally brilliant pop effort showing Fireboy DML's romantic lyricism in its finest form.",
+    scoreBreakdown: {
+      production: 8.5,
+      lyricism: 8.6,
+      replayValue: 8.0,
+      originality: 7.8,
+    },
   },
   {
     id: "review-fallback-4",
@@ -84,8 +104,15 @@ const MOCK_REVIEWS: StoryCard[] = [
     projectTitle: "Boy Alone",
     projectType: "Album",
     rating: 9.3,
+    genre: "Afrobeats",
     verdict:
       "A groundbreaking record that shifts the emotional boundaries of modern Afrobeats.",
+    scoreBreakdown: {
+      production: 9.5,
+      lyricism: 9.3,
+      replayValue: 9.6,
+      originality: 8.8,
+    },
   },
   {
     id: "review-fallback-5",
@@ -100,8 +127,15 @@ const MOCK_REVIEWS: StoryCard[] = [
     projectTitle: "Lagos Memoirs",
     projectType: "EP",
     rating: 7.9,
+    genre: "Street-Pop",
     verdict:
       "A high-octane experimental project that showcases Seyi Vibez's relentless artistic drive.",
+    scoreBreakdown: {
+      production: 7.8,
+      lyricism: 7.5,
+      replayValue: 8.2,
+      originality: 8.1,
+    },
   },
   {
     id: "review-fallback-6",
@@ -116,8 +150,38 @@ const MOCK_REVIEWS: StoryCard[] = [
     projectTitle: "Ravage",
     projectType: "Mixtape",
     rating: 8.5,
+    genre: "Amapiano",
     verdict:
       "A potent, synth-heavy statement that proves Rema is one of the most adventurous stars of the decade.",
+    scoreBreakdown: {
+      production: 8.8,
+      lyricism: 8.0,
+      replayValue: 8.6,
+      originality: 8.6,
+    },
+  },
+  {
+    id: "review-fallback-7",
+    category: "Reviews",
+    title: "Odumodublvck - 'Eziokwu': Grime & Drill Meets Nigerian Highlife",
+    description:
+      "An aggressive, energetic masterpiece blending UK Drill 808s with raw Nigerian street hip-hop culture.",
+    coverImageUrl: "/assets/DJ-Davisy-Grime-Trap-Mixtape.jpg",
+    createdAt: "Jun 20, 2026",
+    slug: "odumodublvck-eziokwu-review",
+    artistName: "Odumodublvck",
+    projectTitle: "Eziokwu",
+    projectType: "Mixtape",
+    rating: 8.8,
+    genre: "Hip-Hop",
+    verdict:
+      "A thunderous, culture-shifting tape that cements Odumodublvck as the leader of modern Nigerian hip-hop.",
+    scoreBreakdown: {
+      production: 9.0,
+      lyricism: 8.4,
+      replayValue: 9.1,
+      originality: 8.7,
+    },
   },
 ];
 
@@ -135,7 +199,10 @@ function formatDate(timestamp: any): string {
 export function useReviews(
   postsPerPage = 12,
   projectTypeFilter: "All" | "Album" | "EP" | "Single" | "Mixtape" = "All",
-  sortBy: "newest" | "highest-rated" = "newest"
+  sortBy: "newest" | "highest-rated" = "newest",
+  scoreRangeFilter: "All" | "9.0+" | "8.0+" | "7.0+" = "All",
+  genreFilter: "All" | "Afrobeats" | "Amapiano" | "Hip-Hop" | "Street-Pop" | "R&B" = "All",
+  searchQuery = ""
 ) {
   // Construct dynamic keys for cache
   const cacheKeyPage1 = `reviews_p1_${projectTypeFilter.toLowerCase()}_${sortBy}`;
@@ -144,14 +211,14 @@ export function useReviews(
   const cachedPage1 = getCachedData<StoryCard[]>(cacheKeyPage1);
   const cachedCount = getCachedData<number>(cacheKeyCount);
 
-  const [reviews, setReviews] = React.useState<StoryCard[]>(
+  const [rawReviews, setRawReviews] = React.useState<StoryCard[]>(
     cachedPage1 && cachedCount ? cachedPage1 : []
   );
   const [loading, setLoading] = React.useState<boolean>(
     !(cachedPage1 && cachedCount)
   );
   const [currentPage, setCurrentPage] = React.useState<number>(1);
-  const [totalEstimate, setTotalEstimate] = React.useState<number>(
+  const [, setTotalEstimate] = React.useState<number>(
     cachedCount || 0
   );
   const [usingFallback, setUsingFallback] = React.useState<boolean>(false);
@@ -161,7 +228,7 @@ export function useReviews(
   // In-memory cache for visited pages
   const localPageCache = React.useRef<Map<number, StoryCard[]>>(new Map());
 
-  // Reset caches and currentPage if filters or sorting change
+  // Reset caches and currentPage if base filters change
   React.useEffect(() => {
     cursorCache.current.clear();
     localPageCache.current.clear();
@@ -171,12 +238,12 @@ export function useReviews(
     const freshCount = getCachedData<number>(cacheKeyCount);
 
     if (freshPage1 && freshCount) {
-      setReviews(freshPage1);
+      setRawReviews(freshPage1);
       setTotalEstimate(freshCount);
       localPageCache.current.set(1, freshPage1);
       setLoading(false);
     } else {
-      setReviews([]);
+      setRawReviews([]);
       setTotalEstimate(0);
       setLoading(true);
     }
@@ -189,7 +256,7 @@ export function useReviews(
     }
   }, [cachedPage1, currentPage]);
 
-  // 1. Get the total reviews count under this filter configuration
+  // 1. Count total reviews in Firestore
   React.useEffect(() => {
     if (isCacheFresh(cacheKeyCount, TTL.LISTS) && isCacheFresh(cacheKeyPage1, TTL.LISTS)) {
       return;
@@ -214,15 +281,9 @@ export function useReviews(
         if (!cancelled) {
           const count = countSnap.data().count;
           if (count === 0) {
-            // No reviews found — default to filtered mock fallback
             setUsingFallback(true);
-            const filteredMock = MOCK_REVIEWS.filter(
-              (r) =>
-                projectTypeFilter === "All" ||
-                r.projectType === projectTypeFilter
-            );
-            setReviews(filteredMock.slice(0, postsPerPage));
-            setTotalEstimate(filteredMock.length);
+            setRawReviews(MOCK_REVIEWS);
+            setTotalEstimate(MOCK_REVIEWS.length);
             setLoading(false);
           } else {
             setTotalEstimate(count);
@@ -233,12 +294,8 @@ export function useReviews(
         console.error("Failed to query reviews count:", error);
         if (!cancelled) {
           setUsingFallback(true);
-          const filteredMock = MOCK_REVIEWS.filter(
-            (r) =>
-              projectTypeFilter === "All" || r.projectType === projectTypeFilter
-          );
-          setReviews(filteredMock.slice(0, postsPerPage));
-          setTotalEstimate(filteredMock.length);
+          setRawReviews(MOCK_REVIEWS);
+          setTotalEstimate(MOCK_REVIEWS.length);
           setLoading(false);
         }
       }
@@ -250,29 +307,22 @@ export function useReviews(
     };
   }, [projectTypeFilter, postsPerPage, cacheKeyCount, cacheKeyPage1]);
 
-  // 2. Fetch page reviews under current filters and page cursor
+  // 2. Fetch page reviews from Firestore
   React.useEffect(() => {
     if (usingFallback) {
-      const filteredMock = MOCK_REVIEWS.filter(
-        (r) =>
-          projectTypeFilter === "All" || r.projectType === projectTypeFilter
-      );
-      const start = (currentPage - 1) * postsPerPage;
-      setReviews(filteredMock.slice(start, start + postsPerPage));
+      setRawReviews(MOCK_REVIEWS);
       setLoading(false);
       return;
     }
 
-    // Serve from memory page cache if visited
     if (localPageCache.current.has(currentPage)) {
-      setReviews(localPageCache.current.get(currentPage)!);
+      setRawReviews(localPageCache.current.get(currentPage)!);
       setLoading(false);
       return;
     }
 
-    // Skip network call if page 1 is fresh
     if (currentPage === 1 && isCacheFresh(cacheKeyPage1, TTL.LISTS) && cachedPage1) {
-      setReviews(cachedPage1);
+      setRawReviews(cachedPage1);
       setLoading(false);
       return;
     }
@@ -284,7 +334,6 @@ export function useReviews(
       try {
         let cursor = cursorCache.current.get(currentPage);
 
-        // On-demand locator: find closest cached cursor
         if (!cursor && currentPage > 1) {
           let prevPage = currentPage - 1;
           while (prevPage > 1 && !cursorCache.current.has(prevPage)) {
@@ -334,7 +383,6 @@ export function useReviews(
           }
         }
 
-        // Build current page query
         let q = query(
           collection(db, "posts"),
           where("status", "==", "published"),
@@ -362,13 +410,8 @@ export function useReviews(
         if (!cancelled) {
           if (snap.empty && currentPage === 1) {
             setUsingFallback(true);
-            const filteredMock = MOCK_REVIEWS.filter(
-              (r) =>
-                projectTypeFilter === "All" ||
-                r.projectType === projectTypeFilter
-            );
-            setReviews(filteredMock.slice(0, postsPerPage));
-            setTotalEstimate(filteredMock.length);
+            setRawReviews(MOCK_REVIEWS);
+            setTotalEstimate(MOCK_REVIEWS.length);
           } else {
             const pageReviews: StoryCard[] = snap.docs.map(
               (doc: QueryDocumentSnapshot) => {
@@ -386,12 +429,19 @@ export function useReviews(
                   projectType: data.projectType,
                   rating: data.rating,
                   verdict: data.verdict,
+                  genre: data.genre || "Afrobeats",
+                  scoreBreakdown: data.scoreBreakdown || {
+                    production: (data.rating || 8) + 0.2 > 10 ? 10 : (data.rating || 8) + 0.2,
+                    lyricism: (data.rating || 8) - 0.3,
+                    replayValue: (data.rating || 8) + 0.1 > 10 ? 10 : (data.rating || 8) + 0.1,
+                    originality: (data.rating || 8) - 0.1,
+                  },
                 };
               }
             );
 
             localPageCache.current.set(currentPage, pageReviews);
-            setReviews(pageReviews);
+            setRawReviews(pageReviews);
 
             if (currentPage === 1) {
               setCachedData(cacheKeyPage1, pageReviews);
@@ -410,13 +460,8 @@ export function useReviews(
         console.error("Failed to fetch reviews page:", error);
         if (!cancelled) {
           setUsingFallback(true);
-          const filteredMock = MOCK_REVIEWS.filter(
-            (r) =>
-              projectTypeFilter === "All" || r.projectType === projectTypeFilter
-          );
-          const start = (currentPage - 1) * postsPerPage;
-          setReviews(filteredMock.slice(start, start + postsPerPage));
-          setTotalEstimate(filteredMock.length);
+          setRawReviews(MOCK_REVIEWS);
+          setTotalEstimate(MOCK_REVIEWS.length);
           setLoading(false);
         }
       }
@@ -435,14 +480,58 @@ export function useReviews(
     cacheKeyPage1,
   ]);
 
-  const totalPages = Math.ceil(totalEstimate / postsPerPage);
+  // 3. APPLY CLIENT-SIDE LIVE IN-MEMORY FILTERS (Score Range, Genre, Inline Search)
+  const filteredReviews = React.useMemo(() => {
+    return rawReviews.filter((review) => {
+      // Format Filter
+      if (
+        projectTypeFilter !== "All" &&
+        review.projectType !== projectTypeFilter
+      ) {
+        return false;
+      }
+
+      // Genre Filter
+      if (genreFilter !== "All") {
+        const reviewGenre = (review.genre || "").toLowerCase();
+        if (!reviewGenre.includes(genreFilter.toLowerCase())) {
+          return false;
+        }
+      }
+
+      // Score Range Filter
+      const rating = review.rating || 0;
+      if (scoreRangeFilter === "9.0+" && rating < 9.0) return false;
+      if (scoreRangeFilter === "8.0+" && rating < 8.0) return false;
+      if (scoreRangeFilter === "7.0+" && rating < 7.0) return false;
+
+      // Inline Live Search Query (Artist Name or Project Title)
+      if (searchQuery.trim() !== "") {
+        const queryTerm = searchQuery.toLowerCase().trim();
+        const artist = (review.artistName || "").toLowerCase();
+        const project = (review.projectTitle || "").toLowerCase();
+        const title = (review.title || "").toLowerCase();
+
+        const matches =
+          artist.includes(queryTerm) ||
+          project.includes(queryTerm) ||
+          title.includes(queryTerm);
+
+        if (!matches) return false;
+      }
+
+      return true;
+    });
+  }, [rawReviews, projectTypeFilter, genreFilter, scoreRangeFilter, searchQuery]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredReviews.length / postsPerPage));
 
   return {
-    reviews,
+    reviews: filteredReviews,
     loading,
     currentPage,
     setCurrentPage,
     totalPages,
-    totalEstimate,
+    totalEstimate: filteredReviews.length,
   };
 }

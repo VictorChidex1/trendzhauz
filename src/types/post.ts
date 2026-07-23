@@ -18,12 +18,18 @@ export interface Post {
   createdAt: Timestamp;
   authorId: string;
   authorName: string;
-  searchIndex: string[];
   artistName?: string;
   projectTitle?: string;
   projectType?: "Album" | "EP" | "Single" | "Mixtape";
   rating?: number;
   verdict?: string;
+  genre?: string;
+  scoreBreakdown?: {
+    production: number;
+    lyricism: number;
+    replayValue: number;
+    originality: number;
+  };
 }
 
 /**
@@ -78,4 +84,11 @@ export interface StoryCard {
   projectType?: "Album" | "EP" | "Single" | "Mixtape";
   rating?: number;
   verdict?: string;
+  genre?: string;
+  scoreBreakdown?: {
+    production: number;
+    lyricism: number;
+    replayValue: number;
+    originality: number;
+  };
 }
