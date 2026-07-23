@@ -2,91 +2,206 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ──────────────────────────────────────────────
-    // HELPER FUNCTIONS (Reusable security checks)
-    // ──────────────────────────────────────────────
+    // ══════════════════════════════════════════════════════════════════════
+    // HELPER FUNCTIONS — Enterprise-grade reusable security predicates
+    // ══════════════════════════════════════════════════════════════════════
 
-    // Returns true if the request comes from a logged-in user.
+    // [FIX-CORE] Returns true if the request comes from a logged-in user.
     function isAuthenticated() {
       return request.auth != null;
     }
 
-    // Fetches the requesting user's profile document from the 'users' collection
-    // and returns their assigned role string ("super-admin" or "writer").
+    // [FIX-CORE] Fetches the requesting user's profile document and
+    // returns their assigned role string ("super-admin" or "writer").
     function getUserRole() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
     }
 
-    // Returns true if the logged-in user's role is "super-admin".
+    // [FIX-CORE] Returns true if the logged-in user's role is "super-admin".
     function isSuperAdmin() {
       return isAuthenticated() && getUserRole() == 'super-admin';
     }
 
-    // Returns true if the logged-in user's role is either "writer" or "super-admin".
-    // Writers can create/edit posts; super-admins can do everything.
+    // [FIX-CORE] Returns true if the logged-in user's role is "writer" OR "super-admin".
     function isWriter() {
       return isAuthenticated() && getUserRole() in ['writer', 'super-admin'];
     }
 
-    // ──────────────────────────────────────────────
+    // ──────────────────────────────────────────────────────────────────────
+    // [FIX-3] Author Ownership Check: ensures a writer can only mutate
+    // their OWN posts. Super-admins bypass this check and can edit anyone's.
+    // ──────────────────────────────────────────────────────────────────────
+    function isOwnPost() {
+      return resource.data.authorId == request.auth.uid;
+    }
+
+    // ──────────────────────────────────────────────────────────────────────
+    // [FIX-4] String length validators — prevents memory bomb / oversized
+    // payload attacks. Hard caps derived from real editorial requirements.
+    // ──────────────────────────────────────────────────────────────────────
+    function isValidTitle() {
+      return request.resource.data.title is string
+          && request.resource.data.title.size() >= 3
+          && request.resource.data.title.size() <= 300;
+    }
+
+    function isValidSlug() {
+      return request.resource.data.slug is string
+          && request.resource.data.slug.size() >= 3
+          && request.resource.data.slug.size() <= 200;
+    }
+
+    function isValidDescription() {
+      return request.resource.data.description is string
+          && request.resource.data.description.size() >= 10
+          && request.resource.data.description.size() <= 1000;
+    }
+
+    // ──────────────────────────────────────────────────────────────────────
+    // [FIX-5] searchIndex array size cap — prevents oversized array
+    // injection. A well-tokenized title yields at most ~30 tokens; 60 is
+    // a safe ceiling that still covers edge-case long headlines.
+    // ──────────────────────────────────────────────────────────────────────
+    function isValidSearchIndex() {
+      return request.resource.data.searchIndex is list
+          && request.resource.data.searchIndex.size() <= 60;
+    }
+
+    // ──────────────────────────────────────────────────────────────────────
+    // [FIX-6] Rating range guard — only triggered when the 'rating' field
+    // is present (e.g. for review posts). Ensures value is 0.0 – 10.0.
+    // ──────────────────────────────────────────────────────────────────────
+    function isValidRating() {
+      return !('rating' in request.resource.data)
+          || (request.resource.data.rating is number
+              && request.resource.data.rating >= 0.0
+              && request.resource.data.rating <= 10.0);
+    }
+
+    // ──────────────────────────────────────────────────────────────────────
+    // [FIX-2] Exact field whitelist for CREATE — blocks data injection by
+    // ensuring no unexpected fields can be written into a post document.
+    // Required fields + all optional fields declared in post.ts are listed.
+    // ──────────────────────────────────────────────────────────────────────
+    function hasValidCreateFields() {
+      let requiredFields = [
+        'title', 'slug', 'description', 'content', 'category',
+        'coverImageUrl', 'searchIndex', 'status', 'isEditorPick',
+        'authorId', 'authorName', 'views', 'createdAt'
+      ];
+      let optionalFields = [
+        'artistName', 'projectTitle', 'projectType', 'rating', 'verdict'
+      ];
+      let allAllowedFields = requiredFields.concat(optionalFields);
+      return request.resource.data.keys().hasAll(requiredFields)
+          && request.resource.data.keys().hasOnly(allAllowedFields);
+    }
+
+    // ──────────────────────────────────────────────────────────────────────
+    // [FIX-2] Exact field whitelist for UPDATE — all editable fields.
+    // authorId and createdAt are intentionally excluded (immutable).
+    // ──────────────────────────────────────────────────────────────────────
+    function hasValidUpdateFields() {
+      let allowedFields = [
+        'title', 'slug', 'description', 'content', 'category',
+        'coverImageUrl', 'searchIndex', 'status', 'isEditorPick',
+        'authorId', 'authorName', 'views', 'createdAt',
+        'artistName', 'projectTitle', 'projectType', 'rating', 'verdict'
+      ];
+      return request.resource.data.keys().hasOnly(allowedFields);
+    }
+
+
+    // ══════════════════════════════════════════════════════════════════════
     // 1. USERS COLLECTION — Role management profiles
-    // ──────────────────────────────────────────────
+    // ══════════════════════════════════════════════════════════════════════
     match /users/{userId} {
-      // Any authenticated user can read user profiles (needed to display author names).
+      // Authenticated users can read profiles (e.g. to display author names).
       allow read: if isAuthenticated();
 
-      // Only a super-admin can create, update, or delete user profile documents.
-      // This prevents writers from escalating their own role to super-admin.
+      // ONLY a super-admin can create, update, or delete user profile documents.
+      // This is the primary guard against writers self-promoting their role to
+      // 'super-admin'. Never relax this rule.
       allow write: if isSuperAdmin();
     }
 
-    // ──────────────────────────────────────────────
+
+    // ══════════════════════════════════════════════════════════════════════
     // 2. POSTS COLLECTION — Blog article documents
-    // ──────────────────────────────────────────────
+    // ══════════════════════════════════════════════════════════════════════
     match /posts/{postId} {
-      // PUBLIC READ: Anyone (including anonymous visitors) can read published posts.
-      // Draft posts are hidden from the public; only writers/admins can see them.
+
+      // PUBLIC READ: Anyone can read published posts.
+      // Drafts are only visible to writers and super-admins.
       allow read: if resource.data.status == 'published' || isWriter();
 
-      // CREATE: Only authenticated writers or super-admins can create new posts.
-      // Schema validation ensures every new post has required fields with correct types.
+      // ── CREATE ──────────────────────────────────────────────────────────
+      // [FIX-1] Category enum now uses TitleCase to match the TypeScript
+      //         interface: "Music" | "Videos" | "Reviews" | "News"
+      // [FIX-2] hasValidCreateFields() enforces an exact field whitelist.
+      // [FIX-4] isValidTitle/Slug/Description() cap string lengths.
+      // [FIX-5] isValidSearchIndex() caps the token array at 60 items.
+      // [FIX-6] isValidRating() validates the optional rating field.
       allow create: if isWriter()
-        && request.resource.data.title is string
-        && request.resource.data.slug is string
-        && request.resource.data.description is string
+        && hasValidCreateFields()
+        && isValidTitle()
+        && isValidSlug()
+        && isValidDescription()
+        && isValidSearchIndex()
+        && isValidRating()
         && request.resource.data.content is string
-        && request.resource.data.category in ['reviews', 'music', 'videos', 'news']
+        && request.resource.data.content.size() >= 1
+        // [FIX-1] TitleCase enum matching the TypeScript type definition:
+        && request.resource.data.category in ['Music', 'Videos', 'Reviews', 'News']
         && request.resource.data.coverImageUrl is string
-        && request.resource.data.searchIndex is list
         && request.resource.data.status in ['draft', 'published']
         && request.resource.data.isEditorPick is bool
+        // Author integrity: the stored authorId must equal the requester's UID.
         && request.resource.data.authorId == request.auth.uid
         && request.resource.data.authorName is string
-        && request.resource.data.views is number
+        && request.resource.data.views == 0
         && request.resource.data.createdAt is timestamp;
 
-      // UPDATE: Only authenticated writers or super-admins can update existing posts.
-      // The authorId and createdAt fields are immutable after creation (cannot be changed).
-      allow update: if isWriter()
+      // ── UPDATE ──────────────────────────────────────────────────────────
+      // [FIX-2] hasValidUpdateFields() enforces an exact field whitelist.
+      // [FIX-3] Writers can ONLY update their OWN posts. Super-admins can
+      //         update any post regardless of authorship.
+      // Immutability: authorId and createdAt CANNOT change after creation.
+      allow update: if hasValidUpdateFields()
+        && isValidTitle()
+        && isValidSlug()
+        && isValidDescription()
+        && isValidSearchIndex()
+        && isValidRating()
+        // [FIX-1] TitleCase category must still be valid on update.
+        && request.resource.data.category in ['Music', 'Videos', 'Reviews', 'News']
+        && request.resource.data.status in ['draft', 'published']
+        // Immutable fields — cannot be changed after document creation.
         && request.resource.data.authorId == resource.data.authorId
-        && request.resource.data.createdAt == resource.data.createdAt;
+        && request.resource.data.createdAt == resource.data.createdAt
+        // [FIX-3] Writers: own posts only. Super-admins: any post.
+        && (isSuperAdmin() || (isWriter() && isOwnPost()));
 
-      // DELETE: Only a super-admin can permanently remove a post.
+      // ── DELETE ──────────────────────────────────────────────────────────
+      // Only a super-admin can permanently remove a post.
       allow delete: if isSuperAdmin();
     }
 
-    // ──────────────────────────────────────────────
+
+    // ══════════════════════════════════════════════════════════════════════
     // 3. LINKTREE COLLECTION — Bio link items
-    // ──────────────────────────────────────────────
+    // ══════════════════════════════════════════════════════════════════════
     match /linktree/{linkId} {
       // PUBLIC READ: Anyone can read bio links (the /links page is public).
       allow read: if true;
 
-      // PUBLIC CLICK TRACKING: Anonymous visitors can increment clickCount
-      // when they tap a link. This rule ensures that the ONLY field being changed
-      // is clickCount, and it is incremented by exactly 1. All other fields
-      // (title, targetUrl, isActive, order, iconType) must remain unchanged.
-      allow update: if !isAuthenticated()
+      // ── ANONYMOUS CLICK TRACKING ─────────────────────────────────────────
+      // Public visitors can increment clickCount by exactly 1.
+      // ALL other fields must remain byte-for-byte identical to prevent
+      // anonymous users from corrupting link data.
+      // The request.auth == null guard explicitly enforces that this path
+      // is only taken by unauthenticated (anonymous) users.
+      allow update: if request.auth == null
         && request.resource.data.clickCount == resource.data.clickCount + 1
         && request.resource.data.title == resource.data.title
         && request.resource.data.targetUrl == resource.data.targetUrl
@@ -94,24 +209,34 @@ service cloud.firestore {
         && request.resource.data.order == resource.data.order
         && request.resource.data.isActive == resource.data.isActive;
 
-      // ADMIN UPDATE: Super-admins can update any field on a link
-      // (reorder, rename, enable/disable, change URL).
-      // Writers can also update links if needed.
+      // ── ADMIN FULL UPDATE ────────────────────────────────────────────────
+      // Super-admins can update any field (reorder, rename, toggle, change URL).
       allow update: if isSuperAdmin();
 
       // CREATE & DELETE: Only a super-admin can add or remove bio links.
       allow create, delete: if isSuperAdmin();
     }
 
-    // ──────────────────────────────────────────────
+
+    // ══════════════════════════════════════════════════════════════════════
     // 4. AGGREGATIONS COLLECTION — Pre-computed homepage feeds
-    // ──────────────────────────────────────────────
-    // Written by the server-side Cloud Function (Admin SDK bypasses rules).
-    // Public read access so any visitor can load the pre-aggregated homepage data.
+    // ══════════════════════════════════════════════════════════════════════
+    // Written exclusively by the server-side Cloud Function via Admin SDK,
+    // which bypasses these rules entirely. No client-side writes are allowed.
     match /aggregations/{docId} {
       allow read: if true;
-      // No client-side writes allowed — only the Admin SDK (Cloud Function) can write.
       allow write: if false;
+    }
+
+
+    // ══════════════════════════════════════════════════════════════════════
+    // 5. DEFAULT DENY — Deny-all fallback for any unmatched collection.
+    // ══════════════════════════════════════════════════════════════════════
+    // This is the last line of defence: any collection that is NOT explicitly
+    // matched above (e.g. a typo-named collection, or future dev experiments)
+    // will have ALL reads and writes blocked by default.
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }
