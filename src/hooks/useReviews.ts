@@ -200,7 +200,6 @@ export function useReviews(
   postsPerPage = 12,
   projectTypeFilter: "All" | "Album" | "EP" | "Single" | "Mixtape" = "All",
   sortBy: "newest" | "highest-rated" = "newest",
-  scoreRangeFilter: "All" | "9.0+" | "8.0+" | "7.0+" = "All",
   genreFilter: "All" | "Afrobeats" | "Amapiano" | "Hip-Hop" | "Street-Pop" | "R&B" = "All",
   searchQuery = ""
 ) {
@@ -499,12 +498,6 @@ export function useReviews(
         }
       }
 
-      // Score Range Filter
-      const rating = review.rating || 0;
-      if (scoreRangeFilter === "9.0+" && rating < 9.0) return false;
-      if (scoreRangeFilter === "8.0+" && rating < 8.0) return false;
-      if (scoreRangeFilter === "7.0+" && rating < 7.0) return false;
-
       // Inline Live Search Query (Artist Name or Project Title)
       if (searchQuery.trim() !== "") {
         const queryTerm = searchQuery.toLowerCase().trim();
@@ -522,7 +515,7 @@ export function useReviews(
 
       return true;
     });
-  }, [rawReviews, projectTypeFilter, genreFilter, scoreRangeFilter, searchQuery]);
+  }, [rawReviews, projectTypeFilter, genreFilter, searchQuery]);
 
   const totalPages = Math.max(1, Math.ceil(filteredReviews.length / postsPerPage));
 

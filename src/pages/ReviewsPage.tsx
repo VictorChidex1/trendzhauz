@@ -8,7 +8,6 @@ import {
   Award,
   Search,
   X,
-  Star,
   Music2,
   BarChart3,
 } from "lucide-react";
@@ -38,11 +37,6 @@ export default function ReviewsPage() {
     "All" | "Album" | "EP" | "Single" | "Mixtape"
   >("All");
 
-  // 1️⃣ Score Range Quick-Filter State
-  const [scoreRangeFilter, setScoreRangeFilter] = React.useState<
-    "All" | "9.0+" | "8.0+" | "7.0+"
-  >("All");
-
   // 2️⃣ Artist & Project Quick-Search State
   const [inlineSearchQuery, setInlineSearchQuery] = React.useState<string>("");
 
@@ -70,7 +64,6 @@ export default function ReviewsPage() {
     12,
     projectTypeFilter,
     sortBy,
-    scoreRangeFilter,
     genreFilter,
     inlineSearchQuery
   );
@@ -314,7 +307,7 @@ export default function ReviewsPage() {
       <section className="sticky top-20 z-40 w-full border-b border-zinc-200/50 dark:border-zinc-800/50 bg-background/95 backdrop-blur-md py-4 px-4 sm:px-6 lg:px-8 transition-all space-y-4">
         <div className="max-w-7xl mx-auto flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           
-          {/* LEFT: Format Segmented Tabs + 1️⃣ Score Range Quick-Filter */}
+          {/* LEFT: Format Segmented Tabs */}
           <div className="flex flex-wrap items-center gap-3">
             {/* Format Filter Segment */}
             <div className="flex items-center space-x-1 p-1 bg-zinc-100 dark:bg-zinc-900/60 rounded-md border border-zinc-200/40 dark:border-zinc-800/40">
@@ -345,34 +338,6 @@ export default function ReviewsPage() {
                   );
                 }
               )}
-            </div>
-
-            {/* 1️⃣ Score Range Quick-Filter Pills */}
-            <div className="flex items-center space-x-1 p-1 bg-zinc-100 dark:bg-zinc-900/60 rounded-md border border-zinc-200/40 dark:border-zinc-800/40">
-              <Star className="h-3 w-3 text-brand ml-2 mr-1" />
-              {(
-                [
-                  { id: "All", label: "All Scores" },
-                  { id: "9.0+", label: "9.0+ Masterpiece" },
-                  { id: "8.0+", label: "8.0+ Must Read" },
-                  { id: "7.0+", label: "7.0+ Solid" },
-                ] as const
-              ).map((score) => {
-                const isActive = scoreRangeFilter === score.id;
-                return (
-                  <button
-                    key={score.id}
-                    onClick={() => setScoreRangeFilter(score.id)}
-                    className={`px-2.5 py-1 text-[9px] font-black uppercase tracking-widest rounded-sm transition-all cursor-pointer ${
-                      isActive
-                        ? "bg-brand text-white shadow-xs"
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    {score.label}
-                  </button>
-                );
-              })}
             </div>
           </div>
 
@@ -587,7 +552,6 @@ export default function ReviewsPage() {
             <button
               onClick={() => {
                 setProjectTypeFilter("All");
-                setScoreRangeFilter("All");
                 setGenreFilter("All");
                 setInlineSearchQuery("");
               }}
