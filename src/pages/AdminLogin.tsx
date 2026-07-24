@@ -76,7 +76,7 @@ export default function AdminLogin() {
           className="inline-flex items-center space-x-2 text-xs font-black uppercase tracking-widest text-zinc-500 hover:text-brand transition-colors bg-white/80 border border-zinc-200 px-3.5 py-2 rounded-full shadow-xs backdrop-blur-md"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
-          <span>Back to Site</span>
+          <span>Back to Homepage</span>
         </Link>
       </div>
 
@@ -102,14 +102,15 @@ export default function AdminLogin() {
 
           <div className="inline-flex items-center space-x-2 bg-brand/10 border border-brand/20 px-3 py-1 rounded-full text-brand text-[10px] font-black uppercase tracking-widest">
             <ShieldCheck className="h-3.5 w-3.5" />
-            <span>CMS Portal</span>
+            <span>Dashboard Portal</span>
           </div>
 
           <h1 className="text-xl sm:text-2xl font-black uppercase tracking-tight text-zinc-900">
             TRENDZHAUZ MEDIA
           </h1>
           <p className="text-xs text-zinc-500 font-medium leading-relaxed">
-            Enter authenticated credentials to access editorial database controls.
+            Enter authenticated credentials to access editorial database
+            controls.
           </p>
         </div>
 
@@ -147,9 +148,17 @@ export default function AdminLogin() {
 
           {/* Password Input */}
           <div className="space-y-1.5">
-            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700 block">
-              Password
-            </label>
+            <div className="flex items-center justify-between">
+              <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700 block">
+                Password
+              </label>
+              <Link
+                to="/admin/forgot-password"
+                className="text-[10px] font-black uppercase tracking-widest text-brand hover:underline transition-all"
+              >
+                Forgot?
+              </Link>
+            </div>
             <div className="relative">
               <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
               <input
@@ -186,7 +195,7 @@ export default function AdminLogin() {
                 <span>Authenticating...</span>
               </>
             ) : (
-              <span>Sign In to CMS</span>
+              <span>Sign In to Dashboard</span>
             )}
           </button>
         </form>

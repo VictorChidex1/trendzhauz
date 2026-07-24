@@ -11,6 +11,8 @@ import BlogPostView from "@/pages/BlogPostView";
 import LinkHub from "@/pages/LinkHub";
 import AdminLogin from "@/pages/AdminLogin";
 import AdminPanel from "@/pages/AdminPanel";
+import ForgotPassword from "@/pages/ForgotPassword";
+import ResetPassword from "@/pages/ResetPassword";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 
 import { useLocation } from "react-router-dom";
@@ -41,6 +43,8 @@ function AppContent() {
 
           {/* Administrative CMS Routing */}
           <Route path="/admin" element={<AdminLogin />} />
+          <Route path="/admin/forgot-password" element={<ForgotPassword />} />
+          <Route path="/admin/reset-password" element={<ResetPassword />} />
           <Route
             path="/admin/panel"
             element={
