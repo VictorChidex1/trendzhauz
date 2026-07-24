@@ -29,16 +29,28 @@ export default function ForgotPassword() {
 
     setIsSubmitting(true);
     try {
-      // Configure custom redirect link back to our custom /admin/reset-password page
-      const actionCodeSettings = {
-        url: `${window.location.origin}/admin/reset-password`,
-        handleCodeInApp: true,
-      };
-
-      await sendPasswordResetEmail(auth, email.trim(), actionCodeSettings);
+      // 1. Attempt custom redirect URL (works seamlessly on HTTPS / Vercel / Production)
+      try {
+        const actionCodeSettings = {
+          url: `${window.location.origin}/admin/reset-password`,
+        };
+        await sendPasswordResetEmail(auth, email.trim(), actionCodeSettings);
+      } catch (primaryErr: any) {
+        // If local HTTP origin or CORS restrictions block custom actionCodeSettings, fallback to default Firebase email
+        if (
+          primaryErr.code === "auth/network-request-failed" ||
+          primaryErr.code === "auth/unauthorized-continue-uri" ||
+          primaryErr.code === "auth/invalid-continue-uri"
+        ) {
+          console.warn("Primary reset settings failed, attempting default Firebase reset email:", primaryErr.code);
+          await sendPasswordResetEmail(auth, email.trim());
+        } else {
+          throw primaryErr;
+        }
+      }
       setIsSubmitted(true);
     } catch (err: any) {
-      console.error("Password reset error:", err);
+      console.error("Password reset error:", err.code, err.message);
       let message = "Failed to send reset link. Please check your email.";
       if (err.code === "auth/user-not-found" || err.code === "auth/invalid-credential") {
         message = "No account found with this email address.";
@@ -46,6 +58,10 @@ export default function ForgotPassword() {
         message = "Please enter a valid email address.";
       } else if (err.code === "auth/too-many-requests") {
         message = "Too many password reset attempts. Please wait a few minutes.";
+      } else if (err.code === "auth/network-request-failed") {
+        message = "Network request failed. Please check your internet connection or try again.";
+      } else if (err.code === "auth/unauthorized-continue-uri") {
+        message = "The current domain is not authorized in Firebase Console -> Authentication -> Settings -> Authorized Domains.";
       }
       setErrorMessage(message);
     } finally {
