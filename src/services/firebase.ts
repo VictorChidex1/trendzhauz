@@ -32,8 +32,8 @@ const db = initializeFirestore(app, {
 
 const storage = getStorage(app);
 
-// Connect to emulators if running in local development mode
-if (import.meta.env.DEV) {
+// Connect to emulators only if explicitly enabled via VITE_USE_FIREBASE_EMULATOR=true
+if (import.meta.env.DEV && import.meta.env.VITE_USE_FIREBASE_EMULATOR === "true") {
   const host = typeof window !== "undefined" && window.location.hostname ? window.location.hostname : "localhost";
   connectAuthEmulator(auth, `http://${host}:9099`);
   connectFirestoreEmulator(db, host, 8080);
