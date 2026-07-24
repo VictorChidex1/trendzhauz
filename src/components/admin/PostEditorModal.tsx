@@ -6,11 +6,11 @@ import {
   PlusCircle,
   Image as ImageIcon,
   Star,
-  Upload,
   Calendar,
-  Clock,
   Trash2,
   CheckCircle,
+  RefreshCw,
+  FolderOpen,
 } from "lucide-react";
 import type {
   Post,
@@ -21,6 +21,9 @@ import type {
 import type { UserProfile } from "@/types/user";
 import { createPost, updatePost, slugify } from "@/services/posts";
 import { TipTapEditor } from "@/components/admin/TipTapEditor";
+import { DateTimePicker } from "@/components/admin/DateTimePicker";
+import { MediaLibraryModal } from "@/components/admin/MediaLibraryModal";
+import { generateExcerpt } from "@/utils/excerpt";
 
 interface PostEditorModalProps {
   isOpen: boolean;
@@ -28,6 +31,24 @@ interface PostEditorModalProps {
   postToEdit?: Post | null;
   authorProfile: UserProfile | null;
   onSuccess: () => void;
+}
+
+function toDate(value: unknown): Date | null {
+  if (!value) return null;
+  try {
+    if (
+      typeof value === "object" &&
+      value !== null &&
+      "toDate" in value &&
+      typeof (value as { toDate: () => Date }).toDate === "function"
+    ) {
+      return (value as { toDate: () => Date }).toDate();
+    }
+    const d = new Date(value as string | number | Date);
+    return isNaN(d.getTime()) ? null : d;
+  } catch {
+    return null;
+  }
 }
 
 export function PostEditorModal({
@@ -39,89 +60,82 @@ export function PostEditorModal({
 }: PostEditorModalProps) {
   const isEditing = Boolean(postToEdit);
 
-  // Form State
   const [title, setTitle] = React.useState("");
   const [slug, setSlug] = React.useState("");
   const [description, setDescription] = React.useState("");
+  const [descriptionTouched, setDescriptionTouched] = React.useState(false);
   const [content, setContent] = React.useState("");
   const [coverImageUrl, setCoverImageUrl] = React.useState("");
   const [category, setCategory] = React.useState<PostCategory>("Music");
   const [status, setStatus] = React.useState<PostStatus>("published");
   const [isEditorPick, setIsEditorPick] = React.useState(false);
 
-  // Image Upload Mode State ("url" vs "upload")
-  const [imageMode, setImageMode] = React.useState<"url" | "upload">("url");
-  const [isDragging, setIsDragging] = React.useState(false);
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const [coverMediaOpen, setCoverMediaOpen] = React.useState(false);
 
-  // Schedule & Backdate Date State
-  const [publishTiming, setPublishTiming] = React.useState<"now" | "custom">("now");
-  const [customPublishDate, setCustomPublishDate] = React.useState("");
+  const [publishTiming, setPublishTiming] = React.useState<"now" | "custom">(
+    "now"
+  );
+  const [customPublishDate, setCustomPublishDate] = React.useState<Date>(
+    () => new Date()
+  );
 
-  // Review & Track Specific Metadata State
   const [artistName, setArtistName] = React.useState("");
   const [projectTitle, setProjectTitle] = React.useState("");
   const [projectType, setProjectType] = React.useState("Album");
   const [rating, setRating] = React.useState<number>(8.5);
   const [verdict, setVerdict] = React.useState("Essential Listen");
 
-  // UI Status State
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
 
-  // Populate form when editing an existing post or reset when creating new
   React.useEffect(() => {
     if (postToEdit) {
       setTitle(postToEdit.title || "");
       setSlug(postToEdit.slug || "");
       setDescription(postToEdit.description || postToEdit.excerpt || "");
+      setDescriptionTouched(true);
       setContent(postToEdit.content || "");
       setCoverImageUrl(postToEdit.coverImageUrl || postToEdit.coverImage || "");
       setCategory((postToEdit.category as PostCategory) || "Music");
       setStatus((postToEdit.status as PostStatus) || "published");
       setIsEditorPick(postToEdit.isEditorPick ?? false);
 
-      // Populate review metadata
-      setArtistName(postToEdit.artistName || postToEdit.reviewMeta?.artistName || "");
-      setProjectTitle(postToEdit.projectTitle || postToEdit.reviewMeta?.albumOrTrackTitle || "");
+      setArtistName(
+        postToEdit.artistName || postToEdit.reviewMeta?.artistName || ""
+      );
+      setProjectTitle(
+        postToEdit.projectTitle ||
+          postToEdit.reviewMeta?.albumOrTrackTitle ||
+          ""
+      );
       setProjectType(postToEdit.projectType || "Album");
       setRating(postToEdit.rating ?? postToEdit.reviewMeta?.rating ?? 8.5);
-      setVerdict(postToEdit.verdict || postToEdit.reviewMeta?.verdict || "Essential Listen");
+      setVerdict(
+        postToEdit.verdict ||
+          postToEdit.reviewMeta?.verdict ||
+          "Essential Listen"
+      );
 
-      // Format timestamp for datetime-local input if present
-      if (postToEdit.createdAt) {
-        try {
-          const dateObj = postToEdit.createdAt?.toDate
-            ? postToEdit.createdAt.toDate()
-            : new Date(postToEdit.createdAt);
-          if (!isNaN(dateObj.getTime())) {
-            const formattedDate = dateObj.toISOString().slice(0, 16);
-            setCustomPublishDate(formattedDate);
-            setPublishTiming("custom");
-          }
-        } catch {
-          setPublishTiming("now");
-        }
+      const existingDate = toDate(postToEdit.createdAt);
+      if (existingDate) {
+        setCustomPublishDate(existingDate);
+        setPublishTiming("custom");
       } else {
+        setCustomPublishDate(new Date());
         setPublishTiming("now");
       }
     } else {
-      // Reset form
       setTitle("");
       setSlug("");
       setDescription("");
+      setDescriptionTouched(false);
       setContent("");
       setCoverImageUrl("");
       setCategory("Music");
       setStatus("published");
       setIsEditorPick(false);
-      setImageMode("url");
       setPublishTiming("now");
-
-      // Default custom date to current local datetime
-      const nowFormatted = new Date().toISOString().slice(0, 16);
-      setCustomPublishDate(nowFormatted);
-
+      setCustomPublishDate(new Date());
       setArtistName("");
       setProjectTitle("");
       setProjectType("Album");
@@ -131,7 +145,28 @@ export function PostEditorModal({
     setErrorMessage(null);
   }, [postToEdit, isOpen]);
 
-  // Handle Title input change and auto-slugify
+  // Auto-generate excerpt while not manually overridden
+  React.useEffect(() => {
+    if (descriptionTouched) return;
+    const auto = generateExcerpt({
+      title,
+      contentHtml: content,
+      artistName,
+      projectTitle,
+      rating,
+      category,
+    });
+    setDescription(auto);
+  }, [
+    title,
+    content,
+    artistName,
+    projectTitle,
+    rating,
+    category,
+    descriptionTouched,
+  ]);
+
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newTitle = e.target.value;
     setTitle(newTitle);
@@ -140,41 +175,17 @@ export function PostEditorModal({
     }
   };
 
-  // Process Local Image File Upload
-  const handleFileUpload = (file: File) => {
-    if (!file.type.startsWith("image/")) {
-      setErrorMessage("Please select a valid image file (.jpg, .png, .webp).");
-      return;
-    }
-
-    // Convert file to base64 Data URL for instant local preview and storage
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      if (e.target?.result) {
-        setCoverImageUrl(e.target.result as string);
-        setErrorMessage(null);
-      }
-    };
-    reader.readAsDataURL(file);
-  };
-
-  // Drag and Drop Handlers
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-  };
-
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      handleFileUpload(e.dataTransfer.files[0]);
-    }
+  const handleRegenerateExcerpt = () => {
+    const auto = generateExcerpt({
+      title,
+      contentHtml: content,
+      artistName,
+      projectTitle,
+      rating,
+      category,
+    });
+    setDescription(auto);
+    setDescriptionTouched(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -196,12 +207,35 @@ export function PostEditorModal({
       return;
     }
 
+    const safeDescription = generateExcerpt({
+      title,
+      contentHtml: content,
+      artistName,
+      projectTitle,
+      rating,
+      category,
+    });
+    const finalDescription =
+      description.trim().length >= 10 ? description.trim() : safeDescription;
+
+    if (finalDescription.length < 10) {
+      setErrorMessage("Description must be at least 10 characters.");
+      return;
+    }
+
+    if (coverImageUrl.trim().startsWith("data:")) {
+      setErrorMessage(
+        "Cover image must be a hosted URL. Use Media Library to upload to Firebase Storage."
+      );
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const payload: CreatePostInput = {
         title: title.trim(),
         slug: slug.trim() ? slugify(slug) : slugify(title),
-        description: description.trim() || title.trim(),
+        description: finalDescription.slice(0, 1000),
         content: content,
         category: category,
         coverImageUrl: coverImageUrl.trim() || "/assets/placeholder-cover.jpg",
@@ -218,6 +252,14 @@ export function PostEditorModal({
           : {}),
       };
 
+      if (publishTiming === "custom") {
+        payload.createdAt = customPublishDate;
+      } else if (!isEditing) {
+        // create uses serverTimestamp when createdAt omitted
+      } else if (isEditing && publishTiming === "now") {
+        // Keep existing createdAt on update unless custom timing is selected
+      }
+
       if (isEditing && postToEdit) {
         await updatePost(postToEdit.id, payload);
       } else {
@@ -226,9 +268,13 @@ export function PostEditorModal({
 
       onSuccess();
       onClose();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error saving post:", err);
-      setErrorMessage(err.message || "Failed to save post. Please verify fields and try again.");
+      const message =
+        err instanceof Error
+          ? err.message
+          : "Failed to save post. Please verify fields and try again.";
+      setErrorMessage(message);
     } finally {
       setIsSubmitting(false);
     }
@@ -236,11 +282,11 @@ export function PostEditorModal({
 
   if (!isOpen) return null;
 
+  const descLen = description.length;
+
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-zinc-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6">
-      {/* WordPress-Scale Widescreen Modal Container */}
       <div className="bg-white border border-zinc-200 rounded-xl w-full max-w-6xl w-[94vw] max-h-[94vh] flex flex-col shadow-2xl overflow-hidden text-zinc-900">
-        {/* Modal Header */}
         <div className="p-5 border-b border-zinc-200 flex items-center justify-between bg-zinc-50 shrink-0">
           <div className="flex items-center space-x-3">
             <div className="p-2.5 bg-brand/10 text-brand rounded-lg">
@@ -263,6 +309,7 @@ export function PostEditorModal({
           </div>
 
           <button
+            type="button"
             onClick={onClose}
             className="text-zinc-400 hover:text-zinc-700 p-2 rounded-md hover:bg-zinc-200/60 transition-colors"
           >
@@ -270,15 +317,16 @@ export function PostEditorModal({
           </button>
         </div>
 
-        {/* Modal Form Body */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 sm:p-8 space-y-6">
+        <form
+          onSubmit={handleSubmit}
+          className="flex-1 overflow-y-auto p-6 sm:p-8 space-y-6"
+        >
           {errorMessage && (
             <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-600 text-xs font-medium">
               {errorMessage}
             </div>
           )}
 
-          {/* Title & Slug */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             <div className="space-y-1.5 md:col-span-2">
               <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700 block">
@@ -325,7 +373,6 @@ export function PostEditorModal({
             </div>
           </div>
 
-          {/* Music Review Metadata (Shown for Reviews & Music categories) */}
           {(category === "Reviews" || category === "Music") && (
             <div className="p-5 bg-amber-50/60 border border-amber-200 rounded-xl space-y-4">
               <div className="flex items-center space-x-2 text-amber-900 text-xs font-black uppercase tracking-wider">
@@ -372,6 +419,7 @@ export function PostEditorModal({
                     <option value="Album">Album</option>
                     <option value="EP">EP</option>
                     <option value="Single">Single</option>
+                    <option value="Mixtape">Mixtape</option>
                   </select>
                 </div>
 
@@ -406,150 +454,121 @@ export function PostEditorModal({
             </div>
           )}
 
-          {/* Computer File Drag-and-Drop Image Upload Zone & URL Switcher */}
+          {/* Cover image via Media Library */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700 block">
                 Cover Image Media *
               </label>
-
-              <div className="flex items-center bg-zinc-100 p-1 rounded-md text-[10px] font-black uppercase tracking-wider">
-                <button
-                  type="button"
-                  onClick={() => setImageMode("url")}
-                  className={`px-3 py-1 rounded transition-colors ${
-                    imageMode === "url"
-                      ? "bg-white text-zinc-900 shadow-xs"
-                      : "text-zinc-500 hover:text-zinc-900"
-                  }`}
-                >
-                  Paste Image URL
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setImageMode("upload")}
-                  className={`px-3 py-1 rounded transition-colors ${
-                    imageMode === "upload"
-                      ? "bg-white text-zinc-900 shadow-xs"
-                      : "text-zinc-500 hover:text-zinc-900"
-                  }`}
-                >
-                  Upload from Computer
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={() => setCoverMediaOpen(true)}
+                className="inline-flex items-center gap-1.5 rounded-md bg-zinc-100 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-zinc-700 hover:bg-zinc-200"
+              >
+                <FolderOpen className="h-3.5 w-3.5 text-brand" />
+                Media Library
+              </button>
             </div>
 
-            {imageMode === "url" ? (
-              <div className="flex items-center space-x-3">
-                <div className="relative flex-1">
-                  <ImageIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
-                  <input
-                    type="url"
-                    value={coverImageUrl}
-                    onChange={(e) => setCoverImageUrl(e.target.value)}
-                    placeholder="https://images.unsplash.com/photo-..."
-                    required={!coverImageUrl}
-                    className="w-full bg-zinc-50 border border-zinc-300 rounded-lg pl-10 pr-4 py-2.5 text-xs text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:border-brand focus:bg-white transition-colors font-medium shadow-xs"
+            {coverImageUrl ? (
+              <div className="flex items-center justify-between max-w-xl bg-zinc-50 p-3 rounded-lg border border-zinc-200">
+                <div className="flex items-center space-x-3 min-w-0">
+                  <img
+                    src={coverImageUrl}
+                    alt="Cover preview"
+                    className="h-14 w-20 object-cover rounded border border-zinc-200 shrink-0"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src =
+                        "/assets/placeholder-cover.jpg";
+                    }}
                   />
-                </div>
-                {coverImageUrl && (
-                  <div className="h-10 w-16 rounded border border-zinc-200 overflow-hidden bg-zinc-100 shrink-0">
-                    <img
-                      src={coverImageUrl}
-                      alt="Preview"
-                      className="h-full w-full object-cover"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src =
-                          "/assets/placeholder-cover.jpg";
-                      }}
-                    />
+                  <div className="min-w-0">
+                    <span className="text-xs font-bold text-emerald-800 flex items-center gap-1">
+                      <CheckCircle className="h-3.5 w-3.5 text-emerald-600" />
+                      Cover Ready
+                    </span>
+                    <p className="text-[10px] text-zinc-400 truncate max-w-xs sm:max-w-md">
+                      {coverImageUrl}
+                    </p>
                   </div>
-                )}
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setCoverMediaOpen(true)}
+                    className="p-1.5 text-zinc-500 hover:text-brand rounded hover:bg-white"
+                    title="Change image"
+                  >
+                    <ImageIcon className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCoverImageUrl("")}
+                    className="p-1.5 text-zinc-400 hover:text-red-600 rounded hover:bg-red-50"
+                    title="Remove image"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
             ) : (
-              /* Drag and Drop Zone */
-              <div
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-                onClick={() => fileInputRef.current?.click()}
-                className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all ${
-                  isDragging
-                    ? "border-brand bg-brand/5"
-                    : coverImageUrl
-                    ? "border-emerald-300 bg-emerald-50/40"
-                    : "border-zinc-300 bg-zinc-50 hover:bg-zinc-100/80 hover:border-zinc-400"
-                }`}
+              <button
+                type="button"
+                onClick={() => setCoverMediaOpen(true)}
+                className="w-full border-2 border-dashed border-zinc-300 rounded-xl p-8 text-center hover:border-brand hover:bg-brand/5 transition-all"
               >
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={(e) => {
-                    if (e.target.files && e.target.files[0]) {
-                      handleFileUpload(e.target.files[0]);
-                    }
-                  }}
-                  accept="image/*"
-                  className="hidden"
-                />
-
-                {coverImageUrl ? (
-                  <div className="flex items-center justify-between max-w-md mx-auto bg-white p-3 rounded-lg border border-zinc-200 shadow-xs">
-                    <div className="flex items-center space-x-3">
-                      <img
-                        src={coverImageUrl}
-                        alt="Uploaded preview"
-                        className="h-12 w-16 object-cover rounded border border-zinc-200"
-                      />
-                      <div className="text-left">
-                        <span className="text-xs font-bold text-emerald-800 flex items-center space-x-1">
-                          <CheckCircle className="h-3.5 w-3.5 text-emerald-600 inline" />
-                          <span>Image Ready</span>
-                        </span>
-                        <p className="text-[10px] text-zinc-400">Click box to replace file</p>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setCoverImageUrl("");
-                      }}
-                      className="p-1 text-zinc-400 hover:text-red-600 rounded hover:bg-red-50"
-                      title="Remove image"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    <div className="h-10 w-10 bg-brand/10 border border-brand/20 rounded-full flex items-center justify-center mx-auto text-brand">
-                      <Upload className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <p className="text-xs font-bold text-zinc-900">
-                        Drag & Drop image from computer here, or{" "}
-                        <span className="text-brand hover:underline">Browse</span>
-                      </p>
-                      <p className="text-[10px] text-zinc-400 mt-0.5">
-                        Supports JPG, PNG, WEBP, GIF files
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </div>
+                <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full border border-brand/20 bg-brand/10 text-brand">
+                  <FolderOpen className="h-5 w-5" />
+                </div>
+                <p className="text-xs font-bold text-zinc-900">
+                  Open Media Library
+                </p>
+                <p className="text-[10px] text-zinc-400 mt-0.5">
+                  Upload to Firebase Storage, pick an existing image, or paste a
+                  URL
+                </p>
+              </button>
             )}
           </div>
 
-          {/* Description Excerpt */}
+          {/* Auto excerpt */}
           <div className="space-y-1.5">
-            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700 block">
-              Short Description / Excerpt * (Min 10 chars)
-            </label>
+            <div className="flex items-center justify-between gap-2">
+              <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700 block">
+                Short Description / Excerpt * (Min 10 chars)
+              </label>
+              <div className="flex items-center gap-3">
+                <span
+                  className={`text-[10px] font-bold ${
+                    descLen > 1000
+                      ? "text-red-500"
+                      : descLen < 10
+                        ? "text-amber-600"
+                        : "text-zinc-400"
+                  }`}
+                >
+                  {descLen}/1000
+                  {!descriptionTouched && (
+                    <span className="ml-1 text-brand">· auto</span>
+                  )}
+                </span>
+                <button
+                  type="button"
+                  onClick={handleRegenerateExcerpt}
+                  className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider text-brand hover:underline"
+                >
+                  <RefreshCw className="h-3 w-3" />
+                  Regenerate
+                </button>
+              </div>
+            </div>
             <textarea
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Brief summary hook for search engines and home feed cards..."
+              onChange={(e) => {
+                setDescription(e.target.value);
+                setDescriptionTouched(true);
+              }}
+              placeholder="Auto-generated from article body; edit anytime…"
               rows={2}
               required
               minLength={10}
@@ -558,7 +577,6 @@ export function PostEditorModal({
             />
           </div>
 
-          {/* TipTap Widescreen Editor */}
           <div className="space-y-1.5">
             <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700 block">
               Article Content Body (TipTap Editor) *
@@ -566,13 +584,14 @@ export function PostEditorModal({
             <TipTapEditor
               content={content}
               onChange={setContent}
+              uploaderUid={authorProfile?.uid ?? null}
               placeholder="Write your full story, album review, or news report with rich formatting..."
             />
           </div>
 
-          {/* Schedule & Backdate Date Picker Section */}
+          {/* Publication timing */}
           <div className="p-4 bg-zinc-50 border border-zinc-200 rounded-xl space-y-3">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center space-x-2 text-zinc-800 text-xs font-black uppercase tracking-wider">
                 <Calendar className="h-4 w-4 text-brand" />
                 <span>Publication Timing (Schedule & Backdate)</span>
@@ -606,22 +625,19 @@ export function PostEditorModal({
             </div>
 
             {publishTiming === "custom" && (
-              <div className="pt-2 flex items-center space-x-3">
-                <Clock className="h-4 w-4 text-zinc-400 shrink-0" />
-                <input
-                  type="datetime-local"
+              <div className="pt-1 flex flex-col sm:flex-row sm:items-center gap-3">
+                <DateTimePicker
                   value={customPublishDate}
-                  onChange={(e) => setCustomPublishDate(e.target.value)}
-                  className="bg-white border border-zinc-300 rounded-md px-3.5 py-2 text-xs font-bold text-zinc-900 focus:outline-none focus:border-brand"
+                  onChange={setCustomPublishDate}
                 />
                 <span className="text-[11px] text-zinc-500 font-medium">
-                  Set a past date to backdate archived stories or a future date to schedule publication.
+                  Past date = backdate. Future date = scheduled (hidden until
+                  that time). Super-admins and post owners can change this later.
                 </span>
               </div>
             )}
           </div>
 
-          {/* Editor Pick & Status */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
             <div className="space-y-1.5">
               <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700 block">
@@ -645,14 +661,16 @@ export function PostEditorModal({
                 onChange={(e) => setIsEditorPick(e.target.checked)}
                 className="h-4 w-4 text-brand border-zinc-300 rounded focus:ring-brand cursor-pointer"
               />
-              <label htmlFor="isEditorPick" className="text-xs font-bold text-zinc-800 cursor-pointer">
-                Feature as Editor's Pick
+              <label
+                htmlFor="isEditorPick"
+                className="text-xs font-bold text-zinc-800 cursor-pointer"
+              >
+                Feature as Editor&apos;s Pick
               </label>
             </div>
           </div>
         </form>
 
-        {/* Modal Footer Actions */}
         <div className="p-4 border-t border-zinc-200 bg-zinc-50 flex items-center justify-between shrink-0">
           <button
             type="button"
@@ -663,6 +681,7 @@ export function PostEditorModal({
           </button>
 
           <button
+            type="button"
             onClick={handleSubmit}
             disabled={isSubmitting}
             className="bg-brand hover:bg-brand/90 text-white font-black text-xs uppercase tracking-widest py-3 px-8 rounded-lg transition-all shadow-md flex items-center space-x-2 disabled:opacity-50 cursor-pointer"
@@ -678,6 +697,14 @@ export function PostEditorModal({
           </button>
         </div>
       </div>
+
+      <MediaLibraryModal
+        isOpen={coverMediaOpen}
+        onClose={() => setCoverMediaOpen(false)}
+        onSelect={(url) => setCoverImageUrl(url)}
+        uploaderUid={authorProfile?.uid ?? null}
+        title="Cover Image"
+      />
     </div>
   );
 }

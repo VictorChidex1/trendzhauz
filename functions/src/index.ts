@@ -80,27 +80,34 @@ export const aggregateHomepageData = onSchedule(
 
     try {
       const postsRef = db.collection("posts");
+      const now = new Date();
 
-      // ── 1. TRENDING: Top 5 posts by views (descending) ──
+      // Model A: exclude future-dated scheduled posts from public aggregates
+      const isLive = (data: FirebaseFirestore.DocumentData): boolean => {
+        const created = data.createdAt?.toDate?.() as Date | undefined;
+        if (!created) return false;
+        return created.getTime() <= now.getTime();
+      };
+
+      // ── 1. TRENDING: Top 5 posts by views (descending), live only ──
       const trendingSnap = await postsRef
         .where("status", "==", "published")
         .orderBy("views", "desc")
         .orderBy("createdAt", "desc")
-        .limit(5)
+        .limit(20)
         .get();
 
-      const trending: AggregatedTrending[] = trendingSnap.docs.map(
-        (doc, idx) => {
-          const data = doc.data();
-          return {
-            rank: idx + 1,
-            title: data.title,
-            coverImageUrl: data.coverImageUrl,
-            createdAt: formatTimestamp(data.createdAt),
-            slug: data.slug,
-          };
-        }
-      );
+      const trending: AggregatedTrending[] = trendingSnap.docs
+        .map((doc) => doc.data())
+        .filter(isLive)
+        .slice(0, 5)
+        .map((data, idx) => ({
+          rank: idx + 1,
+          title: data.title,
+          coverImageUrl: data.coverImageUrl,
+          createdAt: formatTimestamp(data.createdAt),
+          slug: data.slug,
+        }));
 
       console.log(`  ✅ Trending: ${trending.length} posts aggregated`);
 
@@ -109,21 +116,20 @@ export const aggregateHomepageData = onSchedule(
         .where("status", "==", "published")
         .where("isEditorPick", "==", true)
         .orderBy("createdAt", "desc")
-        .limit(3)
+        .limit(12)
         .get();
 
-      const editorPicks: AggregatedEditorPick[] = editorSnap.docs.map(
-        (doc) => {
-          const data = doc.data();
-          return {
-            category: data.category,
-            title: data.title,
-            coverImageUrl: data.coverImageUrl,
-            createdAt: formatTimestamp(data.createdAt),
-            slug: data.slug,
-          };
-        }
-      );
+      const editorPicks: AggregatedEditorPick[] = editorSnap.docs
+        .map((doc) => doc.data())
+        .filter(isLive)
+        .slice(0, 3)
+        .map((data) => ({
+          category: data.category,
+          title: data.title,
+          coverImageUrl: data.coverImageUrl,
+          createdAt: formatTimestamp(data.createdAt),
+          slug: data.slug,
+        }));
 
       console.log(`  ✅ Editor Picks: ${editorPicks.length} posts aggregated`);
 
@@ -131,11 +137,13 @@ export const aggregateHomepageData = onSchedule(
       const latestSnap = await postsRef
         .where("status", "==", "published")
         .orderBy("createdAt", "desc")
-        .limit(12)
+        .limit(24)
         .get();
 
-      const latestStories: AggregatedLatestStory[] = latestSnap.docs.map(
-        (doc) => {
+      const latestStories: AggregatedLatestStory[] = latestSnap.docs
+        .filter((doc) => isLive(doc.data()))
+        .slice(0, 12)
+        .map((doc) => {
           const data = doc.data();
           return {
             id: doc.id,
@@ -151,8 +159,7 @@ export const aggregateHomepageData = onSchedule(
             rating: data.rating || undefined,
             verdict: data.verdict || undefined,
           };
-        }
-      );
+        });
 
       console.log(
         `  ✅ Latest Stories: ${latestStories.length} posts aggregated`
@@ -171,11 +178,13 @@ export const aggregateHomepageData = onSchedule(
       const allRecentSnap = await postsRef
         .where("status", "==", "published")
         .orderBy("createdAt", "desc")
-        .limit(20)
+        .limit(40)
         .get();
 
       const heroSlides: Array<Record<string, string>> = [];
-      const allPosts = allRecentSnap.docs.map((doc) => doc.data());
+      const allPosts = allRecentSnap.docs
+        .map((doc) => doc.data())
+        .filter(isLive);
 
       categories.forEach((cat) => {
         const found = allPosts.find(

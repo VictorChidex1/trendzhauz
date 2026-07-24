@@ -9,6 +9,7 @@ import {
   orderBy,
   where,
   serverTimestamp,
+  Timestamp,
 } from "firebase/firestore";
 import { db } from "@/services/firebase";
 import type { Post, CreatePostInput, PostCategory } from "@/types/post";
@@ -50,7 +51,7 @@ export function generateSearchIndex(title: string): string[] {
 }
 
 /**
- * Fetch all posts from Firestore ordered by creation date
+ * Fetch all posts from Firestore ordered by creation date (CMS — includes scheduled).
  */
 export async function fetchPosts(): Promise<Post[]> {
   try {
@@ -111,8 +112,13 @@ export async function createPost(
     const finalSlug = input.slug?.trim() ? slugify(input.slug) : slugify(input.title);
     const searchIndex = generateSearchIndex(input.title);
 
+    const createdAtValue =
+      input.createdAt instanceof Date && !isNaN(input.createdAt.getTime())
+        ? Timestamp.fromDate(input.createdAt)
+        : serverTimestamp();
+
     // Build payload matching exact firestore.rules required & optional fields
-    const newPostData: Record<string, any> = {
+    const newPostData: Record<string, unknown> = {
       title: input.title.trim(),
       slug: finalSlug,
       description: input.description.trim() || input.title.trim(),
@@ -125,10 +131,9 @@ export async function createPost(
       authorId: author.uid,
       authorName: author.displayName || "TrendzHauz Editor",
       views: 0,
-      createdAt: serverTimestamp(),
+      createdAt: createdAtValue,
     };
 
-    // Add optional review fields if provided
     if (input.artistName) newPostData.artistName = input.artistName.trim();
     if (input.projectTitle) newPostData.projectTitle = input.projectTitle.trim();
     if (input.projectType) newPostData.projectType = input.projectType.trim();
@@ -146,7 +151,8 @@ export async function createPost(
 }
 
 /**
- * Update an existing Post document in Firestore matching firestore.rules update whitelist
+ * Update an existing Post document in Firestore matching firestore.rules update whitelist.
+ * createdAt may be updated for reschedule/backdate (super-admin or owning writer).
  */
 export async function updatePost(
   postId: string,
@@ -155,7 +161,7 @@ export async function updatePost(
   try {
     const postRef = doc(db, POSTS_COLLECTION, postId);
 
-    const updateData: Record<string, any> = {};
+    const updateData: Record<string, unknown> = {};
 
     if (input.title !== undefined) {
       updateData.title = input.title.trim();
@@ -175,6 +181,9 @@ export async function updatePost(
       updateData.rating = Number(input.rating);
     }
     if (input.verdict !== undefined) updateData.verdict = input.verdict.trim();
+    if (input.createdAt instanceof Date && !isNaN(input.createdAt.getTime())) {
+      updateData.createdAt = Timestamp.fromDate(input.createdAt);
+    }
 
     await updateDoc(postRef, updateData);
   } catch (error) {

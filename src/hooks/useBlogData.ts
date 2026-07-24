@@ -10,6 +10,7 @@ import {
   getDoc,
   startAfter,
   getCountFromServer,
+  Timestamp,
   type DocumentSnapshot,
   type QueryDocumentSnapshot,
 } from "firebase/firestore";
@@ -22,6 +23,14 @@ import type {
   EditorPick,
 } from "../types/post";
 import { getCachedData, isCacheFresh, setCachedData, TTL } from "../utils/queryCache";
+
+/** Model A: public posts must have createdAt <= now (matches firestore.rules). */
+function publicPostsBase() {
+  return [
+    where("status", "==", "published"),
+    where("createdAt", "<=", Timestamp.now()),
+  ] as const;
+}
 
 // FALLBACK MOCK DATA (shown when Firestore is empty)
 
@@ -233,7 +242,7 @@ export function useHeroSlides() {
         // ── FALLBACK: Direct query (used before first aggregation runs) ──
         const q = query(
           collection(db, "posts"),
-          where("status", "==", "published"),
+          ...publicPostsBase(),
           orderBy("createdAt", "desc"),
           limit(12)
         );
@@ -323,10 +332,7 @@ export function useLatestStories(postsPerPage = 12) {
 
     async function countPosts() {
       try {
-        const q = query(
-          collection(db, "posts"),
-          where("status", "==", "published")
-        );
+        const q = query(collection(db, "posts"), ...publicPostsBase());
         const countSnap = await getCountFromServer(q);
 
         if (!cancelled) {
@@ -403,7 +409,7 @@ export function useLatestStories(postsPerPage = 12) {
 
           const tempQ = query(
             collection(db, "posts"),
-            where("status", "==", "published"),
+            ...publicPostsBase(),
             orderBy("createdAt", "desc"),
             ...(prevCursor ? [startAfter(prevCursor)] : []),
             limit(skipCount)
@@ -428,7 +434,7 @@ export function useLatestStories(postsPerPage = 12) {
           // First page or start from beginning
           q = query(
             collection(db, "posts"),
-            where("status", "==", "published"),
+            ...publicPostsBase(),
             orderBy("createdAt", "desc"),
             limit(postsPerPage)
           );
@@ -436,7 +442,7 @@ export function useLatestStories(postsPerPage = 12) {
           // Use startAfter cursor for subsequent pages
           q = query(
             collection(db, "posts"),
-            where("status", "==", "published"),
+            ...publicPostsBase(),
             orderBy("createdAt", "desc"),
             startAfter(cursor),
             limit(postsPerPage)
@@ -543,31 +549,31 @@ export function useTrendingPosts() {
           return;
         }
 
-        // ── FALLBACK: Direct query ──
+        // ── FALLBACK: Model A requires createdAt <= now; sort by views client-side ──
         const q = query(
           collection(db, "posts"),
-          where("status", "==", "published"),
-          orderBy("views", "desc"),
+          ...publicPostsBase(),
           orderBy("createdAt", "desc"),
-          limit(5)
+          limit(40)
         );
 
         const snap = await getDocs(q);
 
         if (!cancelled) {
           if (!snap.empty) {
-            const livePosts: TrendingPost[] = snap.docs.map((d, idx) => {
-              const data = d.data() as Post;
-              return {
+            const ranked = snap.docs
+              .map((d) => d.data() as Post)
+              .sort((a, b) => (b.views || 0) - (a.views || 0))
+              .slice(0, 5)
+              .map((data, idx) => ({
                 rank: idx + 1,
                 title: data.title,
                 coverImageUrl: data.coverImageUrl,
                 createdAt: formatDate(data.createdAt),
                 slug: data.slug,
-              };
-            });
-            setCachedData("trending", livePosts);
-            setPosts(livePosts);
+              }));
+            setCachedData("trending", ranked);
+            setPosts(ranked);
           }
           setLoading(false);
         }
@@ -615,11 +621,12 @@ export function useEditorPicks() {
           return;
         }
 
-        // ── FALLBACK: Direct query ──
+        // ── FALLBACK: Direct query (Model A schedule gate) ──
         const q = query(
           collection(db, "posts"),
           where("status", "==", "published"),
           where("isEditorPick", "==", true),
+          where("createdAt", "<=", Timestamp.now()),
           orderBy("createdAt", "desc"),
           limit(3)
         );

@@ -99,7 +99,8 @@ service cloud.firestore {
 
     // ──────────────────────────────────────────────────────────────────────
     // Exact field whitelist for UPDATE — all editable fields.
-    // authorId and createdAt are intentionally excluded (immutable).
+    // authorId and views remain immutable; createdAt MAY change so
+    // super-admins / owning writers can reschedule or backdate posts.
     // ──────────────────────────────────────────────────────────────────────
     function hasValidUpdateFields() {
       let allowedFields = [
@@ -109,6 +110,14 @@ service cloud.firestore {
         'artistName', 'projectTitle', 'projectType', 'rating', 'verdict'
       ];
       return request.resource.data.keys().hasOnly(allowedFields);
+    }
+
+    // Model A schedule gate: published posts only surface publicly once
+    // createdAt is at or before the server clock (request.time).
+    function isPubliclyVisible() {
+      return resource.data.status == 'published'
+          && resource.data.createdAt is timestamp
+          && resource.data.createdAt <= request.time;
     }
 
 
@@ -131,17 +140,14 @@ service cloud.firestore {
     // ══════════════════════════════════════════════════════════════════════
     match /posts/{postId} {
 
-      // PUBLIC READ: Anyone can read published posts.
-      // Drafts are only visible to writers and super-admins.
-      allow read: if resource.data.status == 'published' || isWriter();
+      // PUBLIC READ (Model A): published AND createdAt <= now.
+      // Future-dated "scheduled" posts are hidden from the public.
+      // Writers/super-admins can always read (CMS preview of scheduled/drafts).
+      allow read: if isWriter() || isPubliclyVisible();
 
       // ── CREATE ──────────────────────────────────────────────────────────
-      // Category enum now uses TitleCase to match the TypeScript
-      // interface: "Music" | "Videos" | "Reviews" | "News"
-      // hasValidCreateFields() enforces an exact field whitelist.
-      // isValidTitle/Slug/Description() cap string lengths.
-      // isValidSearchIndex() caps the token array at 60 items.
-      // isValidRating() validates the optional rating field.
+      // createdAt may be past (backdate), now, or future (schedule).
+      // Category enum: "Music" | "Videos" | "Reviews" | "News"
       allow create: if isWriter()
         && hasValidCreateFields()
         && isValidTitle()
@@ -151,35 +157,30 @@ service cloud.firestore {
         && isValidRating()
         && request.resource.data.content is string
         && request.resource.data.content.size() >= 1
-        // TitleCase enum matching the TypeScript type definition:
         && request.resource.data.category in ['Music', 'Videos', 'Reviews', 'News']
         && request.resource.data.coverImageUrl is string
         && request.resource.data.status in ['draft', 'published']
         && request.resource.data.isEditorPick is bool
-        // Author integrity: the stored authorId must equal the requester's UID.
         && request.resource.data.authorId == request.auth.uid
         && request.resource.data.authorName is string
         && request.resource.data.views == 0
         && request.resource.data.createdAt is timestamp;
 
       // ── UPDATE ──────────────────────────────────────────────────────────
-      // hasValidUpdateFields() enforces an exact field whitelist.
-      // Writers can ONLY update their OWN posts. Super-admins can
-      // update any post regardless of authorship.
-      // Immutability: authorId and createdAt CANNOT change after creation.
+      // Writers: own posts only. Super-admins: any post.
+      // authorId and views are immutable.
+      // createdAt MAY change for reschedule / backdate (Model A).
       allow update: if hasValidUpdateFields()
         && isValidTitle()
         && isValidSlug()
         && isValidDescription()
         && isValidSearchIndex()
         && isValidRating()
-        // TitleCase category must still be valid on update.
         && request.resource.data.category in ['Music', 'Videos', 'Reviews', 'News']
         && request.resource.data.status in ['draft', 'published']
-        // Immutable fields — cannot be changed after document creation.
         && request.resource.data.authorId == resource.data.authorId
-        && request.resource.data.createdAt == resource.data.createdAt
-        // Writers: own posts only. Super-admins: any post.
+        && request.resource.data.views == resource.data.views
+        && request.resource.data.createdAt is timestamp
         && (isSuperAdmin() || (isWriter() && isOwnPost()));
 
       // ── DELETE ──────────────────────────────────────────────────────────

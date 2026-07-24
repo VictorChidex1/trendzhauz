@@ -3,8 +3,10 @@ import {
   collection,
   query,
   where,
+  orderBy,
   limit,
   getDocs,
+  Timestamp,
   type QueryDocumentSnapshot,
 } from "firebase/firestore";
 import { db } from "../services/firebase";
@@ -145,18 +147,28 @@ export function useSearch(
     async function executeSearch() {
       setLoading(true);
       try {
-        // Build query matching status == published and searchIndex array-contains token
+        // Model A: published + createdAt <= now + searchIndex token
+        // orderBy createdAt required when using inequality on createdAt
         let q = query(
           collection(db, "posts"),
           where("status", "==", "published"),
-          where("searchIndex", "array-contains", token)
+          where("searchIndex", "array-contains", token),
+          where("createdAt", "<=", Timestamp.now()),
+          orderBy("createdAt", "desc"),
+          limit(maxResults)
         );
 
         if (selectedCategory !== "All") {
-          q = query(q, where("category", "==", selectedCategory));
+          q = query(
+            collection(db, "posts"),
+            where("status", "==", "published"),
+            where("category", "==", selectedCategory),
+            where("searchIndex", "array-contains", token),
+            where("createdAt", "<=", Timestamp.now()),
+            orderBy("createdAt", "desc"),
+            limit(maxResults)
+          );
         }
-
-        q = query(q, limit(maxResults));
 
         const snap = await getDocs(q);
 

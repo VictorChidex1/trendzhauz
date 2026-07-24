@@ -22,18 +22,24 @@ import {
   Undo,
   Redo,
 } from "lucide-react";
+import { MediaLibraryModal } from "@/components/admin/MediaLibraryModal";
 
 interface TipTapEditorProps {
   content: string;
   onChange: (html: string) => void;
   placeholder?: string;
+  /** Firebase Auth UID for Storage uploads (required for media library uploads) */
+  uploaderUid?: string | null;
 }
 
 export function TipTapEditor({
   content,
   onChange,
   placeholder = "Start writing your story or review here...",
+  uploaderUid = null,
 }: TipTapEditorProps) {
+  const [mediaOpen, setMediaOpen] = React.useState(false);
+
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -49,7 +55,8 @@ export function TipTapEditor({
       }),
       Image.configure({
         HTMLAttributes: {
-          class: "rounded-lg max-h-96 w-auto my-4 border border-zinc-200 shadow-sm",
+          class:
+            "rounded-lg max-h-96 w-auto my-4 border border-zinc-200 shadow-sm",
         },
       }),
       Placeholder.configure({
@@ -59,8 +66,8 @@ export function TipTapEditor({
       }),
     ],
     content: content || "",
-    onUpdate: ({ editor }) => {
-      onChange(editor.getHTML());
+    onUpdate: ({ editor: ed }) => {
+      onChange(ed.getHTML());
     },
     editorProps: {
       attributes: {
@@ -70,7 +77,6 @@ export function TipTapEditor({
     },
   });
 
-  // Keep editor content in sync if initial content changes externally
   React.useEffect(() => {
     if (editor && content !== editor.getHTML()) {
       editor.commands.setContent(content || "");
@@ -94,225 +100,232 @@ export function TipTapEditor({
     editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
   };
 
-  const addImage = () => {
-    const url = window.prompt("Enter image URL:");
-    if (url) {
-      editor.chain().focus().setImage({ src: url }).run();
-    }
+  const insertImageFromUrl = (url: string) => {
+    editor.chain().focus().setImage({ src: url }).run();
   };
 
   return (
-    <div className="border border-zinc-300 rounded-md overflow-hidden bg-white focus-within:border-brand focus-within:ring-1 focus-within:ring-brand/20 transition-all shadow-xs">
-      {/* Editor Toolbar */}
-      <div className="bg-zinc-50 border-b border-zinc-200 p-2 flex flex-wrap items-center gap-1">
-        {/* Text Formatting Group */}
-        <button
-          type="button"
-          onClick={() => editor.chain().focus().toggleBold().run()}
-          className={`p-1.5 rounded transition-colors ${
-            editor.isActive("bold")
-              ? "bg-zinc-200 text-zinc-900 font-bold"
-              : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
-          }`}
-          title="Bold (Ctrl+B)"
-        >
-          <Bold className="h-4 w-4" />
-        </button>
-
-        <button
-          type="button"
-          onClick={() => editor.chain().focus().toggleItalic().run()}
-          className={`p-1.5 rounded transition-colors ${
-            editor.isActive("italic")
-              ? "bg-zinc-200 text-zinc-900"
-              : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
-          }`}
-          title="Italic (Ctrl+I)"
-        >
-          <Italic className="h-4 w-4" />
-        </button>
-
-        <button
-          type="button"
-          onClick={() => editor.chain().focus().toggleStrike().run()}
-          className={`p-1.5 rounded transition-colors ${
-            editor.isActive("strike")
-              ? "bg-zinc-200 text-zinc-900"
-              : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
-          }`}
-          title="Strikethrough"
-        >
-          <Strikethrough className="h-4 w-4" />
-        </button>
-
-        <button
-          type="button"
-          onClick={() => editor.chain().focus().toggleCode().run()}
-          className={`p-1.5 rounded transition-colors ${
-            editor.isActive("code")
-              ? "bg-zinc-200 text-zinc-900"
-              : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
-          }`}
-          title="Code snippet"
-        >
-          <Code className="h-4 w-4" />
-        </button>
-
-        <div className="w-px h-4 bg-zinc-300 mx-1 self-center" />
-
-        {/* Heading Group */}
-        <button
-          type="button"
-          onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-          className={`p-1.5 rounded transition-colors ${
-            editor.isActive("heading", { level: 1 })
-              ? "bg-zinc-200 text-zinc-900 font-bold"
-              : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
-          }`}
-          title="Heading 1"
-        >
-          <Heading1 className="h-4 w-4" />
-        </button>
-
-        <button
-          type="button"
-          onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-          className={`p-1.5 rounded transition-colors ${
-            editor.isActive("heading", { level: 2 })
-              ? "bg-zinc-200 text-zinc-900 font-bold"
-              : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
-          }`}
-          title="Heading 2"
-        >
-          <Heading2 className="h-4 w-4" />
-        </button>
-
-        <button
-          type="button"
-          onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
-          className={`p-1.5 rounded transition-colors ${
-            editor.isActive("heading", { level: 3 })
-              ? "bg-zinc-200 text-zinc-900 font-bold"
-              : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
-          }`}
-          title="Heading 3"
-        >
-          <Heading3 className="h-4 w-4" />
-        </button>
-
-        <div className="w-px h-4 bg-zinc-300 mx-1 self-center" />
-
-        {/* Lists & Quotes */}
-        <button
-          type="button"
-          onClick={() => editor.chain().focus().toggleBulletList().run()}
-          className={`p-1.5 rounded transition-colors ${
-            editor.isActive("bulletList")
-              ? "bg-zinc-200 text-zinc-900"
-              : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
-          }`}
-          title="Bullet List"
-        >
-          <List className="h-4 w-4" />
-        </button>
-
-        <button
-          type="button"
-          onClick={() => editor.chain().focus().toggleOrderedList().run()}
-          className={`p-1.5 rounded transition-colors ${
-            editor.isActive("orderedList")
-              ? "bg-zinc-200 text-zinc-900"
-              : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
-          }`}
-          title="Numbered List"
-        >
-          <ListOrdered className="h-4 w-4" />
-        </button>
-
-        <button
-          type="button"
-          onClick={() => editor.chain().focus().toggleBlockquote().run()}
-          className={`p-1.5 rounded transition-colors ${
-            editor.isActive("blockquote")
-              ? "bg-zinc-200 text-zinc-900"
-              : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
-          }`}
-          title="Blockquote"
-        >
-          <Quote className="h-4 w-4" />
-        </button>
-
-        <button
-          type="button"
-          onClick={() => editor.chain().focus().setHorizontalRule().run()}
-          className="p-1.5 text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 rounded transition-colors"
-          title="Horizontal Line"
-        >
-          <Minus className="h-4 w-4" />
-        </button>
-
-        <div className="w-px h-4 bg-zinc-300 mx-1 self-center" />
-
-        {/* Media & Links */}
-        <button
-          type="button"
-          onClick={setLink}
-          className={`p-1.5 rounded transition-colors ${
-            editor.isActive("link")
-              ? "bg-zinc-200 text-brand"
-              : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
-          }`}
-          title="Insert / Edit Link"
-        >
-          <LinkIcon className="h-4 w-4" />
-        </button>
-
-        {editor.isActive("link") && (
+    <>
+      <div className="border border-zinc-300 rounded-md overflow-hidden bg-white focus-within:border-brand focus-within:ring-1 focus-within:ring-brand/20 transition-all shadow-xs">
+        {/* Editor Toolbar */}
+        <div className="bg-zinc-50 border-b border-zinc-200 p-2 flex flex-wrap items-center gap-1">
           <button
             type="button"
-            onClick={() => editor.chain().focus().unsetLink().run()}
-            className="p-1.5 text-red-500 hover:bg-red-50 rounded transition-colors"
-            title="Remove Link"
+            onClick={() => editor.chain().focus().toggleBold().run()}
+            className={`p-1.5 rounded transition-colors ${
+              editor.isActive("bold")
+                ? "bg-zinc-200 text-zinc-900 font-bold"
+                : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
+            }`}
+            title="Bold (Ctrl+B)"
           >
-            <Unlink className="h-4 w-4" />
+            <Bold className="h-4 w-4" />
           </button>
-        )}
 
-        <button
-          type="button"
-          onClick={addImage}
-          className="p-1.5 text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 rounded transition-colors"
-          title="Insert Image URL"
-        >
-          <ImageIcon className="h-4 w-4" />
-        </button>
+          <button
+            type="button"
+            onClick={() => editor.chain().focus().toggleItalic().run()}
+            className={`p-1.5 rounded transition-colors ${
+              editor.isActive("italic")
+                ? "bg-zinc-200 text-zinc-900"
+                : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
+            }`}
+            title="Italic (Ctrl+I)"
+          >
+            <Italic className="h-4 w-4" />
+          </button>
 
-        <div className="w-px h-4 bg-zinc-300 mx-1 self-center ml-auto" />
+          <button
+            type="button"
+            onClick={() => editor.chain().focus().toggleStrike().run()}
+            className={`p-1.5 rounded transition-colors ${
+              editor.isActive("strike")
+                ? "bg-zinc-200 text-zinc-900"
+                : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
+            }`}
+            title="Strikethrough"
+          >
+            <Strikethrough className="h-4 w-4" />
+          </button>
 
-        {/* History */}
-        <button
-          type="button"
-          onClick={() => editor.chain().focus().undo().run()}
-          disabled={!editor.can().undo()}
-          className="p-1.5 text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 rounded transition-colors disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed"
-          title="Undo (Ctrl+Z)"
-        >
-          <Undo className="h-4 w-4" />
-        </button>
+          <button
+            type="button"
+            onClick={() => editor.chain().focus().toggleCode().run()}
+            className={`p-1.5 rounded transition-colors ${
+              editor.isActive("code")
+                ? "bg-zinc-200 text-zinc-900"
+                : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
+            }`}
+            title="Code snippet"
+          >
+            <Code className="h-4 w-4" />
+          </button>
 
-        <button
-          type="button"
-          onClick={() => editor.chain().focus().redo().run()}
-          disabled={!editor.can().redo()}
-          className="p-1.5 text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 rounded transition-colors disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed"
-          title="Redo (Ctrl+Y)"
-        >
-          <Redo className="h-4 w-4" />
-        </button>
+          <div className="w-px h-4 bg-zinc-300 mx-1 self-center" />
+
+          <button
+            type="button"
+            onClick={() =>
+              editor.chain().focus().toggleHeading({ level: 1 }).run()
+            }
+            className={`p-1.5 rounded transition-colors ${
+              editor.isActive("heading", { level: 1 })
+                ? "bg-zinc-200 text-zinc-900 font-bold"
+                : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
+            }`}
+            title="Heading 1"
+          >
+            <Heading1 className="h-4 w-4" />
+          </button>
+
+          <button
+            type="button"
+            onClick={() =>
+              editor.chain().focus().toggleHeading({ level: 2 }).run()
+            }
+            className={`p-1.5 rounded transition-colors ${
+              editor.isActive("heading", { level: 2 })
+                ? "bg-zinc-200 text-zinc-900 font-bold"
+                : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
+            }`}
+            title="Heading 2"
+          >
+            <Heading2 className="h-4 w-4" />
+          </button>
+
+          <button
+            type="button"
+            onClick={() =>
+              editor.chain().focus().toggleHeading({ level: 3 }).run()
+            }
+            className={`p-1.5 rounded transition-colors ${
+              editor.isActive("heading", { level: 3 })
+                ? "bg-zinc-200 text-zinc-900 font-bold"
+                : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
+            }`}
+            title="Heading 3"
+          >
+            <Heading3 className="h-4 w-4" />
+          </button>
+
+          <div className="w-px h-4 bg-zinc-300 mx-1 self-center" />
+
+          <button
+            type="button"
+            onClick={() => editor.chain().focus().toggleBulletList().run()}
+            className={`p-1.5 rounded transition-colors ${
+              editor.isActive("bulletList")
+                ? "bg-zinc-200 text-zinc-900"
+                : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
+            }`}
+            title="Bullet List"
+          >
+            <List className="h-4 w-4" />
+          </button>
+
+          <button
+            type="button"
+            onClick={() => editor.chain().focus().toggleOrderedList().run()}
+            className={`p-1.5 rounded transition-colors ${
+              editor.isActive("orderedList")
+                ? "bg-zinc-200 text-zinc-900"
+                : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
+            }`}
+            title="Numbered List"
+          >
+            <ListOrdered className="h-4 w-4" />
+          </button>
+
+          <button
+            type="button"
+            onClick={() => editor.chain().focus().toggleBlockquote().run()}
+            className={`p-1.5 rounded transition-colors ${
+              editor.isActive("blockquote")
+                ? "bg-zinc-200 text-zinc-900"
+                : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
+            }`}
+            title="Blockquote"
+          >
+            <Quote className="h-4 w-4" />
+          </button>
+
+          <button
+            type="button"
+            onClick={() => editor.chain().focus().setHorizontalRule().run()}
+            className="p-1.5 text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 rounded transition-colors"
+            title="Horizontal Line"
+          >
+            <Minus className="h-4 w-4" />
+          </button>
+
+          <div className="w-px h-4 bg-zinc-300 mx-1 self-center" />
+
+          <button
+            type="button"
+            onClick={setLink}
+            className={`p-1.5 rounded transition-colors ${
+              editor.isActive("link")
+                ? "bg-zinc-200 text-brand"
+                : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
+            }`}
+            title="Insert / Edit Link"
+          >
+            <LinkIcon className="h-4 w-4" />
+          </button>
+
+          {editor.isActive("link") && (
+            <button
+              type="button"
+              onClick={() => editor.chain().focus().unsetLink().run()}
+              className="p-1.5 text-red-500 hover:bg-red-50 rounded transition-colors"
+              title="Remove Link"
+            >
+              <Unlink className="h-4 w-4" />
+            </button>
+          )}
+
+          <button
+            type="button"
+            onClick={() => setMediaOpen(true)}
+            className="p-1.5 text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 rounded transition-colors"
+            title="Insert Image (Upload / Media Library / URL)"
+          >
+            <ImageIcon className="h-4 w-4" />
+          </button>
+
+          <div className="w-px h-4 bg-zinc-300 mx-1 self-center ml-auto" />
+
+          <button
+            type="button"
+            onClick={() => editor.chain().focus().undo().run()}
+            disabled={!editor.can().undo()}
+            className="p-1.5 text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 rounded transition-colors disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed"
+            title="Undo (Ctrl+Z)"
+          >
+            <Undo className="h-4 w-4" />
+          </button>
+
+          <button
+            type="button"
+            onClick={() => editor.chain().focus().redo().run()}
+            disabled={!editor.can().redo()}
+            className="p-1.5 text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 rounded transition-colors disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed"
+            title="Redo (Ctrl+Y)"
+          >
+            <Redo className="h-4 w-4" />
+          </button>
+        </div>
+
+        <EditorContent editor={editor} />
       </div>
 
-      {/* Editor Content Area */}
-      <EditorContent editor={editor} />
-    </div>
+      <MediaLibraryModal
+        isOpen={mediaOpen}
+        onClose={() => setMediaOpen(false)}
+        onSelect={insertImageFromUrl}
+        uploaderUid={uploaderUid}
+        title="Insert Image"
+      />
+    </>
   );
 }

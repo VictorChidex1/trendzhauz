@@ -8,8 +8,10 @@ import {
   getDocs,
   startAfter,
   getCountFromServer,
+  Timestamp,
   type DocumentSnapshot,
   type QueryDocumentSnapshot,
+  type QueryConstraint,
 } from "firebase/firestore";
 import { db } from "../services/firebase";
 import type { Post, StoryCard } from "../types/post";
@@ -19,6 +21,32 @@ import {
   setCachedData,
   TTL,
 } from "../utils/queryCache";
+
+/** Model A public base constraints for Reviews. */
+function reviewsPublicConstraints(
+  projectTypeFilter: string,
+  sortBy: "newest" | "highest-rated"
+): QueryConstraint[] {
+  const constraints: QueryConstraint[] = [
+    where("status", "==", "published"),
+    where("category", "==", "Reviews"),
+    where("createdAt", "<=", Timestamp.now()),
+  ];
+
+  if (projectTypeFilter !== "All") {
+    constraints.push(where("projectType", "==", projectTypeFilter));
+  }
+
+  // Range filter is on createdAt → primary orderBy must be createdAt for Model A.
+  // highest-rated: fetch recent window then sort by rating client-side when needed.
+  if (sortBy === "highest-rated") {
+    constraints.push(orderBy("createdAt", "desc"));
+  } else {
+    constraints.push(orderBy("createdAt", "desc"));
+  }
+
+  return constraints;
+}
 
 // RICH MOCK REVIEWS FOR FALLBACK (COMPLETE WITH GENRE & SCORE BREAKDOWNS)
 const MOCK_REVIEWS: StoryCard[] = [
@@ -265,15 +293,15 @@ export function useReviews(
 
     async function countReviews() {
       try {
-        let q = query(
-          collection(db, "posts"),
+        const base: QueryConstraint[] = [
           where("status", "==", "published"),
-          where("category", "==", "Reviews")
-        );
-
+          where("category", "==", "Reviews"),
+          where("createdAt", "<=", Timestamp.now()),
+        ];
         if (projectTypeFilter !== "All") {
-          q = query(q, where("projectType", "==", projectTypeFilter));
+          base.push(where("projectType", "==", projectTypeFilter));
         }
+        const q = query(collection(db, "posts"), ...base);
 
         const countSnap = await getCountFromServer(q);
 
@@ -341,28 +369,9 @@ export function useReviews(
           const prevCursor = cursorCache.current.get(prevPage);
           const skipCount = (currentPage - prevPage) * postsPerPage;
 
-          let tempQ = query(
+          const tempQ = query(
             collection(db, "posts"),
-            where("status", "==", "published"),
-            where("category", "==", "Reviews")
-          );
-
-          if (projectTypeFilter !== "All") {
-            tempQ = query(tempQ, where("projectType", "==", projectTypeFilter));
-          }
-
-          if (sortBy === "highest-rated") {
-            tempQ = query(
-              tempQ,
-              orderBy("rating", "desc"),
-              orderBy("createdAt", "desc")
-            );
-          } else {
-            tempQ = query(tempQ, orderBy("createdAt", "desc"));
-          }
-
-          tempQ = query(
-            tempQ,
+            ...reviewsPublicConstraints(projectTypeFilter, sortBy),
             ...(prevCursor ? [startAfter(prevCursor)] : []),
             limit(skipCount)
           );
@@ -384,24 +393,17 @@ export function useReviews(
 
         let q = query(
           collection(db, "posts"),
-          where("status", "==", "published"),
-          where("category", "==", "Reviews")
+          ...reviewsPublicConstraints(projectTypeFilter, sortBy)
         );
 
-        if (projectTypeFilter !== "All") {
-          q = query(q, where("projectType", "==", projectTypeFilter));
-        }
+        // For highest-rated, oversample then sort client-side (Model A orderBy constraint)
+        const fetchLimit =
+          sortBy === "highest-rated" ? Math.max(postsPerPage * 3, 36) : postsPerPage;
 
-        if (sortBy === "highest-rated") {
-          q = query(q, orderBy("rating", "desc"), orderBy("createdAt", "desc"));
-        } else {
-          q = query(q, orderBy("createdAt", "desc"));
-        }
-
-        if (currentPage > 1 && cursor) {
+        if (currentPage > 1 && cursor && sortBy === "newest") {
           q = query(q, startAfter(cursor), limit(postsPerPage));
         } else {
-          q = query(q, limit(postsPerPage));
+          q = query(q, limit(fetchLimit));
         }
 
         const snap = await getDocs(q);
@@ -412,7 +414,18 @@ export function useReviews(
             setRawReviews(MOCK_REVIEWS);
             setTotalEstimate(MOCK_REVIEWS.length);
           } else {
-            const pageReviews: StoryCard[] = snap.docs.map(
+            let docs = snap.docs;
+            if (sortBy === "highest-rated") {
+              docs = [...docs].sort((a, b) => {
+                const ra = (a.data() as Post).rating || 0;
+                const rb = (b.data() as Post).rating || 0;
+                return rb - ra;
+              });
+              const start = (currentPage - 1) * postsPerPage;
+              docs = docs.slice(start, start + postsPerPage);
+            }
+
+            const pageReviews: StoryCard[] = docs.map(
               (doc: QueryDocumentSnapshot) => {
                 const data = doc.data() as Post;
                 return {

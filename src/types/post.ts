@@ -66,6 +66,12 @@ export interface CreatePostInput {
   projectType?: string;
   rating?: number;
   verdict?: string;
+  /**
+   * Optional publication timestamp (Model A schedule / backdate).
+   * When omitted on create, serverTimestamp() is used.
+   * When set on update, writers (own posts) and super-admins may reschedule.
+   */
+  createdAt?: Date;
 }
 
 export interface HeroSlide {
