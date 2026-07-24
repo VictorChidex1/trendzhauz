@@ -15,6 +15,7 @@ import type {
 } from "@/types/post";
 import type { UserProfile } from "@/types/user";
 import { createPost, updatePost, slugify } from "@/services/posts";
+import { TipTapEditor } from "@/components/admin/TipTapEditor";
 
 interface PostEditorModalProps {
   isOpen: boolean;
@@ -378,18 +379,15 @@ export function PostEditorModal({
             />
           </div>
 
-          {/* Main Article Body Content */}
+          {/* Main Article Body Content with TipTap Rich Text Editor */}
           <div className="space-y-1.5">
             <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700 block">
-              Article Content Body *
+              Article Content Body (TipTap Editor) *
             </label>
-            <textarea
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder="Write your full article here..."
-              rows={8}
-              required
-              className="w-full bg-zinc-50 border border-zinc-300 rounded-md px-3.5 py-2.5 text-xs text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:border-brand focus:bg-white transition-colors font-medium shadow-xs"
+            <TipTapEditor
+              content={content}
+              onChange={setContent}
+              placeholder="Write your story, music review, or news article here with full rich text formatting..."
             />
           </div>
 
