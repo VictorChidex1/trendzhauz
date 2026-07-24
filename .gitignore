@@ -15,7 +15,13 @@ functions/node_modules
 *.local
 .env
 .env.*
-!.env.example
+# Do not track example env files either (may accidentally hold real keys)
+.env.example
+**/.env.example
+functions/.env
+functions/.env.*
+functions/.secret.local
+functions/.secret.*
 
 # Editor directories and files
 .vscode/*
@@ -42,3 +48,9 @@ cloud_functions_breakdown.md
 context.md
 ProjectOverview.md
 homepage_performance_plan.md
+How-to-untrack-a-file-that-is-in-git.md
+
+# Automatically ignore all root-level explanation & architecture markdown files
+/*.md
+!.github/**/*.md
+!README.md
