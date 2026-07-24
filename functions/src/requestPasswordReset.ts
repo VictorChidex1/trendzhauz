@@ -75,12 +75,12 @@ function buildResetEmailHtml(params: {
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Reset your TrendzHauz Media password</title>
 </head>
-<body style="margin:0;padding:0;background-color:#09090b;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:#09090b;padding:40px 16px;">
+<body style="margin:0;padding:0;background-color:#ffffff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;" bgcolor="#ffffff">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:#ffffff;padding:40px 16px;" bgcolor="#ffffff">
     <tr>
-      <td align="center">
+      <td align="center" style="background-color:#ffffff;" bgcolor="#ffffff">
         <!-- Main Card Container -->
-        <table role="presentation" width="100%" style="max-width:540px;background-color:#18181b;border:1px solid #27272a;border-radius:16px;overflow:hidden;box-shadow:0 20px 25px -5px rgba(0, 0, 0, 0.5);">
+        <table role="presentation" width="100%" style="max-width:540px;background-color:#18181b;border:1px solid #27272a;border-radius:16px;overflow:hidden;box-shadow:0 20px 25px -5px rgba(0, 0, 0, 0.5);" bgcolor="#18181b">
           
           <!-- Header Banner with Logo & Accent -->
           <tr>
