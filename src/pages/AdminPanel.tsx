@@ -95,13 +95,13 @@ export default function AdminPanel() {
   const totalPosts = posts.length;
   const publishedPosts = posts.filter((p) => p.status === "published").length;
   const draftPosts = posts.filter((p) => p.status === "draft").length;
-  const reviewPosts = posts.filter((p) => p.category === "reviews").length;
+  const reviewPosts = posts.filter((p) => p.category === "Reviews").length;
 
   // Filtered Posts List based on active tab, search, and category
   const filteredPosts = React.useMemo(() => {
     return posts.filter((post) => {
       // Tab filter
-      if (activeTab === "reviews" && post.category !== "reviews") return false;
+      if (activeTab === "reviews" && post.category !== "Reviews") return false;
 
       // Category dropdown filter
       if (filterCategory !== "all" && post.category !== filterCategory) return false;
@@ -114,7 +114,7 @@ export default function AdminPanel() {
         const queryLower = searchQuery.toLowerCase();
         const matchesTitle = post.title?.toLowerCase().includes(queryLower);
         const matchesAuthor = post.authorName?.toLowerCase().includes(queryLower);
-        const matchesArtist = post.reviewMeta?.artistName?.toLowerCase().includes(queryLower);
+        const matchesArtist = (post.artistName || post.reviewMeta?.artistName)?.toLowerCase().includes(queryLower);
         return matchesTitle || matchesAuthor || matchesArtist;
       }
 
@@ -278,7 +278,7 @@ export default function AdminPanel() {
                         <div className="flex items-center space-x-3 min-w-0 pr-4">
                           <div className="h-10 w-12 rounded bg-zinc-100 border border-zinc-200 overflow-hidden shrink-0">
                             <img
-                              src={post.coverImage || "/assets/placeholder-cover.jpg"}
+                              src={post.coverImageUrl || post.coverImage || "/assets/placeholder-cover.jpg"}
                               alt=""
                               className="h-full w-full object-cover"
                               onError={(e) => {
@@ -363,11 +363,10 @@ export default function AdminPanel() {
                       className="bg-zinc-50 border border-zinc-300 rounded-md px-3 py-2 text-xs text-zinc-900 font-medium focus:outline-none focus:border-brand"
                     >
                       <option value="all">All Categories</option>
-                      <option value="music">Music</option>
-                      <option value="reviews">Reviews</option>
-                      <option value="news">News</option>
-                      <option value="events">Events</option>
-                      <option value="culture">Culture</option>
+                      <option value="Music">Music</option>
+                      <option value="Videos">Videos</option>
+                      <option value="Reviews">Reviews</option>
+                      <option value="News">News</option>
                     </select>
                   )}
 
@@ -426,7 +425,7 @@ export default function AdminPanel() {
                             <div className="flex items-center space-x-3 min-w-[200px]">
                               <div className="h-10 w-12 rounded bg-zinc-100 border border-zinc-200 overflow-hidden shrink-0">
                                 <img
-                                  src={post.coverImage || "/assets/placeholder-cover.jpg"}
+                                  src={post.coverImageUrl || post.coverImage || "/assets/placeholder-cover.jpg"}
                                   alt=""
                                   className="h-full w-full object-cover"
                                   onError={(e) => {
@@ -440,9 +439,9 @@ export default function AdminPanel() {
                                 <h4 className="font-bold text-zinc-900 truncate max-w-xs">
                                   {post.title}
                                 </h4>
-                                {post.reviewMeta && (
+                                {(post.rating || post.reviewMeta?.rating) && (
                                   <p className="text-[10px] text-amber-600 font-bold">
-                                    ★ {post.reviewMeta.rating}/5 · {post.reviewMeta.artistName}
+                                    ★ {post.rating || post.reviewMeta?.rating}/10 · {post.artistName || post.reviewMeta?.artistName}
                                   </p>
                                 )}
                               </div>

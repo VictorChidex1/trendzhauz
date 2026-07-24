@@ -1,21 +1,13 @@
-export type PostCategory =
-  | "reviews"
-  | "music"
-  | "news"
-  | "events"
-  | "culture"
-  | "lifestyle";
+export type PostCategory = "Music" | "Videos" | "Reviews" | "News";
 
-export type PostStatus = "published" | "draft";
+export type PostStatus = "draft" | "published";
 
 export interface ReviewMetadata {
-  artistName: string;
-  albumOrTrackTitle: string;
-  rating: number;
-  maxRating: number;
-  verdict: string;
-  releaseYear?: string;
-  genre?: string;
+  artistName?: string;
+  projectTitle?: string;
+  projectType?: string;
+  rating?: number;
+  verdict?: string;
   scoreBreakdown?: {
     production?: number;
     lyricism?: number;
@@ -29,26 +21,28 @@ export interface Post {
   id: string;
   title: string;
   slug: string;
+  description: string;
   excerpt?: string;
-  description?: string;
   content: string;
-  coverImage?: string;
-  coverImageUrl?: string;
   category: PostCategory | string;
+  coverImageUrl: string;
+  coverImage?: string;
+  searchIndex: string[];
   status: PostStatus | string;
-  authorUid?: string;
-  authorName?: string;
-  authorEmail?: string;
-  tags?: string[];
-  readTime?: string;
-  featured?: boolean;
-  reviewMeta?: ReviewMetadata;
+  isEditorPick: boolean;
+  authorId: string;
+  authorName: string;
+  views: number;
+  createdAt: any;
+  updatedAt?: any;
+  // Optional review metadata fields matching firestore.rules
   artistName?: string;
   projectTitle?: string;
   projectType?: string;
   rating?: number;
   verdict?: string;
   genre?: string;
+  reviewMeta?: any;
   scoreBreakdown?: {
     production?: number;
     lyricism?: number;
@@ -56,22 +50,22 @@ export interface Post {
     replayValue?: number;
     originality?: number;
   };
-  createdAt?: any;
-  updatedAt?: any;
 }
 
 export interface CreatePostInput {
   title: string;
   slug?: string;
-  excerpt: string;
+  description: string;
   content: string;
-  coverImage: string;
   category: PostCategory;
+  coverImageUrl: string;
   status: PostStatus;
-  tags?: string[];
-  readTime?: string;
-  featured?: boolean;
-  reviewMeta?: ReviewMetadata;
+  isEditorPick?: boolean;
+  artistName?: string;
+  projectTitle?: string;
+  projectType?: string;
+  rating?: number;
+  verdict?: string;
 }
 
 export interface HeroSlide {

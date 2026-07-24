@@ -36,19 +36,18 @@ export function PostEditorModal({
   // Form State
   const [title, setTitle] = React.useState("");
   const [slug, setSlug] = React.useState("");
-  const [excerpt, setExcerpt] = React.useState("");
+  const [description, setDescription] = React.useState("");
   const [content, setContent] = React.useState("");
-  const [coverImage, setCoverImage] = React.useState("");
-  const [category, setCategory] = React.useState<PostCategory>("music");
+  const [coverImageUrl, setCoverImageUrl] = React.useState("");
+  const [category, setCategory] = React.useState<PostCategory>("Music");
   const [status, setStatus] = React.useState<PostStatus>("published");
-  const [tags, setTags] = React.useState("");
-  const [readTime, setReadTime] = React.useState("4 min read");
-  const [featured, setFeatured] = React.useState(false);
+  const [isEditorPick, setIsEditorPick] = React.useState(false);
 
-  // Review-Specific Metadata State
+  // Review & Track Specific Metadata State
   const [artistName, setArtistName] = React.useState("");
-  const [albumOrTrackTitle, setAlbumOrTrackTitle] = React.useState("");
-  const [rating, setRating] = React.useState<number>(4.5);
+  const [projectTitle, setProjectTitle] = React.useState("");
+  const [projectType, setProjectType] = React.useState("Album");
+  const [rating, setRating] = React.useState<number>(8.5);
   const [verdict, setVerdict] = React.useState("Essential Listen");
 
   // UI Status State
@@ -60,36 +59,32 @@ export function PostEditorModal({
     if (postToEdit) {
       setTitle(postToEdit.title || "");
       setSlug(postToEdit.slug || "");
-      setExcerpt(postToEdit.excerpt || "");
+      setDescription(postToEdit.description || postToEdit.excerpt || "");
       setContent(postToEdit.content || "");
-      setCoverImage(postToEdit.coverImage || "");
-      setCategory((postToEdit.category as PostCategory) || "music");
+      setCoverImageUrl(postToEdit.coverImageUrl || postToEdit.coverImage || "");
+      setCategory((postToEdit.category as PostCategory) || "Music");
       setStatus((postToEdit.status as PostStatus) || "published");
-      setTags(Array.isArray(postToEdit.tags) ? postToEdit.tags.join(", ") : "");
-      setReadTime(postToEdit.readTime || "4 min read");
-      setFeatured(postToEdit.featured ?? false);
+      setIsEditorPick(postToEdit.isEditorPick ?? false);
 
-      if (postToEdit.reviewMeta) {
-        setArtistName(postToEdit.reviewMeta.artistName || "");
-        setAlbumOrTrackTitle(postToEdit.reviewMeta.albumOrTrackTitle || "");
-        setRating(postToEdit.reviewMeta.rating || 4.5);
-        setVerdict(postToEdit.reviewMeta.verdict || "Essential Listen");
-      }
+      setArtistName(postToEdit.artistName || postToEdit.reviewMeta?.artistName || "");
+      setProjectTitle(postToEdit.projectTitle || postToEdit.reviewMeta?.albumOrTrackTitle || "");
+      setProjectType(postToEdit.projectType || "Album");
+      setRating(postToEdit.rating ?? postToEdit.reviewMeta?.rating ?? 8.5);
+      setVerdict(postToEdit.verdict || postToEdit.reviewMeta?.verdict || "Essential Listen");
     } else {
       // Reset form
       setTitle("");
       setSlug("");
-      setExcerpt("");
+      setDescription("");
       setContent("");
-      setCoverImage("");
-      setCategory("music");
+      setCoverImageUrl("");
+      setCategory("Music");
       setStatus("published");
-      setTags("");
-      setReadTime("4 min read");
-      setFeatured(false);
+      setIsEditorPick(false);
       setArtistName("");
-      setAlbumOrTrackTitle("");
-      setRating(4.5);
+      setProjectTitle("");
+      setProjectType("Album");
+      setRating(8.5);
       setVerdict("Essential Listen");
     }
     setErrorMessage(null);
@@ -108,8 +103,13 @@ export function PostEditorModal({
     e.preventDefault();
     setErrorMessage(null);
 
-    if (!title.trim() || !content.trim()) {
-      setErrorMessage("Please provide at least a title and article body content.");
+    if (title.trim().length < 3) {
+      setErrorMessage("Title must be at least 3 characters long.");
+      return;
+    }
+
+    if (content.trim().length < 1) {
+      setErrorMessage("Article content body cannot be empty.");
       return;
     }
 
@@ -120,31 +120,22 @@ export function PostEditorModal({
 
     setIsSubmitting(true);
     try {
-      const parsedTags = tags
-        .split(",")
-        .map((t) => t.trim())
-        .filter(Boolean);
-
       const payload: CreatePostInput = {
         title: title.trim(),
         slug: slug.trim() ? slugify(slug) : slugify(title),
-        excerpt: excerpt.trim() || title.trim(),
+        description: description.trim() || title.trim(),
         content: content,
-        coverImage: coverImage.trim() || "/assets/placeholder-cover.jpg",
-        category,
-        status,
-        tags: parsedTags,
-        readTime,
-        featured,
-        ...(category === "reviews"
+        category: category,
+        coverImageUrl: coverImageUrl.trim() || "/assets/placeholder-cover.jpg",
+        status: status,
+        isEditorPick: isEditorPick,
+        ...(category === "Reviews" || artistName.trim()
           ? {
-              reviewMeta: {
-                artistName: artistName.trim() || "Various Artists",
-                albumOrTrackTitle: albumOrTrackTitle.trim() || title.trim(),
-                rating: Number(rating),
-                maxRating: 5,
-                verdict: verdict.trim() || "Hot Drop",
-              },
+              artistName: artistName.trim(),
+              projectTitle: projectTitle.trim() || title.trim(),
+              projectType: projectType,
+              rating: Number(rating),
+              verdict: verdict.trim() || "Essential Listen",
             }
           : {}),
       };
@@ -159,7 +150,7 @@ export function PostEditorModal({
       onClose();
     } catch (err: any) {
       console.error("Error saving post:", err);
-      setErrorMessage(err.message || "Failed to save post. Please try again.");
+      setErrorMessage(err.message || "Failed to save post. Please verify fields and try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -169,7 +160,7 @@ export function PostEditorModal({
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-zinc-900/60 backdrop-blur-xs flex items-center justify-center p-4 sm:p-6">
-      <div className="bg-white border border-zinc-200 rounded-lg w-full max-w-3xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+      <div className="bg-white border border-zinc-200 rounded-lg w-full max-w-3xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden text-zinc-900">
         {/* Modal Header */}
         <div className="p-5 border-b border-zinc-200 flex items-center justify-between bg-zinc-50">
           <div className="flex items-center space-x-2.5">
@@ -226,42 +217,41 @@ export function PostEditorModal({
 
             <div className="space-y-1.5">
               <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700 block">
-                URL Slug
+                URL Slug *
               </label>
               <input
                 type="text"
                 value={slug}
                 onChange={(e) => setSlug(e.target.value)}
                 placeholder="wizkid-morayo-album-review"
+                required
                 className="w-full bg-zinc-50 border border-zinc-300 rounded-md px-3.5 py-2.5 text-xs text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:border-brand focus:bg-white transition-colors font-medium shadow-xs"
               />
             </div>
 
             <div className="space-y-1.5">
               <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700 block">
-                Category
+                Category *
               </label>
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value as PostCategory)}
-                className="w-full bg-zinc-50 border border-zinc-300 rounded-md px-3.5 py-2.5 text-xs text-zinc-900 focus:outline-none focus:border-brand focus:bg-white transition-colors font-medium shadow-xs"
+                className="w-full bg-zinc-50 border border-zinc-300 rounded-md px-3.5 py-2.5 text-xs text-zinc-900 font-bold focus:outline-none focus:border-brand focus:bg-white transition-colors shadow-xs"
               >
-                <option value="music">Music</option>
-                <option value="reviews">Music Reviews</option>
-                <option value="news">News</option>
-                <option value="events">Events</option>
-                <option value="culture">Culture</option>
-                <option value="lifestyle">Lifestyle</option>
+                <option value="Music">Music</option>
+                <option value="Videos">Videos</option>
+                <option value="Reviews">Reviews</option>
+                <option value="News">News</option>
               </select>
             </div>
           </div>
 
           {/* Music Review Specific Metadata Fields */}
-          {category === "reviews" && (
+          {(category === "Reviews" || category === "Music") && (
             <div className="p-4 bg-amber-50/60 border border-amber-200 rounded-md space-y-4">
               <div className="flex items-center space-x-2 text-amber-800 text-xs font-black uppercase tracking-wider">
                 <Star className="h-4 w-4 fill-amber-400 text-amber-500" />
-                <span>Music Review Metadata</span>
+                <span>Music Review / Project Metadata</span>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -280,12 +270,12 @@ export function PostEditorModal({
 
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700 block">
-                    Album / Single Title
+                    Project / Single Title
                   </label>
                   <input
                     type="text"
-                    value={albumOrTrackTitle}
-                    onChange={(e) => setAlbumOrTrackTitle(e.target.value)}
+                    value={projectTitle}
+                    onChange={(e) => setProjectTitle(e.target.value)}
                     placeholder="e.g., Higher"
                     className="w-full bg-white border border-zinc-300 rounded-md px-3.5 py-2 text-xs text-zinc-900"
                   />
@@ -293,36 +283,37 @@ export function PostEditorModal({
 
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700 block">
-                    Star Rating (Out of 5)
+                    Project Type
                   </label>
-                  <div className="flex items-center space-x-3">
-                    <input
-                      type="number"
-                      step="0.1"
-                      min="0"
-                      max="5"
-                      value={rating}
-                      onChange={(e) => setRating(parseFloat(e.target.value) || 0)}
-                      className="w-24 bg-white border border-zinc-300 rounded-md px-3.5 py-2 text-xs text-zinc-900 font-bold"
-                    />
-                    <div className="flex items-center space-x-1 text-amber-500">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <Star
-                          key={star}
-                          className={`h-4 w-4 ${
-                            rating >= star
-                              ? "fill-amber-400 text-amber-500"
-                              : "text-zinc-300"
-                          }`}
-                        />
-                      ))}
-                    </div>
-                  </div>
+                  <select
+                    value={projectType}
+                    onChange={(e) => setProjectType(e.target.value)}
+                    className="w-full bg-white border border-zinc-300 rounded-md px-3.5 py-2 text-xs text-zinc-900"
+                  >
+                    <option value="Album">Album</option>
+                    <option value="EP">EP</option>
+                    <option value="Single">Single</option>
+                  </select>
                 </div>
 
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700 block">
-                    Review Verdict Badge
+                    Rating Score (0.0 – 10.0)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="10"
+                    value={rating}
+                    onChange={(e) => setRating(parseFloat(e.target.value) || 0)}
+                    className="w-full bg-white border border-zinc-300 rounded-md px-3.5 py-2 text-xs text-zinc-900 font-bold"
+                  />
+                </div>
+
+                <div className="space-y-1.5 sm:col-span-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700 block">
+                    Verdict Badge
                   </label>
                   <input
                     type="text"
@@ -339,24 +330,25 @@ export function PostEditorModal({
           {/* Cover Image URL & Preview */}
           <div className="space-y-1.5">
             <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700 block">
-              Cover Image URL
+              Cover Image URL *
             </label>
             <div className="flex items-center space-x-3">
               <div className="relative flex-1">
                 <ImageIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
                 <input
                   type="url"
-                  value={coverImage}
-                  onChange={(e) => setCoverImage(e.target.value)}
+                  value={coverImageUrl}
+                  onChange={(e) => setCoverImageUrl(e.target.value)}
                   placeholder="https://images.unsplash.com/photo-..."
+                  required
                   className="w-full bg-zinc-50 border border-zinc-300 rounded-md pl-10 pr-4 py-2.5 text-xs text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:border-brand focus:bg-white transition-colors font-medium shadow-xs"
                 />
               </div>
 
-              {coverImage && (
+              {coverImageUrl && (
                 <div className="h-10 w-14 rounded border border-zinc-200 overflow-hidden bg-zinc-100 shrink-0">
                   <img
-                    src={coverImage}
+                    src={coverImageUrl}
                     alt="Preview"
                     className="h-full w-full object-cover"
                     onError={(e) => {
@@ -369,16 +361,19 @@ export function PostEditorModal({
             </div>
           </div>
 
-          {/* Article Excerpt */}
+          {/* Short Description */}
           <div className="space-y-1.5">
             <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700 block">
-              Summary Excerpt
+              Description / Excerpt * (Min 10 chars)
             </label>
             <textarea
-              value={excerpt}
-              onChange={(e) => setExcerpt(e.target.value)}
-              placeholder="Brief 1-2 sentence hook for search engines and home feed cards..."
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Brief summary hook for search engines and home feed cards..."
               rows={2}
+              required
+              minLength={10}
+              maxLength={1000}
               className="w-full bg-zinc-50 border border-zinc-300 rounded-md px-3.5 py-2.5 text-xs text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:border-brand focus:bg-white transition-colors font-medium shadow-xs resize-none"
             />
           </div>
@@ -386,7 +381,7 @@ export function PostEditorModal({
           {/* Main Article Body Content */}
           <div className="space-y-1.5">
             <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700 block">
-              Article Content (Markdown / Text) *
+              Article Content Body *
             </label>
             <textarea
               value={content}
@@ -398,34 +393,8 @@ export function PostEditorModal({
             />
           </div>
 
-          {/* Tags, Read Time, and Status */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700 block">
-                Tags (Comma separated)
-              </label>
-              <input
-                type="text"
-                value={tags}
-                onChange={(e) => setTags(e.target.value)}
-                placeholder="Afrobeats, Review, 2026"
-                className="w-full bg-zinc-50 border border-zinc-300 rounded-md px-3.5 py-2.5 text-xs text-zinc-900"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700 block">
-                Read Time
-              </label>
-              <input
-                type="text"
-                value={readTime}
-                onChange={(e) => setReadTime(e.target.value)}
-                placeholder="4 min read"
-                className="w-full bg-zinc-50 border border-zinc-300 rounded-md px-3.5 py-2.5 text-xs text-zinc-900"
-              />
-            </div>
-
+          {/* Editor Pick & Status */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
             <div className="space-y-1.5">
               <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700 block">
                 Publish Status
@@ -438,6 +407,19 @@ export function PostEditorModal({
                 <option value="published">Published</option>
                 <option value="draft">Draft</option>
               </select>
+            </div>
+
+            <div className="flex items-center space-x-3 pt-6">
+              <input
+                type="checkbox"
+                id="isEditorPick"
+                checked={isEditorPick}
+                onChange={(e) => setIsEditorPick(e.target.checked)}
+                className="h-4 w-4 text-brand border-zinc-300 rounded focus:ring-brand"
+              />
+              <label htmlFor="isEditorPick" className="text-xs font-bold text-zinc-800 cursor-pointer">
+                Feature as Editor's Pick
+              </label>
             </div>
           </div>
         </form>

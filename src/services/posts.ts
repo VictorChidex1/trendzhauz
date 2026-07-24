@@ -24,8 +24,29 @@ export function slugify(text: string): string {
     .toString()
     .toLowerCase()
     .trim()
-    .replace(/[\s\W-]+/g, "-") // Replace spaces and non-word chars with -
-    .replace(/^-+|-+$/g, ""); // Remove leading and trailing dashes
+    .replace(/[\s\W-]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+/**
+ * Generate lightweight search index token array for Firestore queries (max 50 items)
+ */
+export function generateSearchIndex(title: string): string[] {
+  const words = title
+    .toLowerCase()
+    .replace(/[^\w\s]/g, "")
+    .split(/\s+/)
+    .filter(Boolean);
+
+  const tokens = new Set<string>();
+  words.forEach((word) => {
+    tokens.add(word);
+    for (let i = 2; i <= word.length; i++) {
+      tokens.add(word.substring(0, i));
+    }
+  });
+
+  return Array.from(tokens).slice(0, 50);
 }
 
 /**
@@ -80,7 +101,7 @@ export async function fetchPostsByCategory(
 }
 
 /**
- * Create a new Post document in Firestore
+ * Create a new Post document in Firestore matching firestore.rules whitelist
  */
 export async function createPost(
   input: CreatePostInput,
@@ -88,27 +109,33 @@ export async function createPost(
 ): Promise<string> {
   try {
     const finalSlug = input.slug?.trim() ? slugify(input.slug) : slugify(input.title);
+    const searchIndex = generateSearchIndex(input.title);
 
-    const newPostData = {
+    // Build payload matching exact firestore.rules required & optional fields
+    const newPostData: Record<string, any> = {
       title: input.title.trim(),
       slug: finalSlug,
-      excerpt: input.excerpt.trim(),
+      description: input.description.trim() || input.title.trim(),
       content: input.content,
-      coverImage: input.coverImage.trim() || "/assets/placeholder-cover.jpg",
       category: input.category,
+      coverImageUrl: input.coverImageUrl.trim() || "/assets/placeholder-cover.jpg",
+      searchIndex: searchIndex,
       status: input.status,
-      authorUid: author.uid,
+      isEditorPick: input.isEditorPick ?? false,
+      authorId: author.uid,
       authorName: author.displayName || "TrendzHauz Editor",
-      authorEmail: author.email,
-      tags: input.tags || [],
-      readTime: input.readTime || "4 min read",
-      featured: input.featured ?? false,
-      ...(input.category === "reviews" && input.reviewMeta
-        ? { reviewMeta: input.reviewMeta }
-        : {}),
+      views: 0,
       createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
     };
+
+    // Add optional review fields if provided
+    if (input.artistName) newPostData.artistName = input.artistName.trim();
+    if (input.projectTitle) newPostData.projectTitle = input.projectTitle.trim();
+    if (input.projectType) newPostData.projectType = input.projectType.trim();
+    if (input.rating !== undefined && input.rating !== null) {
+      newPostData.rating = Number(input.rating);
+    }
+    if (input.verdict) newPostData.verdict = input.verdict.trim();
 
     const docRef = await addDoc(collection(db, POSTS_COLLECTION), newPostData);
     return docRef.id;
@@ -119,7 +146,7 @@ export async function createPost(
 }
 
 /**
- * Update an existing Post document in Firestore
+ * Update an existing Post document in Firestore matching firestore.rules update whitelist
  */
 export async function updatePost(
   postId: string,
@@ -128,21 +155,26 @@ export async function updatePost(
   try {
     const postRef = doc(db, POSTS_COLLECTION, postId);
 
-    const updateData: Record<string, any> = {
-      updatedAt: serverTimestamp(),
-    };
+    const updateData: Record<string, any> = {};
 
-    if (input.title !== undefined) updateData.title = input.title.trim();
+    if (input.title !== undefined) {
+      updateData.title = input.title.trim();
+      updateData.searchIndex = generateSearchIndex(input.title);
+    }
     if (input.slug !== undefined) updateData.slug = slugify(input.slug);
-    if (input.excerpt !== undefined) updateData.excerpt = input.excerpt.trim();
+    if (input.description !== undefined) updateData.description = input.description.trim();
     if (input.content !== undefined) updateData.content = input.content;
-    if (input.coverImage !== undefined) updateData.coverImage = input.coverImage.trim();
     if (input.category !== undefined) updateData.category = input.category;
+    if (input.coverImageUrl !== undefined) updateData.coverImageUrl = input.coverImageUrl.trim();
     if (input.status !== undefined) updateData.status = input.status;
-    if (input.tags !== undefined) updateData.tags = input.tags;
-    if (input.readTime !== undefined) updateData.readTime = input.readTime;
-    if (input.featured !== undefined) updateData.featured = input.featured;
-    if (input.reviewMeta !== undefined) updateData.reviewMeta = input.reviewMeta;
+    if (input.isEditorPick !== undefined) updateData.isEditorPick = input.isEditorPick;
+    if (input.artistName !== undefined) updateData.artistName = input.artistName.trim();
+    if (input.projectTitle !== undefined) updateData.projectTitle = input.projectTitle.trim();
+    if (input.projectType !== undefined) updateData.projectType = input.projectType.trim();
+    if (input.rating !== undefined && input.rating !== null) {
+      updateData.rating = Number(input.rating);
+    }
+    if (input.verdict !== undefined) updateData.verdict = input.verdict.trim();
 
     await updateDoc(postRef, updateData);
   } catch (error) {
@@ -152,7 +184,7 @@ export async function updatePost(
 }
 
 /**
- * Delete a Post document from Firestore
+ * Delete a Post document from Firestore (Super-Admin)
  */
 export async function deletePost(postId: string): Promise<void> {
   try {
