@@ -74,58 +74,84 @@ function buildResetEmailHtml(params: {
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Reset your TrendzHauz password</title>
+  <title>Reset your TrendzHauz Media password</title>
 </head>
-<body style="margin:0;padding:0;background:#f8fafc;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;">
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f8fafc;padding:32px 16px;">
+<body style="margin:0;padding:0;background-color:#09090b;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:#09090b;padding:40px 16px;">
     <tr>
       <td align="center">
-        <table role="presentation" width="100%" style="max-width:520px;background:#ffffff;border:1px solid #e4e4e7;border-radius:12px;overflow:hidden;">
+        <!-- Main Card Container -->
+        <table role="presentation" width="100%" style="max-width:540px;background-color:#18181b;border:1px solid #27272a;border-radius:16px;overflow:hidden;box-shadow:0 20px 25px -5px rgba(0, 0, 0, 0.5);">
+          
+          <!-- Header Banner with Logo & Accent -->
           <tr>
-            <td style="background:#f97316;padding:20px 28px;">
-              <p style="margin:0;color:#ffffff;font-size:14px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;">
-                TrendzHauz Media
+            <td style="background-color:#09090b;padding:32px 36px 24px;border-bottom:2px solid #f97316;text-align:center;">
+              <img src="https://trendzhauz.vercel.app/assets/Trendzhauz-logo.png" 
+                   alt="TrendzHauz Media" 
+                   style="height:42px;width:auto;display:inline-block;border:0;outline:none;" 
+                   onError="this.style.display='none';" />
+              <p style="margin:12px 0 0;color:#f97316;font-size:11px;font-weight:900;letter-spacing:0.18em;text-transform:uppercase;">
+                EDITORIAL CMS SECURITY
               </p>
             </td>
           </tr>
+
+          <!-- Main Email Body -->
           <tr>
-            <td style="padding:28px;">
-              <h1 style="margin:0 0 12px;font-size:22px;line-height:1.25;color:#18181b;">
-                Reset your password
+            <td style="padding:36px;color:#f4f4f5;">
+              <h1 style="margin:0 0 16px;font-size:24px;font-weight:900;line-height:1.2;letter-spacing:-0.02em;color:#ffffff;">
+                Password Reset Request
               </h1>
-              <p style="margin:0 0 16px;font-size:14px;line-height:1.6;color:#52525b;">
-                We received a request to reset the CMS password for
-                <strong style="color:#18181b;">${email}</strong>.
+              
+              <p style="margin:0 0 18px;font-size:14px;line-height:1.6;color:#a1a1aa;">
+                A password reset request was initiated for your TrendzHauz editorial account:
               </p>
-              <p style="margin:0 0 24px;font-size:14px;line-height:1.6;color:#52525b;">
-                Click the button below to choose a new password on the official TrendzHauz recovery page.
+              
+              <!-- User Context Box -->
+              <div style="background-color:#27272a;border:1px solid #3f3f46;border-radius:8px;padding:12px 16px;margin-bottom:24px;">
+                <span style="font-size:13px;font-weight:700;color:#ffffff;word-break:break-all;">
+                  📧 ${email}
+                </span>
+              </div>
+
+              <p style="margin:0 0 28px;font-size:14px;line-height:1.6;color:#a1a1aa;">
+                Click the button below to open the official TrendzHauz recovery workspace and set a new password:
               </p>
-              <table role="presentation" cellspacing="0" cellpadding="0" style="margin:0 0 24px;">
+
+              <!-- CTA Button -->
+              <table role="presentation" cellspacing="0" cellpadding="0" style="margin:0 0 32px;width:100%;">
                 <tr>
-                  <td style="border-radius:8px;background:#f97316;">
+                  <td align="center">
                     <a href="${appResetLink}"
-                       style="display:inline-block;padding:14px 28px;color:#ffffff;font-size:13px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;text-decoration:none;">
-                      Reset Password
+                       target="_blank"
+                       style="display:inline-block;width:100%;box-sizing:border-box;text-align:center;padding:16px 32px;background-color:#f97316;color:#ffffff;font-size:13px;font-weight:900;letter-spacing:0.12em;text-transform:uppercase;text-decoration:none;border-radius:8px;box-shadow:0 4px 14px rgba(249, 115, 22, 0.4);">
+                      Reset Password →
                     </a>
                   </td>
                 </tr>
               </table>
-              <p style="margin:0 0 8px;font-size:12px;line-height:1.5;color:#71717a;">
-                Or copy and paste this link into your browser:
-              </p>
-              <p style="margin:0 0 24px;font-size:11px;line-height:1.5;word-break:break-all;color:#a1a1aa;">
-                ${appResetLink}
-              </p>
-              <p style="margin:0;font-size:12px;line-height:1.5;color:#a1a1aa;">
-                If you did not request a password reset, you can safely ignore this email.
-                This link expires after a limited time for security.
+
+              <!-- Fallback Direct URL Box -->
+              <div style="border-top:1px solid #27272a;padding-top:24px;margin-top:8px;">
+                <p style="margin:0 0 8px;font-size:12px;font-weight:700;color:#71717a;text-transform:uppercase;letter-spacing:0.05em;">
+                  Alternative Link:
+                </p>
+                <p style="margin:0 0 20px;font-size:11px;line-height:1.5;word-break:break-all;color:#f97316;background-color:#09090b;padding:10px 12px;border-radius:6px;border:1px solid #27272a;">
+                  ${appResetLink}
+                </p>
+              </div>
+
+              <p style="margin:0;font-size:12px;line-height:1.6;color:#71717a;">
+                🔒 If you did not request this password reset, please ignore this email or contact support. This link is single-use and will expire automatically.
               </p>
             </td>
           </tr>
+
+          <!-- Footer Banner -->
           <tr>
-            <td style="padding:16px 28px;border-top:1px solid #f4f4f5;background:#fafafa;">
-              <p style="margin:0;font-size:11px;color:#a1a1aa;text-transform:uppercase;letter-spacing:0.08em;font-weight:700;">
-                TrendzHauz Media · Editorial Security
+            <td style="padding:20px 36px;background-color:#09090b;border-top:1px solid #27272a;text-align:center;">
+              <p style="margin:0;font-size:11px;color:#71717a;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;">
+                TrendzHauz Media Group · All Rights Reserved
               </p>
             </td>
           </tr>
