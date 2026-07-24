@@ -165,12 +165,12 @@ export default function ReviewsPage() {
                 <div className="space-y-1">
                   <div className="flex justify-between text-[10px] uppercase font-bold text-zinc-300">
                     <span>Production</span>
-                    <span className="text-brand">{breakdown.production.toFixed(1)}</span>
+                    <span className="text-brand">{(breakdown?.production ?? 0).toFixed(1)}</span>
                   </div>
                   <div className="h-1.5 w-full bg-zinc-800 rounded-full overflow-hidden">
                     <div
                       className="h-full bg-brand rounded-full transition-all duration-500"
-                      style={{ width: `${(breakdown.production / 10) * 100}%` }}
+                      style={{ width: `${((breakdown?.production ?? 0) / 10) * 100}%` }}
                     />
                   </div>
                 </div>
@@ -179,12 +179,12 @@ export default function ReviewsPage() {
                 <div className="space-y-1">
                   <div className="flex justify-between text-[10px] uppercase font-bold text-zinc-300">
                     <span>Lyricism</span>
-                    <span className="text-brand">{breakdown.lyricism.toFixed(1)}</span>
+                    <span className="text-brand">{(breakdown?.lyricism ?? 0).toFixed(1)}</span>
                   </div>
                   <div className="h-1.5 w-full bg-zinc-800 rounded-full overflow-hidden">
                     <div
                       className="h-full bg-brand rounded-full transition-all duration-500"
-                      style={{ width: `${(breakdown.lyricism / 10) * 100}%` }}
+                      style={{ width: `${((breakdown?.lyricism ?? 0) / 10) * 100}%` }}
                     />
                   </div>
                 </div>
@@ -193,12 +193,12 @@ export default function ReviewsPage() {
                 <div className="space-y-1">
                   <div className="flex justify-between text-[10px] uppercase font-bold text-zinc-300">
                     <span>Replay Value</span>
-                    <span className="text-brand">{breakdown.replayValue.toFixed(1)}</span>
+                    <span className="text-brand">{(breakdown?.replayValue ?? 0).toFixed(1)}</span>
                   </div>
                   <div className="h-1.5 w-full bg-zinc-800 rounded-full overflow-hidden">
                     <div
                       className="h-full bg-brand rounded-full transition-all duration-500"
-                      style={{ width: `${(breakdown.replayValue / 10) * 100}%` }}
+                      style={{ width: `${((breakdown?.replayValue ?? 0) / 10) * 100}%` }}
                     />
                   </div>
                 </div>
@@ -207,12 +207,12 @@ export default function ReviewsPage() {
                 <div className="space-y-1">
                   <div className="flex justify-between text-[10px] uppercase font-bold text-zinc-300">
                     <span>Originality</span>
-                    <span className="text-brand">{breakdown.originality.toFixed(1)}</span>
+                    <span className="text-brand">{(breakdown?.originality ?? 0).toFixed(1)}</span>
                   </div>
                   <div className="h-1.5 w-full bg-zinc-800 rounded-full overflow-hidden">
                     <div
                       className="h-full bg-brand rounded-full transition-all duration-500"
-                      style={{ width: `${(breakdown.originality / 10) * 100}%` }}
+                      style={{ width: `${((breakdown?.originality ?? 0) / 10) * 100}%` }}
                     />
                   </div>
                 </div>

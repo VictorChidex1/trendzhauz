@@ -252,9 +252,9 @@ export function useHeroSlides() {
                 liveSlides.push({
                   category: cat,
                   title: found.title,
-                  description: found.description,
+                  description: found.description || found.excerpt || "",
                   link: `/category/${cat.toLowerCase()}`,
-                  image: found.coverImageUrl,
+                  image: found.coverImageUrl || found.coverImage || "",
                   meta: `By ${found.authorName} · ${Math.ceil(
                     found.content.length / 1500
                   )} Min Read`,

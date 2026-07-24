@@ -1,94 +1,134 @@
-import type { Timestamp } from "firebase/firestore";
+export type PostCategory =
+  | "reviews"
+  | "music"
+  | "news"
+  | "events"
+  | "culture"
+  | "lifestyle";
 
-/**
- * Represents a blog post document stored in the Firestore "posts" collection.
- * This interface mirrors the schema enforced by firestore.rules.
- */
+export type PostStatus = "published" | "draft";
+
+export interface ReviewMetadata {
+  artistName: string;
+  albumOrTrackTitle: string;
+  rating: number;
+  maxRating: number;
+  verdict: string;
+  releaseYear?: string;
+  genre?: string;
+  scoreBreakdown?: {
+    production?: number;
+    lyricism?: number;
+    innovation?: number;
+    replayValue?: number;
+    originality?: number;
+  };
+}
+
 export interface Post {
   id: string;
   title: string;
   slug: string;
-  description: string;
+  excerpt?: string;
+  description?: string;
   content: string;
-  category: "Music" | "Videos" | "Reviews" | "News";
-  coverImageUrl: string;
-  status: "draft" | "published";
-  isEditorPick: boolean;
-  views: number;
-  createdAt: Timestamp;
-  authorId: string;
-  authorName: string;
+  coverImage?: string;
+  coverImageUrl?: string;
+  category: PostCategory | string;
+  status: PostStatus | string;
+  authorUid?: string;
+  authorName?: string;
+  authorEmail?: string;
+  tags?: string[];
+  readTime?: string;
+  featured?: boolean;
+  reviewMeta?: ReviewMetadata;
   artistName?: string;
   projectTitle?: string;
-  projectType?: "Album" | "EP" | "Single" | "Mixtape";
+  projectType?: string;
   rating?: number;
   verdict?: string;
   genre?: string;
   scoreBreakdown?: {
-    production: number;
-    lyricism: number;
-    replayValue: number;
-    originality: number;
+    production?: number;
+    lyricism?: number;
+    innovation?: number;
+    replayValue?: number;
+    originality?: number;
   };
+  createdAt?: any;
+  updatedAt?: any;
 }
 
-/**
- * Lightweight shape used by the Hero Slider component.
- */
+export interface CreatePostInput {
+  title: string;
+  slug?: string;
+  excerpt: string;
+  content: string;
+  coverImage: string;
+  category: PostCategory;
+  status: PostStatus;
+  tags?: string[];
+  readTime?: string;
+  featured?: boolean;
+  reviewMeta?: ReviewMetadata;
+}
+
 export interface HeroSlide {
   category: string;
+  badge?: string;
   title: string;
-  description: string;
-  link: string;
-  image: string;
-  meta: string;
-  ctaText: string;
+  description?: string;
+  imageUrl?: string;
+  image?: string;
+  meta?: string;
+  ctaText?: string;
+  time?: string;
   slug: string;
+  link?: string;
 }
 
-/**
- * Lightweight shape used by the Trending Now sidebar.
- */
-export interface TrendingPost {
-  rank: number;
-  title: string;
-  coverImageUrl: string;
-  createdAt: string;
-  slug: string;
-}
-
-/**
- * Lightweight shape used by the Editor Picks sidebar.
- */
-export interface EditorPick {
-  category: string;
-  title: string;
-  coverImageUrl: string;
-  createdAt: string;
-  slug: string;
-}
-
-/**
- * Lightweight shape used by the Latest Stories feed.
- */
 export interface StoryCard {
   id: string;
   category: string;
   title: string;
-  description: string;
-  coverImageUrl: string;
+  description?: string;
+  coverImageUrl?: string;
   createdAt: string;
   slug: string;
   artistName?: string;
   projectTitle?: string;
-  projectType?: "Album" | "EP" | "Single" | "Mixtape";
+  projectType?: string;
   rating?: number;
   verdict?: string;
   genre?: string;
   scoreBreakdown?: {
-    production: number;
-    lyricism: number;
-    replayValue: number;
-    originality: number;
+    production?: number;
+    lyricism?: number;
+    innovation?: number;
+    replayValue?: number;
+    originality?: number;
   };
+}
+
+export interface TrendingPost {
+  number?: string;
+  rank?: number;
+  category?: string;
+  title: string;
+  readTime?: string;
+  slug: string;
+  coverImageUrl?: string;
+  createdAt?: string;
+}
+
+export interface EditorPick {
+  category?: string;
+  badge?: string;
+  title: string;
+  imageUrl?: string;
+  coverImageUrl?: string;
+  readTime?: string;
+  slug: string;
+  createdAt?: string;
 }
