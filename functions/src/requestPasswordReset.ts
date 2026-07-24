@@ -84,7 +84,7 @@ function buildResetEmailHtml(params: {
           
           <!-- Header Banner with Logo & Accent -->
           <tr>
-            <td style="background-color:#09090b;padding:32px 36px 24px;border-bottom:2px solid #f97316;text-align:center;">
+            <td style="background-color:#ffffff;padding:32px 36px 24px;border-bottom:2px solid #f97316;text-align:center;" bgcolor="#ffffff">
               <img src="https://trendzhauz.vercel.app/assets/Trendzhauz-logo.png" 
                    alt="TrendzHauz Media" 
                    style="height:42px;width:auto;display:inline-block;border:0;outline:none;" 
@@ -97,7 +97,7 @@ function buildResetEmailHtml(params: {
 
           <!-- Main White Email Body -->
           <tr>
-            <td style="padding:36px;color:#18181b;background-color:#ffffff;">
+            <td style="padding:36px;color:#18181b;background-color:#ffffff;" bgcolor="#ffffff">
               <h1 style="margin:0 0 16px;font-size:24px;font-weight:900;line-height:1.2;letter-spacing:-0.02em;color:#09090b;">
                 Password Reset Request
               </h1>
@@ -148,8 +148,8 @@ function buildResetEmailHtml(params: {
 
           <!-- Footer Banner -->
           <tr>
-            <td style="padding:20px 36px;background-color:#09090b;border-top:1px solid #27272a;text-align:center;">
-              <p style="margin:0;font-size:11px;color:#71717a;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;">
+            <td style="padding:20px 36px;background-color:#ffffff;border-top:1px solid #e4e4e7;text-align:center;" bgcolor="#ffffff">
+              <p style="margin:0;font-size:11px;color:#52525b;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;">
                 TrendzHauz Media · All Rights Reserved
               </p>
             </td>
