@@ -1,16 +1,7 @@
 /**
- * TrendzHauz — Scheduled Homepage Aggregation Cloud Function
- *
- * PURPOSE:
- * Instead of every frontend visitor running 3 separate Firestore queries
- * (trending, editor picks, latest stories), this function runs ONCE per hour
- * and pre-compiles the results into a single document: `aggregations/homepage`.
- *
- * RESULT:
- * 1,000 users/hour go from ~3,000 reads → ~1,001 reads (1 write + 1,000 single-doc reads).
- *
- * TRIGGER:
- * Google Cloud Scheduler fires this function every 60 minutes via Pub/Sub.
+ * TrendzHauz Cloud Functions entry
+ * - aggregateHomepageData (scheduled homepage aggregation)
+ * - requestPasswordReset (Resend-branded password reset emails)
  */
 
 import { onSchedule } from "firebase-functions/v2/scheduler";
@@ -20,6 +11,9 @@ import { getFirestore, FieldValue } from "firebase-admin/firestore";
 // Initialize Firebase Admin SDK (uses default service account credentials)
 initializeApp();
 const db = getFirestore();
+
+// Custom password-reset email (Resend + Admin generatePasswordResetLink)
+export { requestPasswordReset } from "./requestPasswordReset";
 
 // ─── Helper: Format Firestore Timestamp to readable string ───
 function formatTimestamp(ts: FirebaseFirestore.Timestamp | undefined): string {

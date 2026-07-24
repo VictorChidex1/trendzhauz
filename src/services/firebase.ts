@@ -7,6 +7,7 @@ import {
   connectFirestoreEmulator,
 } from "firebase/firestore";
 import { getStorage, connectStorageEmulator } from "firebase/storage";
+import { getFunctions, connectFunctionsEmulator } from "firebase/functions";
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -32,13 +33,17 @@ const db = initializeFirestore(app, {
 
 const storage = getStorage(app);
 
+// Callable Cloud Functions (us-central1 — matches functions region)
+const functions = getFunctions(app, "us-central1");
+
 // Connect to emulators only if explicitly enabled via VITE_USE_FIREBASE_EMULATOR=true
 if (import.meta.env.DEV && import.meta.env.VITE_USE_FIREBASE_EMULATOR === "true") {
   const host = typeof window !== "undefined" && window.location.hostname ? window.location.hostname : "localhost";
   connectAuthEmulator(auth, `http://${host}:9099`);
   connectFirestoreEmulator(db, host, 8080);
   connectStorageEmulator(storage, host, 9199);
+  connectFunctionsEmulator(functions, host, 5001);
 }
 
-export { app, auth, db, storage };
+export { app, auth, db, storage, functions };
 

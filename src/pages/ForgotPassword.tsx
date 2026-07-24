@@ -9,8 +9,8 @@ import {
   CheckCircle2,
   ArrowLeft,
 } from "lucide-react";
-import { sendPasswordResetEmail } from "firebase/auth";
-import { auth } from "@/services/firebase";
+import { FirebaseError } from "firebase/app";
+import { requestPasswordResetEmail } from "@/services/passwordReset";
 
 export default function ForgotPassword() {
   const [email, setEmail] = React.useState("");
@@ -29,40 +29,38 @@ export default function ForgotPassword() {
 
     setIsSubmitting(true);
     try {
-      // 1. Attempt custom redirect URL (works seamlessly on HTTPS / Vercel / Production)
-      try {
-        const actionCodeSettings = {
-          url: `${window.location.origin}/admin/reset-password`,
-        };
-        await sendPasswordResetEmail(auth, email.trim(), actionCodeSettings);
-      } catch (primaryErr: any) {
-        // If local HTTP origin or CORS restrictions block custom actionCodeSettings, fallback to default Firebase email
-        if (
-          primaryErr.code === "auth/network-request-failed" ||
-          primaryErr.code === "auth/unauthorized-continue-uri" ||
-          primaryErr.code === "auth/invalid-continue-uri"
-        ) {
-          console.warn("Primary reset settings failed, attempting default Firebase reset email:", primaryErr.code);
-          await sendPasswordResetEmail(auth, email.trim());
-        } else {
-          throw primaryErr;
-        }
-      }
+      // Deep-link continue base: our branded SPA reset page (not Firebase UI)
+      const continueUrl = `${window.location.origin}/admin/reset-password`;
+      await requestPasswordResetEmail(email.trim(), continueUrl);
       setIsSubmitted(true);
-    } catch (err: any) {
-      console.error("Password reset error:", err.code, err.message);
-      let message = "Failed to send reset link. Please check your email.";
-      if (err.code === "auth/user-not-found" || err.code === "auth/invalid-credential") {
-        message = "No account found with this email address.";
-      } else if (err.code === "auth/invalid-email") {
-        message = "Please enter a valid email address.";
-      } else if (err.code === "auth/too-many-requests") {
-        message = "Too many password reset attempts. Please wait a few minutes.";
-      } else if (err.code === "auth/network-request-failed") {
-        message = "Network request failed. Please check your internet connection or try again.";
-      } else if (err.code === "auth/unauthorized-continue-uri") {
-        message = "The current domain is not authorized in Firebase Console -> Authentication -> Settings -> Authorized Domains.";
+    } catch (err: unknown) {
+      console.error("Password reset error:", err);
+
+      let message =
+        "Failed to send reset link. Please check your email and try again.";
+
+      if (err instanceof FirebaseError) {
+        if (err.code === "functions/invalid-argument") {
+          message = "Please enter a valid email address.";
+        } else if (err.code === "functions/resource-exhausted") {
+          message =
+            "Too many password reset attempts. Please wait a few minutes.";
+        } else if (err.code === "functions/failed-precondition") {
+          message =
+            "Email service is temporarily unavailable. Please try again later.";
+        } else if (
+          err.code === "functions/unavailable" ||
+          err.code === "functions/deadline-exceeded"
+        ) {
+          message =
+            "Network error reaching the recovery service. Check your connection.";
+        } else if (err.message) {
+          message = err.message;
+        }
+      } else if (err instanceof Error && err.message) {
+        message = err.message;
       }
+
       setErrorMessage(message);
     } finally {
       setIsSubmitting(false);
@@ -71,7 +69,6 @@ export default function ForgotPassword() {
 
   return (
     <div className="min-h-screen w-full flex flex-col items-center justify-center p-4 sm:p-6 bg-slate-50 relative overflow-hidden text-zinc-900">
-      {/* Return to Admin Login Link at Top Left */}
       <div className="absolute top-6 left-6 z-20">
         <Link
           to="/admin"
@@ -82,7 +79,6 @@ export default function ForgotPassword() {
         </Link>
       </div>
 
-      {/* Light Mode Ambient Background Accents */}
       <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-brand/5 rounded-full blur-[150px] pointer-events-none" />
 
       <motion.div
@@ -91,7 +87,6 @@ export default function ForgotPassword() {
         transition={{ duration: 0.4, ease: "easeOut" }}
         className="w-full max-w-md bg-white border border-zinc-200 rounded-lg p-6 sm:p-8 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.08)] relative z-10 space-y-6"
       >
-        {/* Brand Logo & Header */}
         <div className="text-center space-y-3">
           <div className="flex items-center justify-center">
             <img
@@ -110,11 +105,11 @@ export default function ForgotPassword() {
             Forgot Password?
           </h1>
           <p className="text-xs text-zinc-500 font-medium leading-relaxed">
-            Enter your registered editor email to receive a password reset link.
+            Enter your registered editor email to receive a branded password
+            reset link.
           </p>
         </div>
 
-        {/* Success Card State */}
         {isSubmitted ? (
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
@@ -129,8 +124,9 @@ export default function ForgotPassword() {
                 Reset Email Sent!
               </h3>
               <p className="text-xs text-emerald-700 font-medium leading-relaxed">
-                We've dispatched a password recovery link to{" "}
-                <span className="font-bold text-emerald-900">{email}</span>. Please check your inbox or spam folder.
+                If an account exists for{" "}
+                <span className="font-bold text-emerald-900">{email}</span>, a
+                recovery link is on its way. Check inbox and spam.
               </p>
             </div>
             <div className="pt-2">
@@ -143,7 +139,6 @@ export default function ForgotPassword() {
             </div>
           </motion.div>
         ) : (
-          /* Reset Email Request Form */
           <>
             {errorMessage && (
               <motion.div
