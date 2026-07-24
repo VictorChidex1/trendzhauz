@@ -22,8 +22,7 @@ const ALLOWED_CONTINUE_BASES = [
   "http://127.0.0.1:5173/admin/reset-password",
 ] as const;
 
-const DEFAULT_CONTINUE =
-  "https://trendzhauz.vercel.app/admin/reset-password";
+const DEFAULT_CONTINUE = "https://trendzhauz.vercel.app/admin/reset-password";
 
 const FROM_ADDRESS = "TrendzHauz Media <onboarding@resend.dev>";
 const REPLY_TO = "trendzhauz@gmail.com";
@@ -53,7 +52,7 @@ function normalizeContinueBase(raw: string | undefined): string {
 
   const normalized = withPath.replace(/\/$/, "");
   const allowed = ALLOWED_CONTINUE_BASES.some(
-    (item) => item.replace(/\/$/, "") === normalized
+    (item) => item.replace(/\/$/, "") === normalized,
   );
 
   return allowed ? normalized : DEFAULT_CONTINUE;
@@ -151,7 +150,7 @@ function buildResetEmailHtml(params: {
           <tr>
             <td style="padding:20px 36px;background-color:#09090b;border-top:1px solid #27272a;text-align:center;">
               <p style="margin:0;font-size:11px;color:#71717a;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;">
-                TrendzHauz Media Group · All Rights Reserved
+                TrendzHauz Media · All Rights Reserved
               </p>
             </td>
           </tr>
@@ -184,13 +183,19 @@ export const requestPasswordReset = onCall(
     const continueBase = normalizeContinueBase(data.continueUrl);
 
     if (!email || !isValidEmail(email)) {
-      throw new HttpsError("invalid-argument", "A valid email address is required.");
+      throw new HttpsError(
+        "invalid-argument",
+        "A valid email address is required.",
+      );
     }
 
     const apiKey = resendApiKey.value();
     if (!apiKey) {
       console.error("RESEND_API_KEY secret is empty");
-      throw new HttpsError("failed-precondition", "Email service is not configured.");
+      throw new HttpsError(
+        "failed-precondition",
+        "Email service is not configured.",
+      );
     }
 
     try {
@@ -204,12 +209,14 @@ export const requestPasswordReset = onCall(
       const firebaseUrl = new URL(firebaseLink);
       const oobCode = firebaseUrl.searchParams.get("oobCode");
       if (!oobCode) {
-        console.error("generatePasswordResetLink missing oobCode:", firebaseLink);
+        console.error(
+          "generatePasswordResetLink missing oobCode:",
+          firebaseLink,
+        );
         throw new HttpsError("internal", "Failed to generate reset token.");
       }
 
-      const appResetLink =
-        `${continueBase}?mode=resetPassword&oobCode=${encodeURIComponent(oobCode)}`;
+      const appResetLink = `${continueBase}?mode=resetPassword&oobCode=${encodeURIComponent(oobCode)}`;
 
       // 3) Send branded email via Resend
       const resend = new Resend(apiKey);
@@ -235,7 +242,7 @@ export const requestPasswordReset = onCall(
         console.error("Resend API error:", error);
         throw new HttpsError(
           "internal",
-          "Failed to send password reset email. Please try again shortly."
+          "Failed to send password reset email. Please try again shortly.",
         );
       }
 
@@ -253,7 +260,9 @@ export const requestPasswordReset = onCall(
         code === "auth/email-not-found" ||
         code === "auth/invalid-email"
       ) {
-        console.warn(`Password reset requested for unknown/invalid email: ${email}`);
+        console.warn(
+          `Password reset requested for unknown/invalid email: ${email}`,
+        );
         return { success: true as const };
       }
 
@@ -264,8 +273,8 @@ export const requestPasswordReset = onCall(
       console.error("requestPasswordReset failed:", err);
       throw new HttpsError(
         "internal",
-        "Unable to process password reset. Please try again later."
+        "Unable to process password reset. Please try again later.",
       );
     }
-  }
+  },
 );
