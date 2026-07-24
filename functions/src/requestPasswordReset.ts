@@ -75,12 +75,12 @@ function buildResetEmailHtml(params: {
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Reset your TrendzHauz Media password</title>
 </head>
-<body style="margin:0;padding:0;background-color:#ffffff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;" bgcolor="#ffffff">
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:#ffffff;padding:40px 16px;" bgcolor="#ffffff">
+<body style="margin:0;padding:0;background-color:#09090b;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;" bgcolor="#09090b">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:#09090b;padding:40px 16px;" bgcolor="#09090b">
     <tr>
-      <td align="center" style="background-color:#ffffff;" bgcolor="#ffffff">
-        <!-- Main Card Container -->
-        <table role="presentation" width="100%" style="max-width:540px;background-color:#18181b;border:1px solid #27272a;border-radius:16px;overflow:hidden;box-shadow:0 20px 25px -5px rgba(0, 0, 0, 0.5);" bgcolor="#18181b">
+      <td align="center" style="background-color:#09090b;" bgcolor="#09090b">
+        <!-- Main White Card Container -->
+        <table role="presentation" width="100%" style="max-width:540px;background-color:#ffffff;border:1px solid #e4e4e7;border-radius:16px;overflow:hidden;box-shadow:0 20px 25px -5px rgba(0, 0, 0, 0.5);" bgcolor="#ffffff">
           
           <!-- Header Banner with Logo & Accent -->
           <tr>
@@ -95,25 +95,25 @@ function buildResetEmailHtml(params: {
             </td>
           </tr>
 
-          <!-- Main Email Body -->
+          <!-- Main White Email Body -->
           <tr>
-            <td style="padding:36px;color:#f4f4f5;">
-              <h1 style="margin:0 0 16px;font-size:24px;font-weight:900;line-height:1.2;letter-spacing:-0.02em;color:#ffffff;">
+            <td style="padding:36px;color:#18181b;background-color:#ffffff;">
+              <h1 style="margin:0 0 16px;font-size:24px;font-weight:900;line-height:1.2;letter-spacing:-0.02em;color:#09090b;">
                 Password Reset Request
               </h1>
               
-              <p style="margin:0 0 18px;font-size:14px;line-height:1.6;color:#a1a1aa;">
+              <p style="margin:0 0 18px;font-size:14px;line-height:1.6;color:#52525b;">
                 A password reset request was initiated for your TrendzHauz editorial account:
               </p>
               
               <!-- User Context Box -->
-              <div style="background-color:#27272a;border:1px solid #3f3f46;border-radius:8px;padding:12px 16px;margin-bottom:24px;">
-                <span style="font-size:13px;font-weight:700;color:#ffffff;word-break:break-all;">
+              <div style="background-color:#f4f4f5;border:1px solid #e4e4e7;border-radius:8px;padding:12px 16px;margin-bottom:24px;">
+                <span style="font-size:13px;font-weight:700;color:#09090b;word-break:break-all;">
                   📧 ${email}
                 </span>
               </div>
 
-              <p style="margin:0 0 28px;font-size:14px;line-height:1.6;color:#a1a1aa;">
+              <p style="margin:0 0 28px;font-size:14px;line-height:1.6;color:#52525b;">
                 Click the button below to open the official TrendzHauz recovery workspace and set a new password:
               </p>
 
@@ -131,11 +131,11 @@ function buildResetEmailHtml(params: {
               </table>
 
               <!-- Fallback Direct URL Box -->
-              <div style="border-top:1px solid #27272a;padding-top:24px;margin-top:8px;">
+              <div style="border-top:1px solid #f4f4f5;padding-top:24px;margin-top:8px;">
                 <p style="margin:0 0 8px;font-size:12px;font-weight:700;color:#71717a;text-transform:uppercase;letter-spacing:0.05em;">
                   Alternative Link:
                 </p>
-                <p style="margin:0 0 20px;font-size:11px;line-height:1.5;word-break:break-all;color:#f97316;background-color:#09090b;padding:10px 12px;border-radius:6px;border:1px solid #27272a;">
+                <p style="margin:0 0 20px;font-size:11px;line-height:1.5;word-break:break-all;color:#f97316;background-color:#f4f4f5;padding:10px 12px;border-radius:6px;border:1px solid #e4e4e7;">
                   ${appResetLink}
                 </p>
               </div>
