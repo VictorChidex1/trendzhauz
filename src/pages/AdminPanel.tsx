@@ -11,10 +11,21 @@ import {
   Trash2,
   RefreshCw,
   Eye,
+  Users,
+  UserPlus,
+  X,
+  Loader2,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import type { Post } from "@/types/post";
+import type { UserProfile, UserRole } from "@/types/user";
 import { fetchPosts, deletePost } from "@/services/posts";
+import {
+  fetchUsers,
+  createUserProfile,
+  updateUserRole,
+  deleteUserProfile,
+} from "@/services/users";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import { PostEditorModal } from "@/components/admin/PostEditorModal";
 
@@ -22,7 +33,7 @@ export default function AdminPanel() {
   const { profile, logout, isAdmin } = useAuth();
 
   // Sidebar & Navigation State
-  const [activeTab, setActiveTab] = React.useState<"overview" | "posts" | "reviews">("overview");
+  const [activeTab, setActiveTab] = React.useState<"overview" | "posts" | "reviews" | "team">("overview");
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = React.useState(false);
 
   // Posts State
@@ -32,11 +43,22 @@ export default function AdminPanel() {
   const [filterCategory, setFilterCategory] = React.useState<string>("all");
   const [filterStatus, setFilterStatus] = React.useState<string>("all");
 
-  // Modal State
+  // Users State (Super-Admin)
+  const [usersList, setUsersList] = React.useState<UserProfile[]>([]);
+  const [isLoadingUsers, setIsLoadingUsers] = React.useState(false);
+  const [isAddUserModalOpen, setIsAddUserModalOpen] = React.useState(false);
+
+  // New User Form State
+  const [newUid, setNewUid] = React.useState("");
+  const [newEmail, setNewEmail] = React.useState("");
+  const [newDisplayName, setNewDisplayName] = React.useState("");
+  const [newRole, setNewRole] = React.useState<UserRole>("writer");
+  const [isSubmittingUser, setIsSubmittingUser] = React.useState(false);
+  const [userModalError, setUserModalError] = React.useState<string | null>(null);
+
+  // Post Editor Modal State
   const [isEditorModalOpen, setIsEditorModalOpen] = React.useState(false);
   const [postToEdit, setPostToEdit] = React.useState<Post | null>(null);
-
-  // Delete Confirmation State
   const [deletingPostId, setDeletingPostId] = React.useState<string | null>(null);
 
   // Load Posts from Firestore
@@ -52,9 +74,26 @@ export default function AdminPanel() {
     }
   }, []);
 
+  // Load Users from Firestore (Super-Admin)
+  const loadUsers = React.useCallback(async () => {
+    if (!isAdmin) return;
+    setIsLoadingUsers(true);
+    try {
+      const data = await fetchUsers();
+      setUsersList(data);
+    } catch (err) {
+      console.error("Error loading users in AdminPanel:", err);
+    } finally {
+      setIsLoadingUsers(false);
+    }
+  }, [isAdmin]);
+
   React.useEffect(() => {
     loadPosts();
-  }, [loadPosts]);
+    if (isAdmin) {
+      loadUsers();
+    }
+  }, [loadPosts, loadUsers, isAdmin]);
 
   // Handle Edit Post Modal Open
   const handleOpenEdit = (post: Post) => {
@@ -88,6 +127,84 @@ export default function AdminPanel() {
       alert("Failed to delete article. Please try again.");
     } finally {
       setDeletingPostId(null);
+    }
+  };
+
+  // Handle Add User Form Submission
+  const handleAddUserSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setUserModalError(null);
+
+    if (!newUid.trim()) {
+      setUserModalError("Please provide the User UID from Firebase Auth table.");
+      return;
+    }
+
+    if (!newEmail.trim()) {
+      setUserModalError("Please provide a valid email address.");
+      return;
+    }
+
+    setIsSubmittingUser(true);
+    try {
+      await createUserProfile(newUid.trim(), {
+        email: newEmail.trim(),
+        displayName: newDisplayName.trim() || "Team Member",
+        role: newRole,
+      });
+
+      // Reset form
+      setNewUid("");
+      setNewEmail("");
+      setNewDisplayName("");
+      setNewRole("writer");
+      setIsAddUserModalOpen(false);
+      await loadUsers();
+    } catch (err: any) {
+      console.error("Error provisioning user profile:", err);
+      setUserModalError(err.message || "Failed to create user profile in Firestore.");
+    } finally {
+      setIsSubmittingUser(false);
+    }
+  };
+
+  // Handle Role Toggle (Super-Admin)
+  const handleRoleToggle = async (uid: string, currentRole: UserRole) => {
+    const nextRole: UserRole = currentRole === "super-admin" ? "writer" : "super-admin";
+    if (
+      !window.confirm(
+        `Are you sure you want to change this user's role to ${nextRole.toUpperCase()}?`
+      )
+    ) {
+      return;
+    }
+
+    try {
+      await updateUserRole(uid, nextRole);
+      await loadUsers();
+    } catch (err) {
+      console.error("Failed to update user role:", err);
+      alert("Failed to update user role.");
+    }
+  };
+
+  // Handle Delete User Profile
+  const handleDeleteUser = async (uid: string, userEmail: string) => {
+    if (uid === profile?.uid) {
+      alert("You cannot delete your own active super-admin profile.");
+      return;
+    }
+
+    if (!window.confirm(`Are you sure you want to remove ${userEmail} from team profiles?`)) {
+      return;
+    }
+
+    try {
+      await deleteUserProfile(uid);
+      await loadUsers();
+    } catch (err) {
+      console.error("Failed to delete user profile:", err);
+      alert("Failed to delete user profile.");
     }
   };
 
@@ -149,30 +266,45 @@ export default function AdminPanel() {
 
             <div>
               <h1 className="text-base sm:text-lg font-black uppercase tracking-tight text-zinc-900">
-                Editorial Control Panel
+                {activeTab === "team" ? "Team & Role Directory" : "Editorial Control Panel"}
               </h1>
               <p className="text-[11px] text-zinc-500 font-medium hidden sm:block">
-                Manage articles, music reviews, and publication status for TrendzHauz.
+                {activeTab === "team"
+                  ? "Manage writers, admins, and security permissions."
+                  : "Manage articles, music reviews, and publication status for TrendzHauz."}
               </p>
             </div>
           </div>
 
           <div className="flex items-center space-x-3">
             <button
-              onClick={loadPosts}
+              onClick={() => {
+                loadPosts();
+                if (isAdmin) loadUsers();
+              }}
               className="p-2 text-zinc-500 hover:text-brand transition-colors rounded-md hover:bg-zinc-100"
-              title="Refresh articles list"
+              title="Refresh dataset"
             >
-              <RefreshCw className={`h-4 w-4 ${isLoadingPosts ? "animate-spin" : ""}`} />
+              <RefreshCw className={`h-4 w-4 ${isLoadingPosts || isLoadingUsers ? "animate-spin" : ""}`} />
             </button>
 
-            <button
-              onClick={handleOpenCreate}
-              className="bg-brand hover:bg-brand/90 text-white font-black text-xs uppercase tracking-widest py-2 px-3.5 rounded-md transition-all shadow-xs flex items-center space-x-1.5"
-            >
-              <PlusCircle className="h-4 w-4" />
-              <span className="hidden sm:inline">New Article</span>
-            </button>
+            {activeTab === "team" && isAdmin ? (
+              <button
+                onClick={() => setIsAddUserModalOpen(true)}
+                className="bg-brand hover:bg-brand/90 text-white font-black text-xs uppercase tracking-widest py-2 px-3.5 rounded-md transition-all shadow-xs flex items-center space-x-1.5 cursor-pointer"
+              >
+                <UserPlus className="h-4 w-4" />
+                <span className="hidden sm:inline">Add Team Member</span>
+              </button>
+            ) : (
+              <button
+                onClick={handleOpenCreate}
+                className="bg-brand hover:bg-brand/90 text-white font-black text-xs uppercase tracking-widest py-2 px-3.5 rounded-md transition-all shadow-xs flex items-center space-x-1.5 cursor-pointer"
+              >
+                <PlusCircle className="h-4 w-4" />
+                <span className="hidden sm:inline">New Article</span>
+              </button>
+            )}
           </div>
         </header>
 
@@ -246,7 +378,7 @@ export default function AdminPanel() {
 
                   <button
                     onClick={() => setActiveTab("posts")}
-                    className="text-xs font-black uppercase tracking-widest text-brand hover:underline"
+                    className="text-xs font-black uppercase tracking-widest text-brand hover:underline cursor-pointer"
                   >
                     View All
                   </button>
@@ -263,7 +395,7 @@ export default function AdminPanel() {
                     </p>
                     <button
                       onClick={handleOpenCreate}
-                      className="bg-brand text-white font-black text-xs uppercase tracking-widest px-4 py-2 rounded-md"
+                      className="bg-brand text-white font-black text-xs uppercase tracking-widest px-4 py-2 rounded-md cursor-pointer"
                     >
                       + Create First Article
                     </button>
@@ -315,7 +447,7 @@ export default function AdminPanel() {
 
                           <button
                             onClick={() => handleOpenEdit(post)}
-                            className="p-1 text-zinc-400 hover:text-zinc-800"
+                            className="p-1 text-zinc-400 hover:text-zinc-800 cursor-pointer"
                             title="Edit"
                           >
                             <Edit2 className="h-3.5 w-3.5" />
@@ -398,7 +530,7 @@ export default function AdminPanel() {
                       setFilterCategory("all");
                       setFilterStatus("all");
                     }}
-                    className="text-xs font-black uppercase text-brand hover:underline"
+                    className="text-xs font-black uppercase text-brand hover:underline cursor-pointer"
                   >
                     Reset Filters
                   </button>
@@ -484,7 +616,7 @@ export default function AdminPanel() {
 
                               <button
                                 onClick={() => handleOpenEdit(post)}
-                                className="p-1.5 text-zinc-600 hover:text-brand rounded hover:bg-zinc-100 transition-colors"
+                                className="p-1.5 text-zinc-600 hover:text-brand rounded hover:bg-zinc-100 transition-colors cursor-pointer"
                                 title="Edit Article"
                               >
                                 <Edit2 className="h-4 w-4" />
@@ -494,8 +626,107 @@ export default function AdminPanel() {
                                 <button
                                   onClick={() => handleDelete(post.id)}
                                   disabled={deletingPostId === post.id}
-                                  className="p-1.5 text-zinc-400 hover:text-red-600 rounded hover:bg-red-50 transition-colors disabled:opacity-50"
+                                  className="p-1.5 text-zinc-400 hover:text-red-600 rounded hover:bg-red-50 transition-colors disabled:opacity-50 cursor-pointer"
                                   title="Delete Article (Super-Admin)"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Team Members Management Table View (Super-Admin) */}
+          {activeTab === "team" && isAdmin && (
+            <div className="bg-white border border-zinc-200 rounded-lg shadow-xs overflow-hidden space-y-4 p-6">
+              <div className="flex items-center justify-between border-b border-zinc-100 pb-4">
+                <div>
+                  <h2 className="text-sm font-black uppercase tracking-wider text-zinc-900 flex items-center space-x-2">
+                    <Users className="h-4 w-4 text-brand" />
+                    <span>Team Members & Roles</span>
+                  </h2>
+                  <p className="text-xs text-zinc-500 font-medium">
+                    Manage system roles and provision writer permissions for TrendzHauz.
+                  </p>
+                </div>
+
+                <button
+                  onClick={() => setIsAddUserModalOpen(true)}
+                  className="bg-brand text-white font-black text-xs uppercase tracking-widest px-4 py-2 rounded-md shadow-xs flex items-center space-x-2 cursor-pointer"
+                >
+                  <UserPlus className="h-4 w-4" />
+                  <span>+ Add Team Member</span>
+                </button>
+              </div>
+
+              {isLoadingUsers ? (
+                <div className="py-12 text-center text-xs text-zinc-400 font-medium">
+                  Loading team profiles from Firestore...
+                </div>
+              ) : usersList.length === 0 ? (
+                <div className="py-12 text-center space-y-3">
+                  <p className="text-xs text-zinc-500 font-medium">
+                    No team members found in Firestore.
+                  </p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="border-b border-zinc-200 text-[10px] font-black uppercase tracking-widest text-zinc-400 bg-zinc-50/50">
+                        <th className="py-3 px-4">Member Name</th>
+                        <th className="py-3 px-4">Email</th>
+                        <th className="py-3 px-4">Assigned Role</th>
+                        <th className="py-3 px-4 text-right">Role Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-zinc-100 text-xs font-medium">
+                      {usersList.map((userItem) => (
+                        <tr key={userItem.uid} className="hover:bg-zinc-50/70 transition-colors">
+                          <td className="py-3 px-4">
+                            <div className="flex items-center space-x-3">
+                              <div className="h-8 w-8 bg-brand/10 text-brand rounded-full font-black text-xs flex items-center justify-center border border-brand/20">
+                                {userItem.displayName ? userItem.displayName.charAt(0).toUpperCase() : "U"}
+                              </div>
+                              <span className="font-bold text-zinc-900">{userItem.displayName}</span>
+                            </div>
+                          </td>
+
+                          <td className="py-3 px-4 text-zinc-600">{userItem.email}</td>
+
+                          <td className="py-3 px-4">
+                            <span
+                              className={`text-[9px] font-black uppercase px-2.5 py-1 rounded-full ${
+                                userItem.role === "super-admin"
+                                  ? "bg-purple-50 text-purple-700 border border-purple-200"
+                                  : "bg-blue-50 text-blue-700 border border-blue-200"
+                              }`}
+                            >
+                              {userItem.role === "super-admin" ? "SUPER ADMIN" : "WRITER"}
+                            </span>
+                          </td>
+
+                          <td className="py-3 px-4 text-right">
+                            <div className="flex items-center justify-end space-x-3">
+                              <button
+                                onClick={() => handleRoleToggle(userItem.uid, userItem.role)}
+                                className="text-[10px] font-bold text-zinc-600 hover:text-brand bg-zinc-100 hover:bg-zinc-200 px-2.5 py-1 rounded transition-colors cursor-pointer"
+                              >
+                                Switch to {userItem.role === "super-admin" ? "Writer" : "Super Admin"}
+                              </button>
+
+                              {userItem.uid !== profile?.uid && (
+                                <button
+                                  onClick={() => handleDeleteUser(userItem.uid, userItem.email)}
+                                  className="p-1 text-zinc-400 hover:text-red-600 rounded hover:bg-red-50 transition-colors cursor-pointer"
+                                  title="Remove Profile"
                                 >
                                   <Trash2 className="h-4 w-4" />
                                 </button>
@@ -521,6 +752,127 @@ export default function AdminPanel() {
         authorProfile={profile}
         onSuccess={loadPosts}
       />
+
+      {/* Add Team Member Modal (Super-Admin) */}
+      {isAddUserModalOpen && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-zinc-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white border border-zinc-200 rounded-xl w-full max-w-md shadow-2xl overflow-hidden text-zinc-900">
+            <div className="p-5 border-b border-zinc-200 flex items-center justify-between bg-zinc-50">
+              <div className="flex items-center space-x-2.5">
+                <div className="p-2 bg-brand/10 text-brand rounded-lg">
+                  <UserPlus className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black uppercase tracking-tight text-zinc-900">
+                    Provision Team Member
+                  </h3>
+                  <p className="text-[11px] text-zinc-500 font-medium">
+                    Link Firebase Auth UID with a Firestore role profile.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setIsAddUserModalOpen(false)}
+                className="text-zinc-400 hover:text-zinc-700 p-1.5 rounded-md hover:bg-zinc-200/50"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleAddUserSubmit} className="p-6 space-y-4">
+              {userModalError && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-md text-red-600 text-xs font-medium">
+                  {userModalError}
+                </div>
+              )}
+
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700 block">
+                  Firebase User UID *
+                </label>
+                <input
+                  type="text"
+                  value={newUid}
+                  onChange={(e) => setNewUid(e.target.value)}
+                  placeholder="e.g. 8ShWBOYaOAngH1ghC1UxZJ..."
+                  required
+                  className="w-full bg-zinc-50 border border-zinc-300 rounded-md px-3.5 py-2 text-xs font-mono text-zinc-900 focus:outline-none focus:border-brand"
+                />
+                <p className="text-[10px] text-zinc-400">
+                  Copy from Firebase Console &gt; Authentication &gt; User UID
+                </p>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700 block">
+                  Display Name *
+                </label>
+                <input
+                  type="text"
+                  value={newDisplayName}
+                  onChange={(e) => setNewDisplayName(e.target.value)}
+                  placeholder="e.g. DJ Davisy"
+                  required
+                  className="w-full bg-zinc-50 border border-zinc-300 rounded-md px-3.5 py-2 text-xs text-zinc-900 font-medium focus:outline-none focus:border-brand"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700 block">
+                  Email Address *
+                </label>
+                <input
+                  type="email"
+                  value={newEmail}
+                  onChange={(e) => setNewEmail(e.target.value)}
+                  placeholder="trendzhauz@gmail.com"
+                  required
+                  className="w-full bg-zinc-50 border border-zinc-300 rounded-md px-3.5 py-2 text-xs text-zinc-900 font-medium focus:outline-none focus:border-brand"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700 block">
+                  Role Permission *
+                </label>
+                <select
+                  value={newRole}
+                  onChange={(e) => setNewRole(e.target.value as UserRole)}
+                  className="w-full bg-zinc-50 border border-zinc-300 rounded-md px-3.5 py-2 text-xs font-bold text-zinc-900 focus:outline-none focus:border-brand"
+                >
+                  <option value="writer">Writer (Can Create & Edit Own Posts)</option>
+                  <option value="super-admin">Super Admin (Full System Access)</option>
+                </select>
+              </div>
+
+              <div className="pt-3 flex items-center justify-end space-x-3 border-t border-zinc-100">
+                <button
+                  type="button"
+                  onClick={() => setIsAddUserModalOpen(false)}
+                  className="px-4 py-2 text-xs font-black uppercase text-zinc-600 hover:text-zinc-900"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingUser}
+                  className="bg-brand text-white font-black text-xs uppercase tracking-widest px-5 py-2 rounded-md shadow-xs flex items-center space-x-2 cursor-pointer disabled:opacity-50"
+                >
+                  {isSubmittingUser ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span>Saving...</span>
+                    </>
+                  ) : (
+                    <span>Save Team Profile</span>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
