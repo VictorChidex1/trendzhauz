@@ -3,52 +3,13 @@ import {
   collection,
   query,
   where,
-  orderBy,
-  limit,
-  getDocs,
-  startAfter,
-  getCountFromServer,
+  onSnapshot,
   Timestamp,
-  type DocumentSnapshot,
-  type QueryDocumentSnapshot,
-  type QueryConstraint,
 } from "firebase/firestore";
 import { db } from "../services/firebase";
 import type { Post, StoryCard } from "../types/post";
-import {
-  getCachedData,
-  isCacheFresh,
-  setCachedData,
-  TTL,
-} from "../utils/queryCache";
 
-/** Model A public base constraints for Reviews. */
-function reviewsPublicConstraints(
-  projectTypeFilter: string,
-  sortBy: "newest" | "highest-rated"
-): QueryConstraint[] {
-  const constraints: QueryConstraint[] = [
-    where("status", "==", "published"),
-    where("category", "==", "Reviews"),
-    where("createdAt", "<=", Timestamp.now()),
-  ];
-
-  if (projectTypeFilter !== "All") {
-    constraints.push(where("projectType", "==", projectTypeFilter));
-  }
-
-  // Range filter is on createdAt → primary orderBy must be createdAt for Model A.
-  // highest-rated: fetch recent window then sort by rating client-side when needed.
-  if (sortBy === "highest-rated") {
-    constraints.push(orderBy("createdAt", "desc"));
-  } else {
-    constraints.push(orderBy("createdAt", "desc"));
-  }
-
-  return constraints;
-}
-
-// RICH MOCK REVIEWS FOR FALLBACK (COMPLETE WITH GENRE & SCORE BREAKDOWNS)
+// RICH MOCK REVIEWS FOR FALLBACK (SHOWN ONLY IF FIRESTORE IS EMPTY)
 const MOCK_REVIEWS: StoryCard[] = [
   {
     id: "review-fallback-1",
@@ -96,128 +57,27 @@ const MOCK_REVIEWS: StoryCard[] = [
       originality: 9.0,
     },
   },
-  {
-    id: "review-fallback-3",
-    category: "Reviews",
-    title: "Fireboy DML - 'Adore': A Modern Afropop Rhapsody",
-    description:
-      "Fireboy DML delivers a sonic love letter. We review the songwriting, clean melodies, and lush instrumentation.",
-    coverImageUrl: "/assets/live_concert_orchestral.png",
-    createdAt: "Jul 12, 2026",
-    slug: "fireboy-dml-adore-review",
-    artistName: "Fireboy DML",
-    projectTitle: "Adore",
-    projectType: "Single",
-    rating: 8.2,
-    genre: "R&B",
-    verdict:
-      "A smooth, vocally brilliant pop effort showing Fireboy DML's romantic lyricism in its finest form.",
-    scoreBreakdown: {
-      production: 8.5,
-      lyricism: 8.6,
-      replayValue: 8.0,
-      originality: 7.8,
-    },
-  },
-  {
-    id: "review-fallback-4",
-    category: "Reviews",
-    title: "Omah Lay - 'Boy Alone': A Masterclass in Dark Afrobeats",
-    description:
-      "An editorial analysis of Omah Lay's debut LP, exploring its melancholic themes, deep basslines, and sheer vulnerability.",
-    coverImageUrl: "/assets/crowd_concert.png",
-    createdAt: "Jul 09, 2026",
-    slug: "omah-lay-boy-alone-review",
-    artistName: "Omah Lay",
-    projectTitle: "Boy Alone",
-    projectType: "Album",
-    rating: 9.3,
-    genre: "Afrobeats",
-    verdict:
-      "A groundbreaking record that shifts the emotional boundaries of modern Afrobeats.",
-    scoreBreakdown: {
-      production: 9.5,
-      lyricism: 9.3,
-      replayValue: 9.6,
-      originality: 8.8,
-    },
-  },
-  {
-    id: "review-fallback-5",
-    category: "Reviews",
-    title: "Seyi Vibez - 'Lagos Memoirs': Neo-Apala Experimental Sounds",
-    description:
-      "Seyi Vibez captures the raw spirit of mainland Lagos on this EP. Read our track-by-track breakdown and review.",
-    coverImageUrl: "/assets/DJ-Davisy-Grime-Trap-Mixtape.jpg",
-    createdAt: "Jul 05, 2026",
-    slug: "seyi-vibez-lagos-memoirs-review",
-    artistName: "Seyi Vibez",
-    projectTitle: "Lagos Memoirs",
-    projectType: "EP",
-    rating: 7.9,
-    genre: "Street-Pop",
-    verdict:
-      "A high-octane experimental project that showcases Seyi Vibez's relentless artistic drive.",
-    scoreBreakdown: {
-      production: 7.8,
-      lyricism: 7.5,
-      replayValue: 8.2,
-      originality: 8.1,
-    },
-  },
-  {
-    id: "review-fallback-6",
-    category: "Reviews",
-    title: "Rema - 'Ravage': Rave Lord's Dark Synth Mixtape",
-    description:
-      "We review Rema's short-form project, analyzing the trap drums, industrial synths, and his signature Indian-scale vocal runs.",
-    coverImageUrl: "/assets/live_concert_orchestral.png",
-    createdAt: "Jun 28, 2026",
-    slug: "rema-ravage-review",
-    artistName: "Rema",
-    projectTitle: "Ravage",
-    projectType: "Mixtape",
-    rating: 8.5,
-    genre: "Amapiano",
-    verdict:
-      "A potent, synth-heavy statement that proves Rema is one of the most adventurous stars of the decade.",
-    scoreBreakdown: {
-      production: 8.8,
-      lyricism: 8.0,
-      replayValue: 8.6,
-      originality: 8.6,
-    },
-  },
-  {
-    id: "review-fallback-7",
-    category: "Reviews",
-    title: "Odumodublvck - 'Eziokwu': Grime & Drill Meets Nigerian Highlife",
-    description:
-      "An aggressive, energetic masterpiece blending UK Drill 808s with raw Nigerian street hip-hop culture.",
-    coverImageUrl: "/assets/DJ-Davisy-Grime-Trap-Mixtape.jpg",
-    createdAt: "Jun 20, 2026",
-    slug: "odumodublvck-eziokwu-review",
-    artistName: "Odumodublvck",
-    projectTitle: "Eziokwu",
-    projectType: "Mixtape",
-    rating: 8.8,
-    genre: "Hip-Hop",
-    verdict:
-      "A thunderous, culture-shifting tape that cements Odumodublvck as the leader of modern Nigerian hip-hop.",
-    scoreBreakdown: {
-      production: 9.0,
-      lyricism: 8.4,
-      replayValue: 9.1,
-      originality: 8.7,
-    },
-  },
 ];
 
+// Helper to convert Firestore timestamp/Date to epoch millis
+function getMillis(val: unknown): number {
+  if (!val) return 0;
+  if (typeof val === "object" && val !== null && "toDate" in val && typeof (val as Timestamp).toDate === "function") {
+    return (val as Timestamp).toDate().getTime();
+  }
+  if (val instanceof Date) return val.getTime();
+  if (typeof val === "string" || typeof val === "number") {
+    const parsed = new Date(val).getTime();
+    return isNaN(parsed) ? 0 : parsed;
+  }
+  return 0;
+}
+
 // Helper to format Firestore date
-function formatDate(timestamp: any): string {
-  if (!timestamp) return "";
-  const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-  return date.toLocaleDateString("en-US", {
+function formatDate(timestamp: unknown): string {
+  const millis = getMillis(timestamp);
+  if (!millis) return "Recent";
+  return new Date(millis).toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
     year: "numeric",
@@ -231,313 +91,116 @@ export function useReviews(
   genreFilter: "All" | "Afrobeats" | "Amapiano" | "Hip-Hop" | "Street-Pop" | "R&B" = "All",
   searchQuery = ""
 ) {
-  // Construct dynamic keys for cache
-  const cacheKeyPage1 = `reviews_p1_${projectTypeFilter.toLowerCase()}_${sortBy}`;
-  const cacheKeyCount = `reviews_count_${projectTypeFilter.toLowerCase()}`;
-
-  const cachedPage1 = getCachedData<StoryCard[]>(cacheKeyPage1);
-  const cachedCount = getCachedData<number>(cacheKeyCount);
-
-  const [rawReviews, setRawReviews] = React.useState<StoryCard[]>(
-    cachedPage1 && cachedCount ? cachedPage1 : []
-  );
-  const [loading, setLoading] = React.useState<boolean>(
-    !(cachedPage1 && cachedCount)
-  );
+  const [allReviews, setAllReviews] = React.useState<StoryCard[]>([]);
+  const [loading, setLoading] = React.useState<boolean>(true);
   const [currentPage, setCurrentPage] = React.useState<number>(1);
-  const [, setTotalEstimate] = React.useState<number>(
-    cachedCount || 0
-  );
-  const [usingFallback, setUsingFallback] = React.useState<boolean>(false);
 
-  // Pagination cursor cache
-  const cursorCache = React.useRef<Map<number, DocumentSnapshot>>(new Map());
-  // In-memory cache for visited pages
-  const localPageCache = React.useRef<Map<number, StoryCard[]>>(new Map());
-
-  // Reset caches and currentPage if base filters change
   React.useEffect(() => {
-    cursorCache.current.clear();
-    localPageCache.current.clear();
-    setCurrentPage(1);
+    // Single-field Firestore query for Category = Reviews & status = published
+    const q = query(
+      collection(db, "posts"),
+      where("status", "==", "published"),
+      where("category", "==", "Reviews")
+    );
 
-    const freshPage1 = getCachedData<StoryCard[]>(cacheKeyPage1);
-    const freshCount = getCachedData<number>(cacheKeyCount);
-
-    if (freshPage1 && freshCount) {
-      setRawReviews(freshPage1);
-      setTotalEstimate(freshCount);
-      localPageCache.current.set(1, freshPage1);
-      setLoading(false);
-    } else {
-      setRawReviews([]);
-      setTotalEstimate(0);
-      setLoading(true);
-    }
-  }, [projectTypeFilter, sortBy, cacheKeyPage1, cacheKeyCount]);
-
-  // Sync state if cached value loads asynchronously
-  React.useEffect(() => {
-    if (cachedPage1 && currentPage === 1) {
-      localPageCache.current.set(1, cachedPage1);
-    }
-  }, [cachedPage1, currentPage]);
-
-  // 1. Count total reviews in Firestore
-  React.useEffect(() => {
-    if (isCacheFresh(cacheKeyCount, TTL.LISTS) && isCacheFresh(cacheKeyPage1, TTL.LISTS)) {
-      return;
-    }
-
-    let cancelled = false;
-
-    async function countReviews() {
-      try {
-        const base: QueryConstraint[] = [
-          where("status", "==", "published"),
-          where("category", "==", "Reviews"),
-          where("createdAt", "<=", Timestamp.now()),
-        ];
-        if (projectTypeFilter !== "All") {
-          base.push(where("projectType", "==", projectTypeFilter));
-        }
-        const q = query(collection(db, "posts"), ...base);
-
-        const countSnap = await getCountFromServer(q);
-
-        if (!cancelled) {
-          const count = countSnap.data().count;
-          if (count === 0) {
-            setUsingFallback(true);
-            setRawReviews(MOCK_REVIEWS);
-            setTotalEstimate(MOCK_REVIEWS.length);
-            setLoading(false);
-          } else {
-            setTotalEstimate(count);
-            setCachedData(cacheKeyCount, count);
-          }
-        }
-      } catch (error) {
-        console.error("Failed to query reviews count:", error);
-        if (!cancelled) {
-          setUsingFallback(true);
-          setRawReviews(MOCK_REVIEWS);
-          setTotalEstimate(MOCK_REVIEWS.length);
-          setLoading(false);
-        }
-      }
-    }
-
-    countReviews();
-    return () => {
-      cancelled = true;
-    };
-  }, [projectTypeFilter, postsPerPage, cacheKeyCount, cacheKeyPage1]);
-
-  // 2. Fetch page reviews from Firestore
-  React.useEffect(() => {
-    if (usingFallback) {
-      setRawReviews(MOCK_REVIEWS);
-      setLoading(false);
-      return;
-    }
-
-    if (localPageCache.current.has(currentPage)) {
-      setRawReviews(localPageCache.current.get(currentPage)!);
-      setLoading(false);
-      return;
-    }
-
-    if (currentPage === 1 && isCacheFresh(cacheKeyPage1, TTL.LISTS) && cachedPage1) {
-      setRawReviews(cachedPage1);
-      setLoading(false);
-      return;
-    }
-
-    let cancelled = false;
-
-    async function fetchReviewsPage() {
-      setLoading(true);
-      try {
-        let cursor = cursorCache.current.get(currentPage);
-
-        if (!cursor && currentPage > 1) {
-          let prevPage = currentPage - 1;
-          while (prevPage > 1 && !cursorCache.current.has(prevPage)) {
-            prevPage--;
-          }
-          const prevCursor = cursorCache.current.get(prevPage);
-          const skipCount = (currentPage - prevPage) * postsPerPage;
-
-          const tempQ = query(
-            collection(db, "posts"),
-            ...reviewsPublicConstraints(projectTypeFilter, sortBy),
-            ...(prevCursor ? [startAfter(prevCursor)] : []),
-            limit(skipCount)
-          );
-
-          const tempSnap = await getDocs(tempQ);
-
-          tempSnap.docs.forEach((doc, idx) => {
-            const docPage = prevPage + Math.floor((idx + 1) / postsPerPage);
-            if ((idx + 1) % postsPerPage === 0 && docPage < currentPage) {
-              cursorCache.current.set(docPage + 1, doc);
-            }
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const now = Date.now();
+        const livePosts = snapshot.docs
+          .map((d) => ({ ...(d.data() as Post), id: d.id }))
+          .filter((p) => {
+            const t = getMillis(p.createdAt);
+            return t === 0 || t <= now + 60000;
           });
 
-          if (tempSnap.docs.length === skipCount) {
-            cursor = tempSnap.docs[tempSnap.docs.length - 1];
-            cursorCache.current.set(currentPage, cursor);
-          }
-        }
-
-        let q = query(
-          collection(db, "posts"),
-          ...reviewsPublicConstraints(projectTypeFilter, sortBy)
-        );
-
-        // For highest-rated, oversample then sort client-side (Model A orderBy constraint)
-        const fetchLimit =
-          sortBy === "highest-rated" ? Math.max(postsPerPage * 3, 36) : postsPerPage;
-
-        if (currentPage > 1 && cursor && sortBy === "newest") {
-          q = query(q, startAfter(cursor), limit(postsPerPage));
+        if (livePosts.length > 0) {
+          const cards: StoryCard[] = livePosts.map((data) => ({
+            id: data.id,
+            category: data.category,
+            title: data.title,
+            description: data.description || (data.content || "").replace(/<[^>]*>/g, "").slice(0, 150) + "...",
+            coverImageUrl: data.coverImageUrl || "/assets/placeholder-cover.jpg",
+            createdAt: formatDate(data.createdAt),
+            rawCreatedAt: getMillis(data.createdAt),
+            slug: data.slug,
+            artistName: data.artistName,
+            projectTitle: data.projectTitle,
+            projectType: data.projectType,
+            rating: data.rating,
+            verdict: data.verdict,
+            genre: data.genre || "Afrobeats",
+            scoreBreakdown: data.scoreBreakdown || {
+              production: Math.min(10, (data.rating || 8) + 0.2),
+              lyricism: Math.max(0, (data.rating || 8) - 0.3),
+              replayValue: Math.min(10, (data.rating || 8) + 0.1),
+              originality: Math.max(0, (data.rating || 8) - 0.1),
+            },
+          }));
+          setAllReviews(cards);
         } else {
-          q = query(q, limit(fetchLimit));
+          setAllReviews(MOCK_REVIEWS);
         }
-
-        const snap = await getDocs(q);
-
-        if (!cancelled) {
-          if (snap.empty && currentPage === 1) {
-            setUsingFallback(true);
-            setRawReviews(MOCK_REVIEWS);
-            setTotalEstimate(MOCK_REVIEWS.length);
-          } else {
-            let docs = snap.docs;
-            if (sortBy === "highest-rated") {
-              docs = [...docs].sort((a, b) => {
-                const ra = (a.data() as Post).rating || 0;
-                const rb = (b.data() as Post).rating || 0;
-                return rb - ra;
-              });
-              const start = (currentPage - 1) * postsPerPage;
-              docs = docs.slice(start, start + postsPerPage);
-            }
-
-            const pageReviews: StoryCard[] = docs.map(
-              (doc: QueryDocumentSnapshot) => {
-                const data = doc.data() as Post;
-                return {
-                  id: doc.id,
-                  category: data.category,
-                  title: data.title,
-                  description: data.description,
-                  coverImageUrl: data.coverImageUrl,
-                  createdAt: formatDate(data.createdAt),
-                  slug: data.slug,
-                  artistName: data.artistName,
-                  projectTitle: data.projectTitle,
-                  projectType: data.projectType,
-                  rating: data.rating,
-                  verdict: data.verdict,
-                  genre: data.genre || "Afrobeats",
-                  scoreBreakdown: data.scoreBreakdown || {
-                    production: (data.rating || 8) + 0.2 > 10 ? 10 : (data.rating || 8) + 0.2,
-                    lyricism: (data.rating || 8) - 0.3,
-                    replayValue: (data.rating || 8) + 0.1 > 10 ? 10 : (data.rating || 8) + 0.1,
-                    originality: (data.rating || 8) - 0.1,
-                  },
-                };
-              }
-            );
-
-            localPageCache.current.set(currentPage, pageReviews);
-            setRawReviews(pageReviews);
-
-            if (currentPage === 1) {
-              setCachedData(cacheKeyPage1, pageReviews);
-            }
-
-            if (snap.docs.length === postsPerPage) {
-              cursorCache.current.set(
-                currentPage + 1,
-                snap.docs[snap.docs.length - 1]
-              );
-            }
-          }
-          setLoading(false);
-        }
-      } catch (error) {
-        console.error("Failed to fetch reviews page:", error);
-        if (!cancelled) {
-          setUsingFallback(true);
-          setRawReviews(MOCK_REVIEWS);
-          setTotalEstimate(MOCK_REVIEWS.length);
-          setLoading(false);
-        }
+        setLoading(false);
+      },
+      (error) => {
+        console.error("useReviews onSnapshot error:", error);
+        setAllReviews(MOCK_REVIEWS);
+        setLoading(false);
       }
+    );
+
+    return () => unsubscribe();
+  }, []);
+
+  // Filter and Sort in memory
+  const processedReviews = React.useMemo(() => {
+    let list = [...allReviews];
+
+    // Filter Project Type
+    if (projectTypeFilter !== "All") {
+      list = list.filter((r) => r.projectType === projectTypeFilter);
     }
 
-    fetchReviewsPage();
-    return () => {
-      cancelled = true;
-    };
-  }, [
-    currentPage,
-    postsPerPage,
-    projectTypeFilter,
-    sortBy,
-    usingFallback,
-    cacheKeyPage1,
-  ]);
+    // Filter Genre
+    if (genreFilter !== "All") {
+      list = list.filter((r) =>
+        (r.genre || "").toLowerCase().includes(genreFilter.toLowerCase())
+      );
+    }
 
-  // 3. APPLY CLIENT-SIDE LIVE IN-MEMORY FILTERS (Score Range, Genre, Inline Search)
-  const filteredReviews = React.useMemo(() => {
-    return rawReviews.filter((review) => {
-      // Format Filter
-      if (
-        projectTypeFilter !== "All" &&
-        review.projectType !== projectTypeFilter
-      ) {
-        return false;
-      }
+    // Search Query
+    if (searchQuery.trim() !== "") {
+      const qTerm = searchQuery.toLowerCase().trim();
+      list = list.filter((r) =>
+        (r.title || "").toLowerCase().includes(qTerm) ||
+        (r.artistName || "").toLowerCase().includes(qTerm) ||
+        (r.projectTitle || "").toLowerCase().includes(qTerm)
+      );
+    }
 
-      // Genre Filter
-      if (genreFilter !== "All") {
-        const reviewGenre = (review.genre || "").toLowerCase();
-        if (!reviewGenre.includes(genreFilter.toLowerCase())) {
-          return false;
-        }
-      }
+    // Sort
+    if (sortBy === "highest-rated") {
+      list.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+    } else {
+      list.sort((a, b) => ((b as any).rawCreatedAt || 0) - ((a as any).rawCreatedAt || 0));
+    }
 
-      // Inline Live Search Query (Artist Name or Project Title)
-      if (searchQuery.trim() !== "") {
-        const queryTerm = searchQuery.toLowerCase().trim();
-        const artist = (review.artistName || "").toLowerCase();
-        const project = (review.projectTitle || "").toLowerCase();
-        const title = (review.title || "").toLowerCase();
+    return list;
+  }, [allReviews, projectTypeFilter, genreFilter, searchQuery, sortBy]);
 
-        const matches =
-          artist.includes(queryTerm) ||
-          project.includes(queryTerm) ||
-          title.includes(queryTerm);
-
-        if (!matches) return false;
-      }
-
-      return true;
-    });
-  }, [rawReviews, projectTypeFilter, genreFilter, searchQuery]);
-
-  const totalPages = Math.max(1, Math.ceil(filteredReviews.length / postsPerPage));
+  const totalEstimate = processedReviews.length;
+  const totalPages = Math.max(1, Math.ceil(totalEstimate / postsPerPage));
+  const start = (currentPage - 1) * postsPerPage;
+  const pageReviews = processedReviews.slice(start, start + postsPerPage);
 
   return {
-    reviews: filteredReviews,
+    reviews: pageReviews,
     loading,
     currentPage,
     setCurrentPage,
     totalPages,
-    totalEstimate: filteredReviews.length,
+    totalEstimate,
   };
 }
+

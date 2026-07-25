@@ -39,6 +39,7 @@ function AppContent() {
           <Route path="/category/reviews" element={<ReviewsPage />} />
           <Route path="/category/:category" element={<BlogHome />} />
           <Route path="/post/:slug" element={<BlogPostView />} />
+          <Route path="/blog/:slug" element={<BlogPostView />} />
           <Route path="/links" element={<LinkHub />} />
 
           {/* Administrative CMS Routing */}

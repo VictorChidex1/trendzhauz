@@ -3,16 +3,8 @@ import {
   collection,
   query,
   where,
-  orderBy,
-  limit,
-  getDocs,
-  doc,
-  getDoc,
-  startAfter,
-  getCountFromServer,
+  onSnapshot,
   Timestamp,
-  type DocumentSnapshot,
-  type QueryDocumentSnapshot,
 } from "firebase/firestore";
 import { db } from "../services/firebase";
 import type {
@@ -22,17 +14,8 @@ import type {
   TrendingPost,
   EditorPick,
 } from "../types/post";
-import { getCachedData, isCacheFresh, setCachedData, TTL } from "../utils/queryCache";
 
-/** Model A: public posts must have createdAt <= now (matches firestore.rules). */
-function publicPostsBase() {
-  return [
-    where("status", "==", "published"),
-    where("createdAt", "<=", Timestamp.now()),
-  ] as const;
-}
-
-// FALLBACK MOCK DATA (shown when Firestore is empty)
+// FALLBACK MOCK DATA (shown only if Firestore has 0 published posts)
 
 const FALLBACK_HERO_SLIDES: HeroSlide[] = [
   {
@@ -89,7 +72,7 @@ const FALLBACK_BASE_STORIES = [
   {
     category: "Music",
     title:
-      "Blaqbonez's \u201cChanel ft. Asake\u201d Becomes His Most Streamed Spotify Song",
+      "Blaqbonez's “Chanel ft. Asake” Becomes His Most Streamed Spotify Song",
     description:
       "Blaqbonez has reached a new career milestone as his hit collaboration with Asake, Chanel, has officially become his most streamed song on Spotify.",
     coverImageUrl: "/assets/Blaqbonez-Chanel.jpg",
@@ -108,9 +91,9 @@ const FALLBACK_BASE_STORIES = [
   },
   {
     category: "Videos",
-    title: "Davido & No11 \u2013 Gimme Dat Ting (Official Music Video)",
+    title: "Davido & No11 – Gimme Dat Ting (Official Music Video)",
     description:
-      "The official music video for Davido and NO11\u2019s infectious collaboration, Gimme Dat Ting, is finally here.",
+      "The official music video for Davido and NO11’s infectious collaboration, Gimme Dat Ting, is finally here.",
     coverImageUrl:
       "/assets/Davido-No11-Gimme-Dat-Ting-Official-Music-Video.jpg",
     createdAt: "Jul 15, 2026",
@@ -189,12 +172,25 @@ const FALLBACK_EDITOR_PICKS: EditorPick[] = [
   },
 ];
 
-// HELPER: Format Firestore Timestamp to readable string
+// HELPER: Convert Firestore Timestamp / Date into epoch milliseconds
+function getMillis(val: unknown): number {
+  if (!val) return 0;
+  if (typeof val === "object" && val !== null && "toDate" in val && typeof (val as Timestamp).toDate === "function") {
+    return (val as Timestamp).toDate().getTime();
+  }
+  if (val instanceof Date) return val.getTime();
+  if (typeof val === "string" || typeof val === "number") {
+    const parsed = new Date(val).getTime();
+    return isNaN(parsed) ? 0 : parsed;
+  }
+  return 0;
+}
 
-function formatDate(timestamp: Post["createdAt"]): string {
-  if (!timestamp || !timestamp.toDate) return "Unknown Date";
-  const date = timestamp.toDate();
-  return date.toLocaleDateString("en-US", {
+// HELPER: Format Firestore Timestamp to readable string
+function formatDate(timestamp: unknown): string {
+  const millis = getMillis(timestamp);
+  if (!millis) return "Recent";
+  return new Date(millis).toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
     year: "numeric",
@@ -209,457 +205,231 @@ const CTA_MAP: Record<string, string> = {
   News: "Read Story",
 };
 
-// HOOK 1: useHeroSlides
-// Reads from pre-aggregated document first, falls back to direct query.
+/**
+ * Helper to process raw Firestore docs into sorted & scheduled-filtered Post objects
+ */
+function parsePublishedPosts(docs: Array<{ id: string; data: () => Record<string, unknown> }>): Post[] {
+  const now = Date.now();
+  return docs
+    .map((docSnap) => ({ id: docSnap.id, ...docSnap.data() } as Post))
+    .filter((post) => post.status === "published")
+    .filter((post) => {
+      const postTime = getMillis(post.createdAt);
+      return postTime === 0 || postTime <= now + 60000; // include current/past posts
+    })
+    .sort((a, b) => getMillis(b.createdAt) - getMillis(a.createdAt));
+}
+
+// HOOK 1: useHeroSlides (Real-Time Firestore Listener)
 export function useHeroSlides() {
-  const cached = getCachedData<HeroSlide[]>("hero_slides");
-  const [slides, setSlides] = React.useState<HeroSlide[]>(cached || FALLBACK_HERO_SLIDES);
-  const [loading, setLoading] = React.useState(!cached);
+  const [slides, setSlides] = React.useState<HeroSlide[]>(FALLBACK_HERO_SLIDES);
+  const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
-    if (isCacheFresh("hero_slides", TTL.HOMEPAGE)) {
-      setLoading(false);
-      return;
-    }
+    const q = query(
+      collection(db, "posts"),
+      where("status", "==", "published")
+    );
 
-    let cancelled = false;
-    const categories = ["Music", "Reviews", "Videos", "News"];
-
-    async function fetchSlides() {
-      try {
-        // ── TRY AGGREGATED DOCUMENT FIRST (1 read instead of 12) ──
-        const aggDoc = await getDoc(doc(db, "aggregations", "homepage"));
-        if (aggDoc.exists() && aggDoc.data()?.heroSlides?.length >= 2) {
-          const aggSlides = aggDoc.data().heroSlides as HeroSlide[];
-          if (!cancelled) {
-            setCachedData("hero_slides", aggSlides);
-            setSlides(aggSlides);
-            setLoading(false);
-          }
-          return;
-        }
-
-        // ── FALLBACK: Direct query (used before first aggregation runs) ──
-        const q = query(
-          collection(db, "posts"),
-          ...publicPostsBase(),
-          orderBy("createdAt", "desc"),
-          limit(12)
-        );
-        const snap = await getDocs(q);
-
-        if (!cancelled) {
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const posts = parsePublishedPosts(snapshot.docs);
+        if (posts.length > 0) {
+          const categories = ["Music", "Reviews", "Videos", "News"];
           const liveSlides: HeroSlide[] = [];
-          if (!snap.empty) {
-            const posts = snap.docs.map((d) => d.data() as Post);
 
-            categories.forEach((cat) => {
-              const found = posts.find(
-                (p) => p.category.toLowerCase() === cat.toLowerCase()
-              );
-              if (found) {
+          // Highlight top post per category or top overall posts
+          categories.forEach((cat) => {
+            const found = posts.find(
+              (p) => p.category.toLowerCase() === cat.toLowerCase()
+            );
+            if (found) {
+              liveSlides.push({
+                category: cat,
+                title: found.title,
+                description: found.description || (found.content || "").replace(/<[^>]*>/g, "").slice(0, 140) + "...",
+                link: `/blog/${found.slug}`,
+                image: found.coverImageUrl || "/assets/placeholder-cover.jpg",
+                meta: `By ${found.authorName || "TrendzHauz Editor"} · ${Math.max(1, Math.ceil((found.content || "").length / 1500))} Min Read`,
+                ctaText: CTA_MAP[cat] || "Read Story",
+                slug: found.slug,
+              });
+            }
+          });
+
+          // Fill up to 3 slides if available
+          if (liveSlides.length < 3) {
+            posts.slice(0, 3).forEach((p) => {
+              if (!liveSlides.some((s) => s.slug === p.slug)) {
                 liveSlides.push({
-                  category: cat,
-                  title: found.title,
-                  description: found.description || found.excerpt || "",
-                  link: `/category/${cat.toLowerCase()}`,
-                  image: found.coverImageUrl || found.coverImage || "",
-                  meta: `By ${found.authorName} · ${Math.ceil(
-                    found.content.length / 1500
-                  )} Min Read`,
-                  ctaText: CTA_MAP[cat] || "Read Story",
-                  slug: found.slug,
+                  category: p.category,
+                  title: p.title,
+                  description: p.description || (p.content || "").replace(/<[^>]*>/g, "").slice(0, 140) + "...",
+                  link: `/blog/${p.slug}`,
+                  image: p.coverImageUrl || "/assets/placeholder-cover.jpg",
+                  meta: `By ${p.authorName || "TrendzHauz Editor"} · ${Math.max(1, Math.ceil((p.content || "").length / 1500))} Min Read`,
+                  ctaText: CTA_MAP[p.category] || "Read Story",
+                  slug: p.slug,
                 });
               }
             });
           }
 
-          if (liveSlides.length >= 2) {
-            setCachedData("hero_slides", liveSlides);
+          if (liveSlides.length > 0) {
             setSlides(liveSlides);
           }
-          setLoading(false);
         }
-      } catch (error) {
-        console.error("Failed to fetch hero slides:", error);
-        if (!cancelled) setLoading(false);
+        setLoading(false);
+      },
+      (error) => {
+        console.error("Hero slides onSnapshot error:", error);
+        setLoading(false);
       }
-    }
+    );
 
-    fetchSlides();
-    return () => {
-      cancelled = true;
-    };
+    return () => unsubscribe();
   }, []);
 
   return { slides, loading };
 }
 
-// HOOK 2: useLatestStories
-// Fetches published posts ordered by createdAt desc, with cursor pagination (12 per page).
-// Utilizes getCountFromServer to query counts efficiently and caches page payloads in-memory.
+// HOOK 2: useLatestStories (Real-Time Firestore Listener)
 export function useLatestStories(postsPerPage = 12) {
-  const cachedPage1 = getCachedData<StoryCard[]>("latest_stories_p1");
-  const cachedCount = getCachedData<number>("latest_stories_total_count");
-
-  const [stories, setStories] = React.useState<StoryCard[]>(
-    cachedPage1 && cachedCount ? cachedPage1 : []
-  );
-  const [loading, setLoading] = React.useState(!(cachedPage1 && cachedCount));
+  const [allPosts, setAllPosts] = React.useState<StoryCard[]>([]);
+  const [loading, setLoading] = React.useState(true);
   const [currentPage, setCurrentPage] = React.useState(1);
-  const [totalEstimate, setTotalEstimate] = React.useState(cachedCount || 0);
-  const [usingFallback, setUsingFallback] = React.useState(false);
 
-  // Cache document cursors for each page boundary
-  const cursorCache = React.useRef<Map<number, DocumentSnapshot>>(new Map());
-  // Cache actual page items locally to prevent re-querying visited pages
-  const localPageCache = React.useRef<Map<number, StoryCard[]>>(new Map());
-
-  // Prefill localPageCache with cachedPage1 so that pagination knows page 1 is loaded
   React.useEffect(() => {
-    if (cachedPage1) {
-      localPageCache.current.set(1, cachedPage1);
-    }
-  }, [cachedPage1]);
+    const q = query(
+      collection(db, "posts"),
+      where("status", "==", "published")
+    );
 
-  // On mount, get the total published posts count (uses ultra-cheap metadata count query)
-  React.useEffect(() => {
-    if (isCacheFresh("latest_stories_total_count") && isCacheFresh("latest_stories_p1")) {
-      return;
-    }
-
-    let cancelled = false;
-
-    async function countPosts() {
-      try {
-        const q = query(collection(db, "posts"), ...publicPostsBase());
-        const countSnap = await getCountFromServer(q);
-
-        if (!cancelled) {
-          const count = countSnap.data().count;
-          if (count === 0) {
-            // No posts in Firestore — use fallback data
-            setUsingFallback(true);
-            setStories(FALLBACK_STORIES.slice(0, postsPerPage));
-            setTotalEstimate(FALLBACK_STORIES.length);
-            setLoading(false);
-          } else {
-            setTotalEstimate(count);
-            setCachedData("latest_stories_total_count", count);
-          }
-        }
-      } catch (error) {
-        console.error("Failed to count posts using server aggregation:", error);
-        if (!cancelled) {
-          setUsingFallback(true);
-          setStories(FALLBACK_STORIES.slice(0, postsPerPage));
-          setTotalEstimate(FALLBACK_STORIES.length);
-          setLoading(false);
-        }
-      }
-    }
-
-    countPosts();
-    return () => {
-      cancelled = true;
-    };
-  }, [postsPerPage]);
-
-  // Fetch actual page data (loads from cache if already fetched)
-  React.useEffect(() => {
-    if (usingFallback) {
-      // Paginate fallback data locally
-      const start = (currentPage - 1) * postsPerPage;
-      setStories(FALLBACK_STORIES.slice(start, start + postsPerPage));
-      setLoading(false);
-      return;
-    }
-
-    // Serve from memory cache if we have already fetched this page
-    if (localPageCache.current.has(currentPage)) {
-      setStories(localPageCache.current.get(currentPage)!);
-      setLoading(false);
-      return;
-    }
-
-    // If cache is fresh and we are loading page 1, skip network call
-    if (currentPage === 1 && isCacheFresh("latest_stories_p1") && cachedPage1) {
-      setStories(cachedPage1);
-      setLoading(false);
-      return;
-    }
-
-    let cancelled = false;
-
-    async function fetchPage() {
-      setLoading(true);
-      try {
-        let q;
-        let cursor = cursorCache.current.get(currentPage);
-
-        // On-demand cursor locator: if the cursor for this page is not yet cached (e.g. page jump),
-        // we locate the closest previous cached cursor and retrieve the intermediate cursors.
-        if (!cursor && currentPage > 1) {
-          let prevPage = currentPage - 1;
-          while (prevPage > 1 && !cursorCache.current.has(prevPage)) {
-            prevPage--;
-          }
-          const prevCursor = cursorCache.current.get(prevPage);
-          const skipCount = (currentPage - prevPage) * postsPerPage;
-
-          const tempQ = query(
-            collection(db, "posts"),
-            ...publicPostsBase(),
-            orderBy("createdAt", "desc"),
-            ...(prevCursor ? [startAfter(prevCursor)] : []),
-            limit(skipCount)
-          );
-
-          const tempSnap = await getDocs(tempQ);
-
-          tempSnap.docs.forEach((doc, idx) => {
-            const docPage = prevPage + Math.floor((idx + 1) / postsPerPage);
-            if ((idx + 1) % postsPerPage === 0 && docPage < currentPage) {
-              cursorCache.current.set(docPage + 1, doc);
-            }
-          });
-
-          if (tempSnap.docs.length === skipCount) {
-            cursor = tempSnap.docs[tempSnap.docs.length - 1];
-            cursorCache.current.set(currentPage, cursor);
-          }
-        }
-
-        if (currentPage === 1 || !cursor) {
-          // First page or start from beginning
-          q = query(
-            collection(db, "posts"),
-            ...publicPostsBase(),
-            orderBy("createdAt", "desc"),
-            limit(postsPerPage)
-          );
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const posts = parsePublishedPosts(snapshot.docs);
+        if (posts.length > 0) {
+          const liveCards: StoryCard[] = posts.map((data) => ({
+            id: data.id,
+            category: data.category,
+            title: data.title,
+            description: data.description || (data.content || "").replace(/<[^>]*>/g, "").slice(0, 150) + "...",
+            coverImageUrl: data.coverImageUrl || "/assets/placeholder-cover.jpg",
+            createdAt: formatDate(data.createdAt),
+            slug: data.slug,
+            artistName: data.artistName,
+            projectTitle: data.projectTitle,
+            projectType: data.projectType,
+            rating: data.rating,
+            verdict: data.verdict,
+          }));
+          setAllPosts(liveCards);
         } else {
-          // Use startAfter cursor for subsequent pages
-          q = query(
-            collection(db, "posts"),
-            ...publicPostsBase(),
-            orderBy("createdAt", "desc"),
-            startAfter(cursor),
-            limit(postsPerPage)
-          );
+          setAllPosts(FALLBACK_STORIES);
         }
-
-        const snap = await getDocs(q);
-
-        if (!cancelled) {
-          if (snap.empty && currentPage === 1) {
-            // Database is empty — fallback
-            setUsingFallback(true);
-            setStories(FALLBACK_STORIES.slice(0, postsPerPage));
-            setTotalEstimate(FALLBACK_STORIES.length);
-          } else {
-            const pageStories: StoryCard[] = snap.docs.map(
-              (doc: QueryDocumentSnapshot) => {
-                const data = doc.data() as Post;
-                return {
-                  id: doc.id,
-                  category: data.category,
-                  title: data.title,
-                  description: data.description,
-                  coverImageUrl: data.coverImageUrl,
-                  createdAt: formatDate(data.createdAt),
-                  slug: data.slug,
-                  artistName: data.artistName,
-                  projectTitle: data.projectTitle,
-                  projectType: data.projectType,
-                  rating: data.rating,
-                  verdict: data.verdict,
-                };
-              }
-            );
-
-            // Save page items to memory cache
-            localPageCache.current.set(currentPage, pageStories);
-            setStories(pageStories);
-
-            // Cache page 1 locally
-            if (currentPage === 1) {
-              setCachedData("latest_stories_p1", pageStories);
-            }
-
-            // Cache last doc as cursor for next page
-            if (snap.docs.length === postsPerPage) {
-              cursorCache.current.set(
-                currentPage + 1,
-                snap.docs[snap.docs.length - 1]
-              );
-            }
-          }
-          setLoading(false);
-        }
-      } catch (error) {
-        console.error("Failed to fetch stories page:", error);
-        if (!cancelled) {
-          setUsingFallback(true);
-          const start = (currentPage - 1) * postsPerPage;
-          setStories(FALLBACK_STORIES.slice(start, start + postsPerPage));
-          setTotalEstimate(FALLBACK_STORIES.length);
-          setLoading(false);
-        }
+        setLoading(false);
+      },
+      (error) => {
+        console.error("useLatestStories onSnapshot error:", error);
+        setAllPosts(FALLBACK_STORIES);
+        setLoading(false);
       }
-    }
+    );
 
-    fetchPage();
-    return () => {
-      cancelled = true;
-    };
-  }, [currentPage, postsPerPage, usingFallback]);
+    return () => unsubscribe();
+  }, []);
 
-  const totalPages = Math.ceil(totalEstimate / postsPerPage);
+  const totalEstimate = allPosts.length > 0 ? allPosts.length : FALLBACK_STORIES.length;
+  const displayPosts = allPosts.length > 0 ? allPosts : FALLBACK_STORIES;
+  const totalPages = Math.max(1, Math.ceil(totalEstimate / postsPerPage));
+
+  const start = (currentPage - 1) * postsPerPage;
+  const stories = displayPosts.slice(start, start + postsPerPage);
 
   return { stories, loading, currentPage, setCurrentPage, totalPages };
 }
 
-// HOOK 3: useTrendingPosts
-// Reads from pre-aggregated document first, falls back to direct query.
+// HOOK 3: useTrendingPosts (Real-Time Firestore Listener)
 export function useTrendingPosts() {
-  const cached = getCachedData<TrendingPost[]>("trending");
-  const [posts, setPosts] = React.useState<TrendingPost[]>(cached || FALLBACK_TRENDING);
-  const [loading, setLoading] = React.useState(!cached);
+  const [posts, setPosts] = React.useState<TrendingPost[]>(FALLBACK_TRENDING);
+  const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
-    if (isCacheFresh("trending", TTL.HOMEPAGE)) {
-      setLoading(false);
-      return;
-    }
+    const q = query(
+      collection(db, "posts"),
+      where("status", "==", "published")
+    );
 
-    let cancelled = false;
-
-    async function fetchTrending() {
-      try {
-        // ── TRY AGGREGATED DOCUMENT FIRST (1 read instead of 5) ──
-        const aggDoc = await getDoc(doc(db, "aggregations", "homepage"));
-        if (aggDoc.exists() && aggDoc.data()?.trending?.length > 0) {
-          const aggTrending = aggDoc.data().trending as TrendingPost[];
-          if (!cancelled) {
-            setCachedData("trending", aggTrending);
-            setPosts(aggTrending);
-            setLoading(false);
-          }
-          return;
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const livePosts = parsePublishedPosts(snapshot.docs);
+        if (livePosts.length > 0) {
+          const ranked = livePosts
+            .sort((a, b) => (b.views || 0) - (a.views || 0))
+            .slice(0, 5)
+            .map((data, idx) => ({
+              rank: idx + 1,
+              title: data.title,
+              coverImageUrl: data.coverImageUrl || "/assets/placeholder-cover.jpg",
+              createdAt: formatDate(data.createdAt),
+              slug: data.slug,
+            }));
+          setPosts(ranked);
         }
-
-        // ── FALLBACK: Model A requires createdAt <= now; sort by views client-side ──
-        const q = query(
-          collection(db, "posts"),
-          ...publicPostsBase(),
-          orderBy("createdAt", "desc"),
-          limit(40)
-        );
-
-        const snap = await getDocs(q);
-
-        if (!cancelled) {
-          if (!snap.empty) {
-            const ranked = snap.docs
-              .map((d) => d.data() as Post)
-              .sort((a, b) => (b.views || 0) - (a.views || 0))
-              .slice(0, 5)
-              .map((data, idx) => ({
-                rank: idx + 1,
-                title: data.title,
-                coverImageUrl: data.coverImageUrl,
-                createdAt: formatDate(data.createdAt),
-                slug: data.slug,
-              }));
-            setCachedData("trending", ranked);
-            setPosts(ranked);
-          }
-          setLoading(false);
-        }
-      } catch (error) {
-        console.error("Failed to fetch trending posts:", error);
-        if (!cancelled) setLoading(false);
+        setLoading(false);
+      },
+      (error) => {
+        console.error("useTrendingPosts onSnapshot error:", error);
+        setLoading(false);
       }
-    }
+    );
 
-    fetchTrending();
-    return () => {
-      cancelled = true;
-    };
+    return () => unsubscribe();
   }, []);
 
   return { posts, loading };
 }
 
-// HOOK 4: useEditorPicks
-// Reads from pre-aggregated document first, falls back to direct query.
+// HOOK 4: useEditorPicks (Real-Time Firestore Listener)
 export function useEditorPicks() {
-  const cached = getCachedData<EditorPick[]>("editor_picks");
-  const [picks, setPicks] = React.useState<EditorPick[]>(cached || FALLBACK_EDITOR_PICKS);
-  const [loading, setLoading] = React.useState(!cached);
+  const [picks, setPicks] = React.useState<EditorPick[]>(FALLBACK_EDITOR_PICKS);
+  const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
-    if (isCacheFresh("editor_picks", TTL.HOMEPAGE)) {
-      setLoading(false);
-      return;
-    }
+    const q = query(
+      collection(db, "posts"),
+      where("status", "==", "published")
+    );
 
-    let cancelled = false;
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const livePosts = parsePublishedPosts(snapshot.docs);
+        const editorOnly = livePosts.filter((p) => p.isEditorPick);
+        const source = editorOnly.length > 0 ? editorOnly : livePosts;
 
-    async function fetchPicks() {
-      try {
-        // ── TRY AGGREGATED DOCUMENT FIRST (1 read instead of 3) ──
-        const aggDoc = await getDoc(doc(db, "aggregations", "homepage"));
-        if (aggDoc.exists() && aggDoc.data()?.editorPicks?.length > 0) {
-          const aggPicks = aggDoc.data().editorPicks as EditorPick[];
-          if (!cancelled) {
-            setCachedData("editor_picks", aggPicks);
-            setPicks(aggPicks);
-            setLoading(false);
-          }
-          return;
+        if (source.length > 0) {
+          const livePicks: EditorPick[] = source.slice(0, 3).map((data) => ({
+            category: data.category,
+            title: data.title,
+            coverImageUrl: data.coverImageUrl || "/assets/placeholder-cover.jpg",
+            createdAt: formatDate(data.createdAt),
+            slug: data.slug,
+          }));
+          setPicks(livePicks);
         }
-
-        // ── FALLBACK: Direct query (Model A schedule gate) ──
-        const q = query(
-          collection(db, "posts"),
-          where("status", "==", "published"),
-          where("isEditorPick", "==", true),
-          where("createdAt", "<=", Timestamp.now()),
-          orderBy("createdAt", "desc"),
-          limit(3)
-        );
-
-        const snap = await getDocs(q);
-
-        if (!cancelled) {
-          if (!snap.empty) {
-            const livePicks: EditorPick[] = snap.docs.map((d) => {
-              const data = d.data() as Post;
-              return {
-                category: data.category,
-                title: data.title,
-                coverImageUrl: data.coverImageUrl,
-                createdAt: formatDate(data.createdAt),
-                slug: data.slug,
-              };
-            });
-            setCachedData("editor_picks", livePicks);
-            setPicks(livePicks);
-          }
-          setLoading(false);
-        }
-      } catch (error) {
-        console.error("Failed to fetch editor picks:", error);
-        if (!cancelled) setLoading(false);
+        setLoading(false);
+      },
+      (error) => {
+        console.error("useEditorPicks onSnapshot error:", error);
+        setLoading(false);
       }
-    }
+    );
 
-    fetchPicks();
-    return () => {
-      cancelled = true;
-    };
+    return () => unsubscribe();
   }, []);
 
   return { picks, loading };
