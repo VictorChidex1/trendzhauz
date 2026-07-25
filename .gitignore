@@ -34,7 +34,14 @@ functions/.secret.*
 *.sln
 *.sw?
 
-# Documents and explanations
+# ---------------------------------------------------------------------------
+# Local-only documentation (never commit to GitHub)
+# Everything under this folder is ignored now and forever — including new files.
+# ---------------------------------------------------------------------------
+Project Explanations/
+"Project Explanations/"
+
+# Legacy root-level explanation files (if any remain outside that folder)
 firestore-rules.md
 multi_tier_ttl_caching_breakdown.md
 reviews_page_architecture_plan.md
