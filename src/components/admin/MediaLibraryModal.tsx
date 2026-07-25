@@ -14,6 +14,7 @@ import {
   validateImageFile,
   type MediaItem,
 } from "@/services/media";
+import { auth } from "@/services/firebase";
 
 type MediaTab = "upload" | "library" | "url";
 
@@ -72,7 +73,9 @@ export function MediaLibraryModal({
   }, [isOpen, tab, loadLibrary]);
 
   const handleUpload = async (file: File) => {
-    if (!uploaderUid) {
+    // Props uid can be missing if Firestore profile omits `uid`; Auth session is source of truth
+    const resolvedUid = uploaderUid || auth.currentUser?.uid || null;
+    if (!resolvedUid) {
       setError("You must be signed in to upload images.");
       return;
     }
@@ -85,7 +88,7 @@ export function MediaLibraryModal({
     setUploading(true);
     setError(null);
     try {
-      const media = await uploadBlogCover(file, uploaderUid);
+      const media = await uploadBlogCover(file, resolvedUid);
       onSelect(media.url);
       onClose();
     } catch (err: unknown) {

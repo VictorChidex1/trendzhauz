@@ -20,6 +20,7 @@ import type {
 } from "@/types/post";
 import type { UserProfile } from "@/types/user";
 import { createPost, updatePost, slugify } from "@/services/posts";
+import { auth } from "@/services/firebase";
 import { TipTapEditor } from "@/components/admin/TipTapEditor";
 import { DateTimePicker } from "@/components/admin/DateTimePicker";
 import { MediaLibraryModal } from "@/components/admin/MediaLibraryModal";
@@ -59,6 +60,10 @@ export function PostEditorModal({
   onSuccess,
 }: PostEditorModalProps) {
   const isEditing = Boolean(postToEdit);
+
+  // Prefer profile.uid; fall back to live Auth session (Storage upload path)
+  const uploaderUid =
+    authorProfile?.uid || auth.currentUser?.uid || null;
 
   const [title, setTitle] = React.useState("");
   const [slug, setSlug] = React.useState("");
@@ -584,7 +589,7 @@ export function PostEditorModal({
             <TipTapEditor
               content={content}
               onChange={setContent}
-              uploaderUid={authorProfile?.uid ?? null}
+              uploaderUid={uploaderUid}
               placeholder="Write your full story, album review, or news report with rich formatting..."
             />
           </div>
@@ -702,7 +707,7 @@ export function PostEditorModal({
         isOpen={coverMediaOpen}
         onClose={() => setCoverMediaOpen(false)}
         onSelect={(url) => setCoverImageUrl(url)}
-        uploaderUid={authorProfile?.uid ?? null}
+        uploaderUid={uploaderUid}
         title="Cover Image"
       />
     </div>
