@@ -20,13 +20,32 @@ export default function BlogPostView() {
       setLoading(true);
       setError(null);
       try {
-        // Primary: query by exact slug match
-        const q = query(
+        // Primary: query published post by exact slug match (satisfies Firestore public read rules for unauthenticated visitors)
+        let q = query(
           collection(db, "posts"),
           where("slug", "==", currentSlug),
+          where("status", "==", "published"),
           limit(1)
         );
-        const snap = await getDocs(q);
+        let snap = await getDocs(q);
+
+        // Fallback: If not found, it may be a draft/scheduled post being previewed by a logged-in admin/writer.
+        // Query without status filter (allowed by Firestore security rules when user is authenticated as writer/admin).
+        if (snap.empty) {
+          try {
+            const draftQuery = query(
+              collection(db, "posts"),
+              where("slug", "==", currentSlug),
+              limit(1)
+            );
+            const draftSnap = await getDocs(draftQuery);
+            if (!draftSnap.empty) {
+              snap = draftSnap;
+            }
+          } catch (draftErr) {
+            // Ignore permission error if an unauthenticated user queries a non-existent slug
+          }
+        }
 
         if (!cancelled) {
           if (!snap.empty) {
