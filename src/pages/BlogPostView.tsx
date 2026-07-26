@@ -6,7 +6,7 @@ import type { Post } from "@/types/post";
 import { Calendar, User, Star, ArrowLeft, Share2, Clock } from "lucide-react";
 
 export default function BlogPostView() {
-  const { slug } = useParams<{ slug: string }>();
+  const { category, slug } = useParams<{ category: string; slug: string }>();
   const [post, setPost] = React.useState<Post | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
@@ -20,6 +20,7 @@ export default function BlogPostView() {
       setLoading(true);
       setError(null);
       try {
+        // Primary: query by exact slug match
         const q = query(
           collection(db, "posts"),
           where("slug", "==", currentSlug),
@@ -32,17 +33,7 @@ export default function BlogPostView() {
             const docSnap = snap.docs[0];
             setPost({ ...(docSnap.data() as Post), id: docSnap.id });
           } else {
-            // Fallback try title match
-            const fallbackQ = query(
-              collection(db, "posts"),
-              where("title", "==", currentSlug.replace(/-/g, " "))
-            );
-            const fallbackSnap = await getDocs(fallbackQ);
-            if (!fallbackSnap.empty) {
-              setPost({ ...(fallbackSnap.docs[0].data() as Post), id: fallbackSnap.docs[0].id });
-            } else {
-              setError("Article not found.");
-            }
+            setError("Article not found.");
           }
           setLoading(false);
         }
@@ -91,6 +82,10 @@ export default function BlogPostView() {
     );
   }
 
+  // Format the category for breadcrumb display
+  const displayCategory = post.category || category || "News";
+  const categoryPath = `/category/${displayCategory.toLowerCase()}`;
+
   const formattedDate = post.createdAt?.toDate
     ? post.createdAt.toDate().toLocaleDateString("en-US", {
         month: "long",
@@ -107,15 +102,15 @@ export default function BlogPostView() {
       <div className="w-full bg-zinc-950 text-white py-12 px-4 sm:px-6 lg:px-8 border-b border-zinc-800">
         <div className="max-w-4xl mx-auto space-y-6">
           <Link
-            to="/"
+            to={categoryPath}
             className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-zinc-400 hover:text-brand transition-colors"
           >
-            <ArrowLeft className="w-4 h-4" /> Back to Stories
+            <ArrowLeft className="w-4 h-4" /> Back to {displayCategory}
           </Link>
 
           <div className="flex flex-wrap items-center gap-3">
             <span className="text-[11px] font-black uppercase tracking-widest bg-brand text-white px-3 py-1 rounded-sm">
-              {post.category}
+              {displayCategory}
             </span>
             {post.isEditorPick && (
               <span className="text-[11px] font-black uppercase tracking-widest bg-amber-500 text-black px-3 py-1 rounded-sm inline-flex items-center gap-1">
@@ -216,10 +211,10 @@ export default function BlogPostView() {
         {/* Footer Back Button */}
         <div className="pt-8 border-t border-zinc-200 dark:border-zinc-800 flex justify-between items-center">
           <Link
-            to="/"
+            to={categoryPath}
             className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-brand hover:underline"
           >
-            <ArrowLeft className="w-4 h-4" /> Back to All Stories
+            <ArrowLeft className="w-4 h-4" /> Back to {displayCategory}
           </Link>
         </div>
       </div>

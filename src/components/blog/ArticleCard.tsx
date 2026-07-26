@@ -49,7 +49,7 @@ export function ArticleCard({
         <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
           {createdAt}
         </p>
-        <a href={`/blog/${slug}`}>
+        <a href={`/${(category || "news").toLowerCase()}/${slug}`}>
           <h3 className="text-base font-black uppercase tracking-tight text-zinc-900 dark:text-zinc-100 group-hover:text-brand transition-colors duration-200 leading-snug">
             {title}
           </h3>

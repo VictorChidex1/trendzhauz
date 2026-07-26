@@ -605,7 +605,7 @@ export default function AdminPanel() {
                           <td className="py-3 px-4 text-right">
                             <div className="flex items-center justify-end space-x-2">
                               <a
-                                href={`/post/${post.slug}`}
+                                href={`/${post.category.toLowerCase()}/${post.slug}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="p-1.5 text-zinc-400 hover:text-zinc-800 rounded hover:bg-zinc-100"

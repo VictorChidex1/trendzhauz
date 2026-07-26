@@ -9,56 +9,6 @@ import {
 import { db } from "../services/firebase";
 import type { Post, StoryCard } from "../types/post";
 
-// RICH MOCK REVIEWS FOR FALLBACK (SHOWN ONLY IF FIRESTORE IS EMPTY)
-const MOCK_REVIEWS: StoryCard[] = [
-  {
-    id: "review-fallback-1",
-    category: "Reviews",
-    title: "Wizkid & Asake - 'Real Vol. 1': A Rhythm-Heavy Afrobeats Synergy",
-    description:
-      "An in-depth analysis of the collaborative project that blends Wizkid's cool R&B tempos with Asake's high-energy neo-Fuji choruses.",
-    coverImageUrl: "/assets/Wizkid-Asake-Real-Vol.-1-EP.webp",
-    createdAt: "Jul 18, 2026",
-    slug: "wizkid-asake-real-vol1-review",
-    artistName: "Wizkid & Asake",
-    projectTitle: "Real Vol. 1",
-    projectType: "EP",
-    rating: 8.7,
-    genre: "Afrobeats",
-    verdict:
-      "A dazzling, rhythm-heavy collaboration showcasing two of Afrobeats' finest forces in peak synergy.",
-    scoreBreakdown: {
-      production: 9.0,
-      lyricism: 8.2,
-      replayValue: 9.2,
-      originality: 8.4,
-    },
-  },
-  {
-    id: "review-fallback-2",
-    category: "Reviews",
-    title: "Burna Boy - 'Love, Damini': The African Giant's Personal Chronicle",
-    description:
-      "We review Burna Boy's introspective studio album, analyzing how it explores personal struggle, loss, and celebration.",
-    coverImageUrl: "/assets/Burna-Boy.webp",
-    createdAt: "Jul 15, 2026",
-    slug: "burna-boy-love-damini-review",
-    artistName: "Burna Boy",
-    projectTitle: "Love, Damini",
-    projectType: "Album",
-    rating: 9.1,
-    genre: "Afrobeats",
-    verdict:
-      "A sprawling, emotional journey that reinforces Burna Boy's unmatched global songwriting capability.",
-    scoreBreakdown: {
-      production: 9.4,
-      lyricism: 9.2,
-      replayValue: 8.8,
-      originality: 9.0,
-    },
-  },
-];
-
 // Helper to convert Firestore timestamp/Date to epoch millis
 function getMillis(val: unknown): number {
   if (!val) return 0;
@@ -114,38 +64,34 @@ export function useReviews(
             return t === 0 || t <= now + 60000;
           });
 
-        if (livePosts.length > 0) {
-          const cards: StoryCard[] = livePosts.map((data) => ({
-            id: data.id,
-            category: data.category,
-            title: data.title,
-            description: data.description || (data.content || "").replace(/<[^>]*>/g, "").slice(0, 150) + "...",
-            coverImageUrl: data.coverImageUrl || "/assets/placeholder-cover.jpg",
-            createdAt: formatDate(data.createdAt),
-            rawCreatedAt: getMillis(data.createdAt),
-            slug: data.slug,
-            artistName: data.artistName,
-            projectTitle: data.projectTitle,
-            projectType: data.projectType,
-            rating: data.rating,
-            verdict: data.verdict,
-            genre: data.genre || "Afrobeats",
-            scoreBreakdown: data.scoreBreakdown || {
-              production: Math.min(10, (data.rating || 8) + 0.2),
-              lyricism: Math.max(0, (data.rating || 8) - 0.3),
-              replayValue: Math.min(10, (data.rating || 8) + 0.1),
-              originality: Math.max(0, (data.rating || 8) - 0.1),
-            },
-          }));
-          setAllReviews(cards);
-        } else {
-          setAllReviews(MOCK_REVIEWS);
-        }
+        const cards: StoryCard[] = livePosts.map((data) => ({
+          id: data.id,
+          category: data.category,
+          title: data.title,
+          description: data.description || (data.content || "").replace(/<[^>]*>/g, "").slice(0, 150) + "...",
+          coverImageUrl: data.coverImageUrl || "/assets/placeholder-cover.jpg",
+          createdAt: formatDate(data.createdAt),
+          rawCreatedAt: getMillis(data.createdAt),
+          slug: data.slug,
+          artistName: data.artistName,
+          projectTitle: data.projectTitle,
+          projectType: data.projectType,
+          rating: data.rating,
+          verdict: data.verdict,
+          genre: data.genre || "Afrobeats",
+          scoreBreakdown: data.scoreBreakdown || {
+            production: Math.min(10, (data.rating || 8) + 0.2),
+            lyricism: Math.max(0, (data.rating || 8) - 0.3),
+            replayValue: Math.min(10, (data.rating || 8) + 0.1),
+            originality: Math.max(0, (data.rating || 8) - 0.1),
+          },
+        }));
+        setAllReviews(cards);
         setLoading(false);
       },
       (error) => {
         console.error("useReviews onSnapshot error:", error);
-        setAllReviews(MOCK_REVIEWS);
+        setAllReviews([]);
         setLoading(false);
       }
     );
@@ -203,4 +149,3 @@ export function useReviews(
     totalEstimate,
   };
 }
-

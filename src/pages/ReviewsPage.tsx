@@ -276,7 +276,7 @@ export default function ReviewsPage() {
 
               <div className="flex flex-wrap items-center gap-3 pt-1 sm:pt-2">
                 <Link
-                  to={`/post/${spotlightReview.slug}`}
+                  to={`/reviews/${spotlightReview.slug}`}
                   className="bg-white hover:bg-brand hover:text-white text-zinc-950 font-black text-[10px] sm:text-xs uppercase tracking-widest px-4 sm:px-6 py-2.5 sm:py-3 rounded-sm transition-all duration-300 shadow-lg inline-block"
                 >
                   Read Full Review
@@ -501,7 +501,7 @@ export default function ReviewsPage() {
                         </div>
 
                         <Link
-                          to={`/post/${review.slug}`}
+                          to={`/reviews/${review.slug}`}
                           className="block group"
                         >
                           <h3 className="text-sm font-black uppercase tracking-tight text-foreground group-hover:text-brand transition-colors duration-200 line-clamp-1">
@@ -520,7 +520,7 @@ export default function ReviewsPage() {
                       {/* Card Footer */}
                       <div className="pt-4 border-t border-zinc-100 dark:border-zinc-900/60 flex items-center justify-between">
                         <Link
-                          to={`/post/${review.slug}`}
+                          to={`/reviews/${review.slug}`}
                           className="text-[10px] font-black uppercase tracking-widest text-foreground hover:text-brand transition-colors"
                         >
                           Read Review →

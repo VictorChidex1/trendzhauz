@@ -150,7 +150,7 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
           e.preventDefault();
           const targetStory = results[selectedIndex];
           saveRecentSearch(searchTerm || targetStory.title);
-          navigate(`/post/${targetStory.slug}`);
+          navigate(`/${(targetStory.category || "news").toLowerCase()}/${targetStory.slug}`);
           onClose();
         } else if (searchTerm.trim()) {
           saveRecentSearch(searchTerm);
@@ -326,7 +326,7 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
                       return (
                         <Link
                           key={story.id}
-                          to={`/post/${story.slug}`}
+                          to={`/${(story.category || "news").toLowerCase()}/${story.slug}`}
                           onClick={() => {
                             saveRecentSearch(searchTerm || story.title);
                             onClose();

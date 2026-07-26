@@ -77,7 +77,7 @@ export function LatestArticles() {
                   {stories.map((story) => (
                     <a
                       key={story.id}
-                      href={`/blog/${story.slug}`}
+                      href={`/${story.category.toLowerCase()}/${story.slug}`}
                       className="group flex flex-col sm:flex-row gap-6 p-4 rounded-sm border border-transparent hover:border-zinc-100 dark:hover:border-zinc-900/60 hover:bg-zinc-50/50 dark:hover:bg-zinc-950/20 transition-all duration-300"
                     >
                       {/* Thumbnail */}
@@ -168,7 +168,7 @@ export function LatestArticles() {
                 {trendingPosts.map((post) => (
                   <a
                     key={post.rank}
-                    href={`/blog/${post.slug}`}
+                    href={`/${(post.category || "news").toLowerCase()}/${post.slug}`}
                     className="group flex gap-4 items-center py-4 border-b border-zinc-100 dark:border-zinc-900/40 last:border-0"
                   >
                     {/* Image with Rank Badge */}
@@ -209,7 +209,7 @@ export function LatestArticles() {
                 {editorPicks.map((pick, index) => (
                   <a
                     key={index}
-                    href={`/blog/${pick.slug}`}
+                    href={`/${(pick.category || "reviews").toLowerCase()}/${pick.slug}`}
                     className="group flex gap-4 items-center"
                   >
                     {/* Cover image */}
