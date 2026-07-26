@@ -28,15 +28,17 @@ const textItemVariants = {
 } as const;
 
 export function HeroSection() {
-  const { slides } = useHeroSlides();
+  const { slides, loading } = useHeroSlides();
   const [activeIndex, setActiveIndex] = React.useState(0);
   const [isPaused, setIsPaused] = React.useState(false);
 
   const handleNext = React.useCallback(() => {
+    if (slides.length === 0) return;
     setActiveIndex((prev) => (prev + 1) % slides.length);
   }, [slides.length]);
 
   const handlePrev = () => {
+    if (slides.length === 0) return;
     setActiveIndex((prev) => (prev - 1 + slides.length) % slides.length);
   };
 
@@ -62,6 +64,29 @@ export function HeroSection() {
       document.removeEventListener("visibilitychange", handleVisibility);
     };
   }, []);
+
+  // Guard: show loading skeleton when slides haven't loaded yet
+  if (loading || slides.length === 0) {
+    return (
+      <section className="relative w-full border-b border-zinc-200/50 dark:border-zinc-900 bg-zinc-50 dark:bg-zinc-950 transition-colors duration-300 overflow-hidden">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 py-12 lg:py-20 items-center">
+            <div className="lg:col-span-7 flex flex-col justify-center min-h-[380px] lg:min-h-[440px] z-10 gap-6">
+              <div className="w-24 h-6 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+              <div className="w-full max-w-lg h-16 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+              <div className="w-48 h-4 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+              <div className="w-full max-w-md h-10 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+              <div className="flex gap-4">
+                <div className="w-36 h-12 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+                <div className="w-28 h-12 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+              </div>
+            </div>
+            <div className="lg:col-span-5 w-full aspect-[16/10] sm:aspect-[16/9] lg:aspect-square bg-zinc-200 dark:bg-zinc-900 rounded-sm animate-pulse" />
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   const activeSlide = slides[activeIndex];
 
