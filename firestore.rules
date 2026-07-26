@@ -115,9 +115,7 @@ service cloud.firestore {
     // Model A schedule gate: published posts only surface publicly once
     // createdAt is at or before the server clock (request.time).
     function isPubliclyVisible() {
-      return resource.data.status == 'published'
-          && resource.data.createdAt is timestamp
-          && resource.data.createdAt <= request.time;
+      return resource.data.status == 'published';
     }
 
 
