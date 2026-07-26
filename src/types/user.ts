@@ -13,6 +13,7 @@ export interface UserProfile {
   email: string;
   displayName: string;
   role: UserRole;
+  bio?: string;
   createdAt?: Timestamp;
 }
 
@@ -27,4 +28,5 @@ export interface UseAuthResult {
   isWriter: boolean;
   login: (email: string, pass: string) => Promise<void>;
   logout: () => Promise<void>;
+  refreshProfile?: () => Promise<void>;
 }

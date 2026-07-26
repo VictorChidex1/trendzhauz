@@ -9,6 +9,7 @@ import {
   ShieldCheck,
   X,
   ExternalLink,
+  Edit2,
 } from "lucide-react";
 import type { UserProfile } from "@/types/user";
 
@@ -16,6 +17,7 @@ interface AdminSidebarProps {
   activeTab: "overview" | "posts" | "reviews" | "team";
   setActiveTab: (tab: "overview" | "posts" | "reviews" | "team") => void;
   onOpenCreateModal: () => void;
+  onOpenEditProfile?: () => void;
   profile: UserProfile | null;
   onLogout: () => void;
   isOpen: boolean;
@@ -26,6 +28,7 @@ export function AdminSidebar({
   activeTab,
   setActiveTab,
   onOpenCreateModal,
+  onOpenEditProfile,
   profile,
   onLogout,
   isOpen,
@@ -160,24 +163,36 @@ export function AdminSidebar({
           </a>
 
           {/* User Profile Card */}
-          <div className="bg-zinc-50 border border-zinc-200 rounded-md p-3 flex items-center space-x-3">
-            <div className="h-9 w-9 bg-brand/10 border border-brand/20 rounded-full flex items-center justify-center text-brand font-black text-xs shrink-0">
-              {profile?.displayName
-                ? profile.displayName.charAt(0).toUpperCase()
-                : "U"}
-            </div>
+          <div className="bg-zinc-50 border border-zinc-200 rounded-md p-3 flex items-center justify-between space-x-2 group">
+            <div className="flex items-center space-x-3 min-w-0 flex-1">
+              <div className="h-9 w-9 bg-brand/10 border border-brand/20 rounded-full flex items-center justify-center text-brand font-black text-xs shrink-0">
+                {profile?.displayName
+                  ? profile.displayName.charAt(0).toUpperCase()
+                  : "U"}
+              </div>
 
-            <div className="min-w-0 flex-1">
-              <p className="text-xs font-bold text-zinc-900 truncate">
-                {profile?.displayName || "Editor User"}
-              </p>
-              <div className="flex items-center space-x-1.5 mt-0.5">
-                <ShieldCheck className="h-3 w-3 text-brand" />
-                <span className="text-[9px] font-black uppercase tracking-widest text-zinc-500">
-                  {isSuperAdmin ? "SUPER ADMIN" : "WRITER"}
-                </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-bold text-zinc-900 truncate">
+                  {profile?.displayName || "Editor User"}
+                </p>
+                <div className="flex items-center space-x-1.5 mt-0.5">
+                  <ShieldCheck className="h-3 w-3 text-brand" />
+                  <span className="text-[9px] font-black uppercase tracking-widest text-zinc-500">
+                    {isSuperAdmin ? "SUPER ADMIN" : "WRITER"}
+                  </span>
+                </div>
               </div>
             </div>
+
+            {onOpenEditProfile && (
+              <button
+                onClick={onOpenEditProfile}
+                className="p-1.5 text-zinc-400 hover:text-brand hover:bg-brand/10 rounded transition-colors cursor-pointer shrink-0"
+                title="Edit My Profile & Details"
+              >
+                <Edit2 className="h-3.5 w-3.5" />
+              </button>
+            )}
           </div>
 
           {/* Logout Action Button */}

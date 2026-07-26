@@ -92,6 +92,26 @@ export function useAuth(): UseAuthResult {
   const isAdmin = profile?.role === "super-admin";
   const isWriter = profile?.role === "super-admin" || profile?.role === "writer";
 
+  const refreshProfile = async () => {
+    if (!auth.currentUser) return;
+    try {
+      const userDocRef = doc(db, "users", auth.currentUser.uid);
+      const docSnap = await getDoc(userDocRef);
+      if (docSnap.exists()) {
+        const data = docSnap.data() as Partial<UserProfile>;
+        setProfile({
+          uid: auth.currentUser.uid,
+          email: data.email || auth.currentUser.email || "",
+          displayName: data.displayName || auth.currentUser.displayName || "CMS User",
+          role: data.role === "super-admin" ? "super-admin" : "writer",
+          createdAt: data.createdAt,
+        });
+      }
+    } catch (err) {
+      console.error("Error refreshing profile:", err);
+    }
+  };
+
   return {
     user,
     profile,
@@ -100,5 +120,6 @@ export function useAuth(): UseAuthResult {
     isWriter,
     login,
     logout,
+    refreshProfile,
   };
 }

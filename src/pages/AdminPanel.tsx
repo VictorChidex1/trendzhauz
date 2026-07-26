@@ -15,6 +15,7 @@ import {
   UserPlus,
   X,
   Loader2,
+  AlertTriangle,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import type { Post } from "@/types/post";
@@ -28,13 +29,17 @@ import {
 } from "@/services/users";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import { PostEditorModal } from "@/components/admin/PostEditorModal";
+import { EditProfileModal } from "@/components/admin/EditProfileModal";
 
 export default function AdminPanel() {
-  const { profile, logout, isAdmin } = useAuth();
+  const { profile, logout, isAdmin, refreshProfile } = useAuth();
 
   // Sidebar & Navigation State
   const [activeTab, setActiveTab] = React.useState<"overview" | "posts" | "reviews" | "team">("overview");
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = React.useState(false);
+
+  // Edit Profile Modal State
+  const [isEditProfileModalOpen, setIsEditProfileModalOpen] = React.useState(false);
 
   // Posts State
   const [posts, setPosts] = React.useState<Post[]>([]);
@@ -56,9 +61,10 @@ export default function AdminPanel() {
   const [isSubmittingUser, setIsSubmittingUser] = React.useState(false);
   const [userModalError, setUserModalError] = React.useState<string | null>(null);
 
-  // Post Editor Modal State
+  // Post Editor & Delete Modal State
   const [isEditorModalOpen, setIsEditorModalOpen] = React.useState(false);
   const [postToEdit, setPostToEdit] = React.useState<Post | null>(null);
+  const [postToDelete, setPostToDelete] = React.useState<Post | null>(null);
   const [deletingPostId, setDeletingPostId] = React.useState<string | null>(null);
 
   // Load Posts from Firestore
@@ -108,20 +114,20 @@ export default function AdminPanel() {
   };
 
   // Handle Delete Post Trigger
-  const handleDelete = async (postId: string) => {
-    if (!isAdmin) {
-      alert("Only Super-Admin users are authorized to delete articles.");
+  const confirmDeletePost = async () => {
+    if (!postToDelete) return;
+    const isOwner = postToDelete.authorId === profile?.uid;
+
+    if (!isAdmin && !isOwner) {
+      alert("You are only authorized to delete your own articles.");
       return;
     }
 
-    if (!window.confirm("Are you sure you want to permanently delete this article?")) {
-      return;
-    }
-
-    setDeletingPostId(postId);
+    setDeletingPostId(postToDelete.id);
     try {
-      await deletePost(postId);
+      await deletePost(postToDelete.id);
       await loadPosts();
+      setPostToDelete(null);
     } catch (err) {
       console.error("Failed to delete post:", err);
       alert("Failed to delete article. Please try again.");
@@ -246,6 +252,7 @@ export default function AdminPanel() {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         onOpenCreateModal={handleOpenCreate}
+        onOpenEditProfile={() => setIsEditProfileModalOpen(true)}
         profile={profile}
         onLogout={logout}
         isOpen={isMobileSidebarOpen}
@@ -447,11 +454,21 @@ export default function AdminPanel() {
 
                           <button
                             onClick={() => handleOpenEdit(post)}
-                            className="p-1 text-zinc-400 hover:text-zinc-800 cursor-pointer"
-                            title="Edit"
+                            className="p-1 text-zinc-400 hover:text-brand cursor-pointer transition-colors"
+                            title="Edit Article"
                           >
                             <Edit2 className="h-3.5 w-3.5" />
                           </button>
+
+                          {(isAdmin || post.authorId === profile?.uid) && (
+                            <button
+                              onClick={() => setPostToDelete(post)}
+                              className="p-1 text-zinc-400 hover:text-red-600 cursor-pointer transition-colors"
+                              title="Delete Article"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -622,12 +639,12 @@ export default function AdminPanel() {
                                 <Edit2 className="h-4 w-4" />
                               </button>
 
-                              {isAdmin && (
+                              {(isAdmin || post.authorId === profile?.uid) && (
                                 <button
-                                  onClick={() => handleDelete(post.id)}
+                                  onClick={() => setPostToDelete(post)}
                                   disabled={deletingPostId === post.id}
                                   className="p-1.5 text-zinc-400 hover:text-red-600 rounded hover:bg-red-50 transition-colors disabled:opacity-50 cursor-pointer"
-                                  title="Delete Article (Super-Admin)"
+                                  title="Delete Article"
                                 >
                                   <Trash2 className="h-4 w-4" />
                                 </button>
@@ -870,6 +887,63 @@ export default function AdminPanel() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Admin Profile Modal */}
+      <EditProfileModal
+        isOpen={isEditProfileModalOpen}
+        onClose={() => setIsEditProfileModalOpen(false)}
+        profile={profile}
+        onProfileUpdated={() => {
+          if (refreshProfile) refreshProfile();
+        }}
+        onLogout={logout}
+      />
+
+      {/* Delete Article Confirmation Modal */}
+      {postToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/70 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="w-full max-w-md bg-white rounded-xl shadow-2xl border border-red-200 overflow-hidden p-6 space-y-5">
+            <div className="w-12 h-12 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto">
+              <AlertTriangle className="w-6 h-6" />
+            </div>
+
+            <div className="text-center space-y-2">
+              <h3 className="text-lg font-black uppercase tracking-tight text-red-900">
+                Delete Article
+              </h3>
+              <p className="text-xs text-zinc-600 leading-relaxed">
+                Are you sure you want to permanently delete <strong className="text-zinc-900 font-bold">"{postToDelete.title}"</strong>? This action cannot be undone.
+              </p>
+            </div>
+
+            <div className="flex items-center justify-end space-x-3 pt-2 border-t border-zinc-100">
+              <button
+                type="button"
+                onClick={() => setPostToDelete(null)}
+                className="px-4 py-2 border border-zinc-300 text-zinc-700 font-bold text-xs uppercase tracking-wider rounded-md hover:bg-zinc-100 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmDeletePost}
+                disabled={deletingPostId === postToDelete.id}
+                className="inline-flex items-center gap-1.5 px-5 py-2 bg-red-600 text-white font-bold text-xs uppercase tracking-wider rounded-md hover:bg-red-700 transition-colors shadow-md disabled:opacity-50"
+              >
+                {deletingPostId === postToDelete.id ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" /> Deleting...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4" /> Delete Article
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}

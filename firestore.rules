@@ -126,10 +126,21 @@ service cloud.firestore {
       // Authenticated users can read profiles (e.g. to display author names).
       allow read: if isAuthenticated();
 
-      // ONLY a super-admin can create, update, or delete user profile documents.
-      // This is the primary guard against writers self-promoting their role to
-      // 'super-admin'. Never relax this rule.
-      allow write: if isSuperAdmin();
+      // Super-admins can create any profile.
+      allow create: if isSuperAdmin();
+
+      // Super-admins or profile owners can update/delete their own profile doc.
+      // Role field MUST remain unchanged during self-updates (prevent self-promotion).
+      allow update: if isSuperAdmin() || (
+        isAuthenticated()
+        && request.auth.uid == userId
+        && request.resource.data.role == resource.data.role
+      );
+
+      allow delete: if isSuperAdmin() || (
+        isAuthenticated()
+        && request.auth.uid == userId
+      );
     }
 
 
@@ -182,8 +193,8 @@ service cloud.firestore {
         && (isSuperAdmin() || (isWriter() && isOwnPost()));
 
       // ── DELETE ──────────────────────────────────────────────────────────
-      // Only a super-admin can permanently remove a post.
-      allow delete: if isSuperAdmin();
+      // Super-admins can delete any post. Writers can delete their OWN posts.
+      allow delete: if isSuperAdmin() || (isWriter() && isOwnPost());
     }
 
 
