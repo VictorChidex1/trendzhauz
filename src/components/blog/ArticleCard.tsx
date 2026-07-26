@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { Link } from "react-router-dom";
 
 export interface ArticleCardProps {
   title?: string;
@@ -26,7 +27,10 @@ export function ArticleCard({
       className="group flex flex-col gap-4 p-4 rounded-md border border-zinc-100 dark:border-zinc-900/60 bg-white/40 dark:bg-zinc-950/20 shadow-sm hover:shadow-md dark:hover:border-zinc-800 transition-all duration-300"
     >
       {/* Thumbnail image wrapper */}
-      <div className="w-full aspect-[16/10] bg-zinc-100 dark:bg-zinc-900/60 rounded-sm overflow-hidden relative border border-zinc-200/20 dark:border-zinc-800/20">
+      <Link
+        to={`/${(category || "news").toLowerCase()}/${slug}`}
+        className="w-full aspect-[16/10] bg-zinc-100 dark:bg-zinc-900/60 rounded-sm overflow-hidden relative border border-zinc-200/20 dark:border-zinc-800/20 block"
+      >
         {coverImageUrl ? (
           <img
             src={coverImageUrl}
@@ -42,18 +46,18 @@ export function ArticleCard({
         <span className="absolute bottom-3 left-3 text-[9px] font-bold uppercase tracking-widest bg-brand text-white px-2.5 py-1 rounded-sm shadow-sm">
           {category}
         </span>
-      </div>
+      </Link>
 
       {/* Card Meta Content */}
       <div className="flex flex-col gap-2">
         <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
           {createdAt}
         </p>
-        <a href={`/${(category || "news").toLowerCase()}/${slug}`}>
+        <Link to={`/${(category || "news").toLowerCase()}/${slug}`}>
           <h3 className="text-base font-black uppercase tracking-tight text-zinc-900 dark:text-zinc-100 group-hover:text-brand transition-colors duration-200 leading-snug">
             {title}
           </h3>
-        </a>
+        </Link>
         <p className="text-xs text-zinc-500 dark:text-zinc-400 line-clamp-2 leading-relaxed">
           {description}
         </p>

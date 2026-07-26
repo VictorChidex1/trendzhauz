@@ -1,13 +1,15 @@
 import * as React from "react";
 import { useParams, Link } from "react-router-dom";
-import { collection, query, where, getDocs, limit } from "firebase/firestore";
+import { collection, query, where, orderBy, getDocs, limit } from "firebase/firestore";
 import { db } from "@/services/firebase";
 import type { Post } from "@/types/post";
-import { Calendar, User, Star, ArrowLeft, Share2, Clock } from "lucide-react";
+import { Calendar, User, Star, ArrowLeft, ArrowRight, Share2, Clock } from "lucide-react";
+import { ArticleCard } from "@/components/blog/ArticleCard";
 
 export default function BlogPostView() {
   const { category, slug } = useParams<{ category: string; slug: string }>();
   const [post, setPost] = React.useState<Post | null>(null);
+  const [relatedPosts, setRelatedPosts] = React.useState<Post[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
 
@@ -15,6 +17,8 @@ export default function BlogPostView() {
     if (!slug) return;
     const currentSlug = slug.trim().toLowerCase();
     let cancelled = false;
+
+    window.scrollTo({ top: 0, behavior: "smooth" });
 
     async function loadPost() {
       setLoading(true);
@@ -50,7 +54,45 @@ export default function BlogPostView() {
         if (!cancelled) {
           if (!snap.empty) {
             const docSnap = snap.docs[0];
-            setPost({ ...(docSnap.data() as Post), id: docSnap.id });
+            const loadedPost = { ...(docSnap.data() as Post), id: docSnap.id };
+            setPost(loadedPost);
+
+            // Fetch related posts in same category
+            try {
+              const relatedQuery = query(
+                collection(db, "posts"),
+                where("status", "==", "published"),
+                where("category", "==", loadedPost.category || "News"),
+                orderBy("createdAt", "desc"),
+                limit(5)
+              );
+              const relatedSnap = await getDocs(relatedQuery);
+              let related = relatedSnap.docs
+                .map((d) => ({ ...(d.data() as Post), id: d.id }))
+                .filter((p) => p.id !== docSnap.id)
+                .slice(0, 3);
+
+              // If fewer than 3 in same category, backfill with recent posts from any category
+              if (related.length < 3) {
+                const fallbackQuery = query(
+                  collection(db, "posts"),
+                  where("status", "==", "published"),
+                  orderBy("createdAt", "desc"),
+                  limit(6)
+                );
+                const fallbackSnap = await getDocs(fallbackQuery);
+                const fallbackPosts = fallbackSnap.docs
+                  .map((d) => ({ ...(d.data() as Post), id: d.id }))
+                  .filter((p) => p.id !== docSnap.id && !related.some((r) => r.id === p.id));
+
+                related = [...related, ...fallbackPosts].slice(0, 3);
+              }
+              if (!cancelled) {
+                setRelatedPosts(related);
+              }
+            } catch (relErr) {
+              console.error("Error loading related posts:", relErr);
+            }
           } else {
             setError("Article not found.");
           }
@@ -226,6 +268,60 @@ export default function BlogPostView() {
           className="prose prose-lg dark:prose-invert max-w-none text-foreground leading-relaxed space-y-4 font-serif text-base sm:text-lg"
           dangerouslySetInnerHTML={{ __html: post.content }}
         />
+
+        {/* Related Stories & Read More CTA Section */}
+        {relatedPosts.length > 0 && (
+          <div className="pt-12 border-t border-zinc-200 dark:border-zinc-800 space-y-8">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <span className="text-[10px] font-black uppercase tracking-widest text-brand">
+                  Continue Reading
+                </span>
+                <h3 className="text-xl sm:text-2xl font-black uppercase tracking-tight text-foreground">
+                  More in {displayCategory}
+                </h3>
+              </div>
+              <Link
+                to={categoryPath}
+                className="hidden sm:inline-flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-brand hover:underline"
+              >
+                View All <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+              {relatedPosts.map((rel) => (
+                <ArticleCard
+                  key={rel.id}
+                  title={rel.title}
+                  category={rel.category}
+                  slug={rel.slug}
+                  coverImageUrl={rel.coverImageUrl}
+                  description={rel.description}
+                  createdAt={
+                    rel.createdAt?.toDate
+                      ? rel.createdAt.toDate().toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                        })
+                      : "Recent"
+                  }
+                />
+              ))}
+            </div>
+
+            {/* Bottom CTA button for mobile and desktop prominence */}
+            <div className="pt-4 flex justify-center">
+              <Link
+                to={categoryPath}
+                className="w-full sm:w-auto text-center inline-flex items-center justify-center gap-2 px-8 py-4 bg-brand text-white font-black text-xs uppercase tracking-widest rounded-md hover:bg-brand/90 transition-all shadow-md hover:shadow-lg"
+              >
+                Explore All {displayCategory} Stories <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+          </div>
+        )}
 
         {/* Footer Back Button */}
         <div className="pt-8 border-t border-zinc-200 dark:border-zinc-800 flex justify-between items-center">
