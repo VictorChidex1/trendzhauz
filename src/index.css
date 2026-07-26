@@ -200,3 +200,12 @@ code {
 .firebase-emulator-warning {
   display: none !important;
 }
+
+/* Preserve text color during selection in TipTap editor and typography containers */
+.ProseMirror ::selection,
+.ProseMirror::selection,
+.prose ::selection,
+.prose::selection {
+  background-color: rgba(170, 59, 255, 0.2) !important;
+  color: inherit !important;
+}

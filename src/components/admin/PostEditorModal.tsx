@@ -290,8 +290,8 @@ export function PostEditorModal({
   const descLen = description.length;
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-zinc-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6">
-      <div className="bg-white border border-zinc-200 rounded-xl w-full max-w-6xl w-[94vw] max-h-[94vh] flex flex-col shadow-2xl overflow-hidden text-zinc-900">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-zinc-900/60 backdrop-blur-xs flex items-center justify-center lg:justify-end lg:pl-64 p-2 sm:p-6">
+      <div className="bg-white border border-zinc-200 rounded-xl w-full max-w-[1600px] lg:w-[calc(100vw-18rem)] max-h-[95vh] flex flex-col shadow-2xl overflow-hidden text-zinc-900 m-auto">
         <div className="p-5 border-b border-zinc-200 flex items-center justify-between bg-zinc-50 shrink-0">
           <div className="flex items-center space-x-3">
             <div className="p-2.5 bg-brand/10 text-brand rounded-lg">
