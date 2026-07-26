@@ -72,7 +72,7 @@ export function TipTapEditor({
     editorProps: {
       attributes: {
         class:
-          "prose prose-sm sm:prose-base max-w-none focus:outline-none min-h-[380px] max-h-[600px] overflow-y-auto px-5 py-4 text-zinc-900 leading-relaxed font-normal",
+          "prose prose-sm sm:prose-base max-w-none focus:outline-none min-h-[450px] px-5 py-4 text-zinc-900 leading-relaxed font-normal rounded-b-md",
       },
     },
   });
@@ -106,9 +106,9 @@ export function TipTapEditor({
 
   return (
     <>
-      <div className="border border-zinc-300 rounded-md overflow-hidden bg-white focus-within:border-brand focus-within:ring-1 focus-within:ring-brand/20 transition-all shadow-xs">
-        {/* Editor Toolbar */}
-        <div className="bg-zinc-50 border-b border-zinc-200 p-2 flex flex-wrap items-center gap-1">
+      <div className="border border-zinc-300 rounded-md bg-white focus-within:border-brand focus-within:ring-1 focus-within:ring-brand/20 transition-all shadow-xs">
+        {/* Editor Toolbar - Sticky at top of scroll container */}
+        <div className="bg-zinc-50/95 backdrop-blur-md border-b border-zinc-200 p-2 flex flex-wrap items-center gap-1 sticky top-0 z-30 shadow-xs rounded-t-md">
           <button
             type="button"
             onClick={() => editor.chain().focus().toggleBold().run()}
