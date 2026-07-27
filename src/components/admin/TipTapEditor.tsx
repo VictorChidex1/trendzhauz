@@ -19,10 +19,12 @@ import {
   Link as LinkIcon,
   Unlink,
   Image as ImageIcon,
+  Music,
   Undo,
   Redo,
 } from "lucide-react";
 import { MediaLibraryModal } from "@/components/admin/MediaLibraryModal";
+import { MusicEmbed } from "@/components/admin/MusicEmbedExtension";
 
 interface TipTapEditorProps {
   content: string;
@@ -59,6 +61,7 @@ export function TipTapEditor({
             "rounded-lg max-h-96 w-auto my-4 border border-zinc-200 shadow-sm",
         },
       }),
+      MusicEmbed,
       Placeholder.configure({
         placeholder,
         emptyEditorClass:
@@ -102,6 +105,23 @@ export function TipTapEditor({
 
   const insertImageFromUrl = (url: string) => {
     editor.chain().focus().setImage({ src: url }).run();
+  };
+
+  const insertMusicEmbed = () => {
+    const url = window.prompt(
+      "Paste the music link (Spotify, YouTube, Audiomack, or Apple Music):"
+    );
+    if (!url || !url.trim()) return;
+
+    // Basic URL validation
+    try {
+      new URL(url.trim());
+    } catch {
+      window.alert("Please enter a valid URL.");
+      return;
+    }
+
+    editor.chain().focus().setMusicEmbed({ src: url.trim() }).run();
   };
 
   return (
@@ -291,6 +311,15 @@ export function TipTapEditor({
             title="Insert Image (Upload / Media Library / URL)"
           >
             <ImageIcon className="h-4 w-4" />
+          </button>
+
+          <button
+            type="button"
+            onClick={insertMusicEmbed}
+            className="p-1.5 text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 rounded transition-colors"
+            title="Embed Music Player (Spotify, YouTube, Audiomack, Apple Music)"
+          >
+            <Music className="h-4 w-4" />
           </button>
 
           <div className="w-px h-4 bg-zinc-300 mx-1 self-center ml-auto" />

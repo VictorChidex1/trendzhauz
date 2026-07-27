@@ -5,6 +5,7 @@ import { db } from "@/services/firebase";
 import type { Post } from "@/types/post";
 import { Calendar, User, Star, ArrowLeft, ArrowRight, Share2, Clock } from "lucide-react";
 import { ArticleCard } from "@/components/blog/ArticleCard";
+import { ArticleRenderer } from "@/components/blog/ArticleRenderer";
 
 export default function BlogPostView() {
   const { category, slug } = useParams<{ category: string; slug: string }>();
@@ -263,11 +264,8 @@ export default function BlogPostView() {
           </div>
         )}
 
-        {/* TipTap Rich Text Article Body */}
-        <div
-          className="prose prose-lg dark:prose-invert max-w-none text-foreground leading-relaxed space-y-4 font-serif text-base sm:text-lg"
-          dangerouslySetInnerHTML={{ __html: post.content }}
-        />
+        {/* TipTap Rich Text Article Body (with inline music embed hydration) */}
+        <ArticleRenderer content={post.content} />
 
         {/* Related Stories & Read More CTA Section */}
         {relatedPosts.length > 0 && (
