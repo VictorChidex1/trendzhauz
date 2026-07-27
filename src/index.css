@@ -18,8 +18,8 @@
   --shadow:
     rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
+  --sans: system-ui, "Segoe UI", Roboto, sans-serif;
+  --heading: system-ui, "Segoe UI", Roboto, sans-serif;
   --mono: ui-monospace, Consolas, monospace;
 
   font: 18px/145% var(--sans);
@@ -63,7 +63,6 @@
   display: flex;
   flex-direction: column;
 }
-
 
 body {
   margin: 0;
@@ -120,7 +119,7 @@ code {
 @layer base {
   .theme {
     --font-heading: var(--font-sans);
-    --font-sans: 'Geist Variable', sans-serif;
+    --font-sans: "Geist Variable", sans-serif;
   }
   :root {
     --background: oklch(1 0 0);
@@ -214,12 +213,23 @@ code {
   color: inherit !important;
 }
 
-/* Ensure ALL text inside the TipTap editor always maintains dark text color against the white canvas */
-.ProseMirror :is(h1, h2, h3, h4, h5, h6, p, span, strong, em, b, i, u, s, blockquote, code, pre, ul, ol, li, div, font) {
+/* Ensure headings and text inside the TipTap editor always maintain dark text color against the white canvas */
+.ProseMirror h1,
+.ProseMirror h2,
+.ProseMirror h3,
+.ProseMirror h4,
+.ProseMirror h5,
+.ProseMirror h6,
+.ProseMirror code,
+.ProseMirror blockquote,
+.ProseMirror strong,
+.ProseMirror em,
+.ProseMirror li,
+.ProseMirror p {
   color: #18181b !important;
 }
 
-/* Ensure ALL article text on public website dynamically adapts to light and dark mode using our theme token, overriding pasted inline white styles */
-.prose :is(h1, h2, h3, h4, h5, h6, p, span, strong, em, b, i, u, s, blockquote, code, pre, ul, ol, li, div, font) {
+/* Ensure article headings on public website dynamically adapt to light and dark mode using our theme token */
+.prose :is(h1, h2, h3, h4, h5, h6) {
   color: var(--text-h) !important;
 }

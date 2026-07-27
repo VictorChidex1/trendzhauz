@@ -1,12 +1,26 @@
 import * as React from "react";
 import { useParams, Link } from "react-router-dom";
-import { collection, query, where, orderBy, getDocs, limit } from "firebase/firestore";
+import {
+  collection,
+  query,
+  where,
+  orderBy,
+  getDocs,
+  limit,
+} from "firebase/firestore";
 import { db } from "@/services/firebase";
 import type { Post } from "@/types/post";
-import { Calendar, User, Star, ArrowLeft, ArrowRight, Share2, Clock } from "lucide-react";
+import {
+  Calendar,
+  User,
+  Star,
+  ArrowLeft,
+  ArrowRight,
+  Share2,
+  Clock,
+} from "lucide-react";
 import { ArticleCard } from "@/components/blog/ArticleCard";
 import { ArticleRenderer } from "@/components/blog/ArticleRenderer";
-import { getCachedData, setCachedData, isCacheFresh, TTL } from "@/utils/queryCache";
 
 export default function BlogPostView() {
   const { category, slug } = useParams<{ category: string; slug: string }>();
@@ -20,115 +34,36 @@ export default function BlogPostView() {
     const currentSlug = slug.trim().toLowerCase();
     let cancelled = false;
 
-    // Solution C: Instant scroll jump on route change (eliminates smooth scroll layout animation thrashing)
-    window.scrollTo(0, 0);
+    window.scrollTo({ top: 0, behavior: "smooth" });
 
-    const cacheKey = `post_${currentSlug}`;
-
-    // Helper: Async fetch recommendations without blocking the main article view (Solution A)
-    async function loadRelatedPosts(loadedPost: Post) {
-      if (cancelled) return;
-      const catKey = loadedPost.category ? loadedPost.category.toLowerCase() : "news";
-      const relatedCacheKey = `related_${catKey}`;
-
-      // Check TTL cache for related posts (15 min TTL)
-      if (isCacheFresh(relatedCacheKey, TTL.LISTS)) {
-        const cachedRelated = getCachedData<Post[]>(relatedCacheKey);
-        if (cachedRelated && !cancelled) {
-          setRelatedPosts(cachedRelated.filter((p) => p.id !== loadedPost.id).slice(0, 3));
-          return;
-        }
-      }
-
-      try {
-        const relatedQuery = query(
-          collection(db, "posts"),
-          where("status", "==", "published"),
-          where("category", "==", loadedPost.category || "News"),
-          orderBy("createdAt", "desc"),
-          limit(5)
-        );
-        const relatedSnap = await getDocs(relatedQuery);
-        let related = relatedSnap.docs
-          .map((d) => ({ ...(d.data() as Post), id: d.id }))
-          .filter((p) => p.id !== loadedPost.id)
-          .slice(0, 3);
-
-        // If fewer than 3 in same category, backfill with recent posts from any category
-        if (related.length < 3) {
-          const fallbackQuery = query(
-            collection(db, "posts"),
-            where("status", "==", "published"),
-            orderBy("createdAt", "desc"),
-            limit(6)
-          );
-          const fallbackSnap = await getDocs(fallbackQuery);
-          const fallbackPosts = fallbackSnap.docs
-            .map((d) => ({ ...(d.data() as Post), id: d.id }))
-            .filter((p) => p.id !== loadedPost.id && !related.some((r) => r.id === p.id));
-
-          related = [...related, ...fallbackPosts].slice(0, 3);
-        }
-
-        if (!cancelled) {
-          setRelatedPosts(related);
-          setCachedData(relatedCacheKey, related);
-        }
-      } catch (relErr) {
-        console.error("Error loading related posts:", relErr);
-      }
-    }
-
-    // Solution B: Check localStorage cache first
-    const cachedPost = getCachedData<Post>(cacheKey);
-    const hasFreshCache = isCacheFresh(cacheKey, TTL.ARTICLE);
-
-    if (cachedPost) {
-      // Serve instantly from cache (0ms latency!)
-      setPost(cachedPost);
-      setLoading(false);
-      setError(null);
-      // Trigger non-blocking related posts load
-      loadRelatedPosts(cachedPost);
-    }
-
-    // If cache is fresh, skip Firestore main article read entirely (0 Firestore reads!)
-    if (hasFreshCache && cachedPost) {
-      return () => {
-        cancelled = true;
-      };
-    }
-
-    // Otherwise (no cache or expired TTL), fetch from Firestore asynchronously
     async function loadPost() {
-      if (!cachedPost) {
-        setLoading(true);
-      }
+      setLoading(true);
       setError(null);
       try {
-        // Primary: query published post by exact slug match
+        // Primary: query published post by exact slug match (satisfies Firestore public read rules for unauthenticated visitors)
         let q = query(
           collection(db, "posts"),
           where("slug", "==", currentSlug),
           where("status", "==", "published"),
-          limit(1)
+          limit(1),
         );
         let snap = await getDocs(q);
 
-        // Fallback: If not found, check draft/scheduled if authenticated
+        // Fallback: If not found, it may be a draft/scheduled post being previewed by a logged-in admin/writer.
+        // Query without status filter (allowed by Firestore security rules when user is authenticated as writer/admin).
         if (snap.empty) {
           try {
             const draftQuery = query(
               collection(db, "posts"),
               where("slug", "==", currentSlug),
-              limit(1)
+              limit(1),
             );
             const draftSnap = await getDocs(draftQuery);
             if (!draftSnap.empty) {
               snap = draftSnap;
             }
           } catch (draftErr) {
-            // Ignore permission error
+            // Ignore permission error if an unauthenticated user queries a non-existent slug
           }
         }
 
@@ -136,23 +71,59 @@ export default function BlogPostView() {
           if (!snap.empty) {
             const docSnap = snap.docs[0];
             const loadedPost = { ...(docSnap.data() as Post), id: docSnap.id };
-            
             setPost(loadedPost);
-            // Solution A: Call setLoading(false) IMMEDIATELY after post is ready!
-            setLoading(false);
-            setCachedData(cacheKey, loadedPost);
 
-            // Fetch recommendations asynchronously without blocking UI
-            loadRelatedPosts(loadedPost);
-          } else if (!cachedPost) {
+            // Fetch related posts in same category
+            try {
+              const relatedQuery = query(
+                collection(db, "posts"),
+                where("status", "==", "published"),
+                where("category", "==", loadedPost.category || "News"),
+                orderBy("createdAt", "desc"),
+                limit(5),
+              );
+              const relatedSnap = await getDocs(relatedQuery);
+              let related = relatedSnap.docs
+                .map((d) => ({ ...(d.data() as Post), id: d.id }))
+                .filter((p) => p.id !== docSnap.id)
+                .slice(0, 3);
+
+              // If fewer than 3 in same category, backfill with recent posts from any category
+              if (related.length < 3) {
+                const fallbackQuery = query(
+                  collection(db, "posts"),
+                  where("status", "==", "published"),
+                  orderBy("createdAt", "desc"),
+                  limit(6),
+                );
+                const fallbackSnap = await getDocs(fallbackQuery);
+                const fallbackPosts = fallbackSnap.docs
+                  .map((d) => ({ ...(d.data() as Post), id: d.id }))
+                  .filter(
+                    (p) =>
+                      p.id !== docSnap.id &&
+                      !related.some((r) => r.id === p.id),
+                  );
+
+                related = [...related, ...fallbackPosts].slice(0, 3);
+              }
+              if (!cancelled) {
+                setRelatedPosts(related);
+              }
+            } catch (relErr) {
+              console.error("Error loading related posts:", relErr);
+            }
+          } else {
             setError("Article not found.");
-            setLoading(false);
           }
+          setLoading(false);
         }
       } catch (err: unknown) {
         console.error("Error loading article:", err);
-        if (!cancelled && !cachedPost) {
-          setError("Failed to load article. Please check your internet connection.");
+        if (!cancelled) {
+          setError(
+            "Failed to load article. Please check your internet connection.",
+          );
           setLoading(false);
         }
       }
@@ -245,7 +216,8 @@ export default function BlogPostView() {
           <div className="flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-zinc-800 text-xs text-zinc-400 font-medium">
             <div className="flex items-center gap-4">
               <span className="flex items-center gap-1.5 text-white font-bold">
-                <User className="w-4 h-4 text-brand" /> {post.authorName || "Victor Chidex"}
+                <User className="w-4 h-4 text-brand" />{" "}
+                {post.authorName || "Victor Chidex"}
               </span>
               <span className="flex items-center gap-1.5">
                 <Calendar className="w-4 h-4" /> {formattedDate}
@@ -258,7 +230,10 @@ export default function BlogPostView() {
             <button
               onClick={() => {
                 if (navigator.share) {
-                  navigator.share({ title: post.title, url: window.location.href });
+                  navigator.share({
+                    title: post.title,
+                    url: window.location.href,
+                  });
                 } else {
                   navigator.clipboard.writeText(window.location.href);
                   alert("Link copied to clipboard!");
@@ -274,7 +249,7 @@ export default function BlogPostView() {
 
       {/* Main Content Area */}
       <div className="max-w-4xl mx-auto w-full py-10 px-4 sm:px-6 lg:px-8 space-y-8">
-        {/* Cover Image — Natural Editorial Display (Option A) */}
+        {/* Cover Image — Natural Editorial Display */}
         {post.coverImageUrl && (
           <div className="w-full max-h-[750px] flex items-center justify-center rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-800 bg-zinc-100/60 dark:bg-zinc-900/60 shadow-lg">
             <img
@@ -286,33 +261,39 @@ export default function BlogPostView() {
         )}
 
         {/* Music Review Scorecard Banner (if Review category) */}
-        {post.category === "Reviews" && (post.rating !== undefined || post.verdict) && (
-          <div className="bg-zinc-900 text-white rounded-xl p-6 border border-zinc-800 shadow-xl space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <div>
-                <span className="text-[10px] font-extrabold uppercase tracking-widest text-brand">
-                  Official Review Verdict
-                </span>
-                <h3 className="text-xl font-black uppercase text-white mt-1">
-                  {post.artistName ? `${post.artistName} — ` : ""}{post.projectTitle || post.title}
-                </h3>
+        {post.category === "Reviews" &&
+          (post.rating !== undefined || post.verdict) && (
+            <div className="bg-zinc-900 text-white rounded-xl p-6 border border-zinc-800 shadow-xl space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div>
+                  <span className="text-[10px] font-extrabold uppercase tracking-widest text-brand">
+                    Official Review Verdict
+                  </span>
+                  <h3 className="text-xl font-black uppercase text-white mt-1">
+                    {post.artistName ? `${post.artistName} — ` : ""}
+                    {post.projectTitle || post.title}
+                  </h3>
+                </div>
+
+                {post.rating !== undefined && (
+                  <div className="flex items-center gap-3 bg-brand/20 border border-brand/40 px-4 py-2 rounded-lg">
+                    <span className="text-xs font-bold text-brand uppercase tracking-wider">
+                      Score
+                    </span>
+                    <span className="text-3xl font-black text-brand">
+                      {post.rating.toFixed(1)}
+                    </span>
+                  </div>
+                )}
               </div>
 
-              {post.rating !== undefined && (
-                <div className="flex items-center gap-3 bg-brand/20 border border-brand/40 px-4 py-2 rounded-lg">
-                  <span className="text-xs font-bold text-brand uppercase tracking-wider">Score</span>
-                  <span className="text-3xl font-black text-brand">{post.rating.toFixed(1)}</span>
-                </div>
+              {post.verdict && (
+                <p className="text-sm text-zinc-300 italic border-l-2 border-brand pl-4 py-1">
+                  "{post.verdict}"
+                </p>
               )}
             </div>
-
-            {post.verdict && (
-              <p className="text-sm text-zinc-300 italic border-l-2 border-brand pl-4 py-1">
-                "{post.verdict}"
-              </p>
-            )}
-          </div>
-        )}
+          )}
 
         {/* TipTap Rich Text Article Body (with inline music embed hydration) */}
         <ArticleRenderer content={post.content} />
@@ -365,7 +346,8 @@ export default function BlogPostView() {
                 to={categoryPath}
                 className="w-full sm:w-auto text-center inline-flex items-center justify-center gap-2 px-8 py-4 bg-brand text-white font-black text-xs uppercase tracking-widest rounded-md hover:bg-brand/90 transition-all shadow-md hover:shadow-lg"
               >
-                Explore All {displayCategory} Stories <ArrowRight className="w-4 h-4" />
+                Explore All {displayCategory} Stories{" "}
+                <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
           </div>
