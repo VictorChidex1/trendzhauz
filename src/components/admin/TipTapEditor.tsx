@@ -75,7 +75,7 @@ export function TipTapEditor({
     editorProps: {
       attributes: {
         class:
-          "prose prose-sm sm:prose-base max-w-none focus:outline-none min-h-[450px] px-5 py-4 text-zinc-900 leading-relaxed font-normal rounded-b-md",
+          "prose prose-sm sm:prose-base max-w-none focus:outline-none min-h-[450px] px-5 py-4 text-zinc-900 prose-headings:text-zinc-900 prose-p:text-zinc-900 prose-strong:text-zinc-900 prose-code:text-zinc-900 prose-blockquote:text-zinc-900 prose-li:text-zinc-900 leading-relaxed font-normal rounded-b-md",
       },
     },
   });

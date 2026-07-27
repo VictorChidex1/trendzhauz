@@ -209,3 +209,19 @@ code {
   background-color: rgba(170, 59, 255, 0.2) !important;
   color: inherit !important;
 }
+
+/* Ensure headings and text inside the TipTap editor always maintain dark text color against the white canvas */
+.ProseMirror h1,
+.ProseMirror h2,
+.ProseMirror h3,
+.ProseMirror h4,
+.ProseMirror h5,
+.ProseMirror h6,
+.ProseMirror code,
+.ProseMirror blockquote,
+.ProseMirror strong,
+.ProseMirror em,
+.ProseMirror li,
+.ProseMirror p {
+  color: #18181b !important;
+}
