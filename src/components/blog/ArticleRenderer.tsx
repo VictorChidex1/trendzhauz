@@ -20,9 +20,14 @@ interface ArticleRendererProps {
   className?: string;
 }
 
-/** Regex to match our custom music-embed nodes in the serialized HTML */
+/**
+ * Regex to match our custom music-embed nodes in the serialized HTML.
+ * Uses a lookahead to match regardless of attribute order — TipTap's
+ * mergeAttributes does not guarantee data-type comes before data-src.
+ * Also handles self-closing tags (<div ... />) and standard close tags.
+ */
 const MUSIC_EMBED_REGEX =
-  /<div\s+data-type="music-embed"\s+data-src="([^"]+)"[^>]*><\/div>/g;
+  /<div\s+(?=[^>]*data-type="music-embed")[^>]*data-src="([^"]+)"[^>]*(?:\/>|><\/div>)/g;
 
 interface ContentSegment {
   type: "html" | "music-embed";

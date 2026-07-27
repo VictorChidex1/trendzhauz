@@ -79,7 +79,7 @@ export const MusicEmbed = Node.create({
   renderHTML({ HTMLAttributes }) {
     return [
       "div",
-      mergeAttributes(HTMLAttributes, { "data-type": "music-embed" }),
+      mergeAttributes({ "data-type": "music-embed" }, HTMLAttributes),
     ];
   },
 
