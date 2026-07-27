@@ -6,6 +6,7 @@ import type { Post } from "@/types/post";
 import { Calendar, User, Star, ArrowLeft, ArrowRight, Share2, Clock } from "lucide-react";
 import { ArticleCard } from "@/components/blog/ArticleCard";
 import { ArticleRenderer } from "@/components/blog/ArticleRenderer";
+import { getCachedData, setCachedData, isCacheFresh, TTL } from "@/utils/queryCache";
 
 export default function BlogPostView() {
   const { category, slug } = useParams<{ category: string; slug: string }>();
@@ -19,13 +20,93 @@ export default function BlogPostView() {
     const currentSlug = slug.trim().toLowerCase();
     let cancelled = false;
 
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    // Solution C: Instant scroll jump on route change (eliminates smooth scroll layout animation thrashing)
+    window.scrollTo(0, 0);
 
+    const cacheKey = `post_${currentSlug}`;
+
+    // Helper: Async fetch recommendations without blocking the main article view (Solution A)
+    async function loadRelatedPosts(loadedPost: Post) {
+      if (cancelled) return;
+      const catKey = loadedPost.category ? loadedPost.category.toLowerCase() : "news";
+      const relatedCacheKey = `related_${catKey}`;
+
+      // Check TTL cache for related posts (15 min TTL)
+      if (isCacheFresh(relatedCacheKey, TTL.LISTS)) {
+        const cachedRelated = getCachedData<Post[]>(relatedCacheKey);
+        if (cachedRelated && !cancelled) {
+          setRelatedPosts(cachedRelated.filter((p) => p.id !== loadedPost.id).slice(0, 3));
+          return;
+        }
+      }
+
+      try {
+        const relatedQuery = query(
+          collection(db, "posts"),
+          where("status", "==", "published"),
+          where("category", "==", loadedPost.category || "News"),
+          orderBy("createdAt", "desc"),
+          limit(5)
+        );
+        const relatedSnap = await getDocs(relatedQuery);
+        let related = relatedSnap.docs
+          .map((d) => ({ ...(d.data() as Post), id: d.id }))
+          .filter((p) => p.id !== loadedPost.id)
+          .slice(0, 3);
+
+        // If fewer than 3 in same category, backfill with recent posts from any category
+        if (related.length < 3) {
+          const fallbackQuery = query(
+            collection(db, "posts"),
+            where("status", "==", "published"),
+            orderBy("createdAt", "desc"),
+            limit(6)
+          );
+          const fallbackSnap = await getDocs(fallbackQuery);
+          const fallbackPosts = fallbackSnap.docs
+            .map((d) => ({ ...(d.data() as Post), id: d.id }))
+            .filter((p) => p.id !== loadedPost.id && !related.some((r) => r.id === p.id));
+
+          related = [...related, ...fallbackPosts].slice(0, 3);
+        }
+
+        if (!cancelled) {
+          setRelatedPosts(related);
+          setCachedData(relatedCacheKey, related);
+        }
+      } catch (relErr) {
+        console.error("Error loading related posts:", relErr);
+      }
+    }
+
+    // Solution B: Check localStorage cache first
+    const cachedPost = getCachedData<Post>(cacheKey);
+    const hasFreshCache = isCacheFresh(cacheKey, TTL.ARTICLE);
+
+    if (cachedPost) {
+      // Serve instantly from cache (0ms latency!)
+      setPost(cachedPost);
+      setLoading(false);
+      setError(null);
+      // Trigger non-blocking related posts load
+      loadRelatedPosts(cachedPost);
+    }
+
+    // If cache is fresh, skip Firestore main article read entirely (0 Firestore reads!)
+    if (hasFreshCache && cachedPost) {
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    // Otherwise (no cache or expired TTL), fetch from Firestore asynchronously
     async function loadPost() {
-      setLoading(true);
+      if (!cachedPost) {
+        setLoading(true);
+      }
       setError(null);
       try {
-        // Primary: query published post by exact slug match (satisfies Firestore public read rules for unauthenticated visitors)
+        // Primary: query published post by exact slug match
         let q = query(
           collection(db, "posts"),
           where("slug", "==", currentSlug),
@@ -34,8 +115,7 @@ export default function BlogPostView() {
         );
         let snap = await getDocs(q);
 
-        // Fallback: If not found, it may be a draft/scheduled post being previewed by a logged-in admin/writer.
-        // Query without status filter (allowed by Firestore security rules when user is authenticated as writer/admin).
+        // Fallback: If not found, check draft/scheduled if authenticated
         if (snap.empty) {
           try {
             const draftQuery = query(
@@ -48,7 +128,7 @@ export default function BlogPostView() {
               snap = draftSnap;
             }
           } catch (draftErr) {
-            // Ignore permission error if an unauthenticated user queries a non-existent slug
+            // Ignore permission error
           }
         }
 
@@ -56,52 +136,22 @@ export default function BlogPostView() {
           if (!snap.empty) {
             const docSnap = snap.docs[0];
             const loadedPost = { ...(docSnap.data() as Post), id: docSnap.id };
+            
             setPost(loadedPost);
+            // Solution A: Call setLoading(false) IMMEDIATELY after post is ready!
+            setLoading(false);
+            setCachedData(cacheKey, loadedPost);
 
-            // Fetch related posts in same category
-            try {
-              const relatedQuery = query(
-                collection(db, "posts"),
-                where("status", "==", "published"),
-                where("category", "==", loadedPost.category || "News"),
-                orderBy("createdAt", "desc"),
-                limit(5)
-              );
-              const relatedSnap = await getDocs(relatedQuery);
-              let related = relatedSnap.docs
-                .map((d) => ({ ...(d.data() as Post), id: d.id }))
-                .filter((p) => p.id !== docSnap.id)
-                .slice(0, 3);
-
-              // If fewer than 3 in same category, backfill with recent posts from any category
-              if (related.length < 3) {
-                const fallbackQuery = query(
-                  collection(db, "posts"),
-                  where("status", "==", "published"),
-                  orderBy("createdAt", "desc"),
-                  limit(6)
-                );
-                const fallbackSnap = await getDocs(fallbackQuery);
-                const fallbackPosts = fallbackSnap.docs
-                  .map((d) => ({ ...(d.data() as Post), id: d.id }))
-                  .filter((p) => p.id !== docSnap.id && !related.some((r) => r.id === p.id));
-
-                related = [...related, ...fallbackPosts].slice(0, 3);
-              }
-              if (!cancelled) {
-                setRelatedPosts(related);
-              }
-            } catch (relErr) {
-              console.error("Error loading related posts:", relErr);
-            }
-          } else {
+            // Fetch recommendations asynchronously without blocking UI
+            loadRelatedPosts(loadedPost);
+          } else if (!cachedPost) {
             setError("Article not found.");
+            setLoading(false);
           }
-          setLoading(false);
         }
       } catch (err: unknown) {
         console.error("Error loading article:", err);
-        if (!cancelled) {
+        if (!cancelled && !cachedPost) {
           setError("Failed to load article. Please check your internet connection.");
           setLoading(false);
         }

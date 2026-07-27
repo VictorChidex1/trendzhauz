@@ -14,6 +14,7 @@ import type {
   TrendingPost,
   EditorPick,
 } from "../types/post";
+import { setCachedData } from "../utils/queryCache";
 
 // HELPER: Convert Firestore Timestamp / Date into epoch milliseconds
 function getMillis(val: unknown): number {
@@ -53,7 +54,7 @@ const CTA_MAP: Record<string, string> = {
  */
 function parsePublishedPosts(docs: Array<{ id: string; data: () => Record<string, unknown> }>): Post[] {
   const now = Date.now();
-  return docs
+  const posts = docs
     .map((docSnap) => ({ id: docSnap.id, ...docSnap.data() } as Post))
     .filter((post) => post.status === "published")
     .filter((post) => {
@@ -61,6 +62,15 @@ function parsePublishedPosts(docs: Array<{ id: string; data: () => Record<string
       return postTime === 0 || postTime <= now + 60000; // include current/past posts
     })
     .sort((a, b) => getMillis(b.createdAt) - getMillis(a.createdAt));
+
+  // Proactively seed published posts into localStorage cache so article navigation is instant (0ms)
+  posts.forEach((post) => {
+    if (post.slug) {
+      setCachedData(`post_${post.slug.trim().toLowerCase()}`, post);
+    }
+  });
+
+  return posts;
 }
 
 /**
