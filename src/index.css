@@ -214,23 +214,12 @@ code {
   color: inherit !important;
 }
 
-/* Ensure headings and text inside the TipTap editor always maintain dark text color against the white canvas */
-.ProseMirror h1,
-.ProseMirror h2,
-.ProseMirror h3,
-.ProseMirror h4,
-.ProseMirror h5,
-.ProseMirror h6,
-.ProseMirror code,
-.ProseMirror blockquote,
-.ProseMirror strong,
-.ProseMirror em,
-.ProseMirror li,
-.ProseMirror p {
+/* Ensure ALL text inside the TipTap editor always maintains dark text color against the white canvas */
+.ProseMirror :is(h1, h2, h3, h4, h5, h6, p, span, strong, em, b, i, u, s, blockquote, code, pre, ul, ol, li, div, font) {
   color: #18181b !important;
 }
 
-/* Ensure article headings on public website dynamically adapt to light and dark mode using our theme token */
-.prose :is(h1, h2, h3, h4, h5, h6) {
+/* Ensure ALL article text on public website dynamically adapts to light and dark mode using our theme token, overriding pasted inline white styles */
+.prose :is(h1, h2, h3, h4, h5, h6, p, span, strong, em, b, i, u, s, blockquote, code, pre, ul, ol, li, div, font) {
   color: var(--text-h) !important;
 }
