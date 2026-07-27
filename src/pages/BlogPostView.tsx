@@ -224,13 +224,13 @@ export default function BlogPostView() {
 
       {/* Main Content Area */}
       <div className="max-w-4xl mx-auto w-full py-10 px-4 sm:px-6 lg:px-8 space-y-8">
-        {/* Cover Image */}
+        {/* Cover Image — Natural Editorial Display (Option A) */}
         {post.coverImageUrl && (
-          <div className="w-full aspect-[16/9] sm:aspect-[21/9] rounded-lg overflow-hidden border border-zinc-200 dark:border-zinc-800 shadow-lg">
+          <div className="w-full max-h-[750px] flex items-center justify-center rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-800 bg-zinc-100/60 dark:bg-zinc-900/60 shadow-lg">
             <img
               src={post.coverImageUrl}
               alt={post.title}
-              className="w-full h-full object-cover"
+              className="w-auto h-auto max-w-full max-h-[750px] object-contain mx-auto"
             />
           </div>
         )}
