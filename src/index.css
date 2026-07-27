@@ -70,7 +70,11 @@ body {
 }
 
 h1,
-h2 {
+h2,
+h3,
+h4,
+h5,
+h6 {
   font-family: var(--heading);
   font-weight: 500;
   color: var(--text-h);
@@ -224,4 +228,9 @@ code {
 .ProseMirror li,
 .ProseMirror p {
   color: #18181b !important;
+}
+
+/* Ensure article headings on public website dynamically adapt to light and dark mode using our theme token */
+.prose :is(h1, h2, h3, h4, h5, h6) {
+  color: var(--text-h) !important;
 }
