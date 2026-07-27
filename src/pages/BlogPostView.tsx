@@ -1,13 +1,6 @@
 import * as React from "react";
 import { useParams, Link } from "react-router-dom";
-import {
-  collection,
-  query,
-  where,
-  orderBy,
-  getDocs,
-  limit,
-} from "firebase/firestore";
+import { collection, query, where, getDocs, limit } from "firebase/firestore";
 import { db } from "@/services/firebase";
 import type { Post } from "@/types/post";
 import {
@@ -79,40 +72,38 @@ export default function BlogPostView() {
             const loadedPost = { ...(docSnap.data() as Post), id: docSnap.id };
             setPost(loadedPost);
 
-            // Fetch related posts in same category
+            // Fetch related posts with zero-index requirement (single field equality filter)
             try {
-              const relatedQuery = query(
+              const publishedQuery = query(
                 collection(db, "posts"),
                 where("status", "==", "published"),
-                where("category", "==", loadedPost.category || "News"),
-                orderBy("createdAt", "desc"),
-                limit(5),
               );
-              const relatedSnap = await getDocs(relatedQuery);
-              let related = relatedSnap.docs
+              const publishedSnap = await getDocs(publishedQuery);
+              const allPublished = publishedSnap.docs
                 .map((d) => ({ ...(d.data() as Post), id: d.id }))
-                .filter((p) => p.id !== docSnap.id)
-                .slice(0, 3);
+                .filter((p) => p.id !== docSnap.id);
 
-              // If fewer than 3 in same category, backfill with recent posts from any category
+              // Sort in memory by createdAt descending
+              allPublished.sort((a, b) => {
+                const timeA = a.createdAt?.toMillis?.() ?? 0;
+                const timeB = b.createdAt?.toMillis?.() ?? 0;
+                return timeB - timeA;
+              });
+
+              const sameCategory = allPublished.filter(
+                (p) =>
+                  (p.category || "").toLowerCase() ===
+                  (loadedPost.category || "").toLowerCase(),
+              );
+
+              let related = sameCategory.slice(0, 3);
               if (related.length < 3) {
-                const fallbackQuery = query(
-                  collection(db, "posts"),
-                  where("status", "==", "published"),
-                  orderBy("createdAt", "desc"),
-                  limit(6),
+                const others = allPublished.filter(
+                  (p) => !related.some((r) => r.id === p.id),
                 );
-                const fallbackSnap = await getDocs(fallbackQuery);
-                const fallbackPosts = fallbackSnap.docs
-                  .map((d) => ({ ...(d.data() as Post), id: d.id }))
-                  .filter(
-                    (p) =>
-                      p.id !== docSnap.id &&
-                      !related.some((r) => r.id === p.id),
-                  );
-
-                related = [...related, ...fallbackPosts].slice(0, 3);
+                related = [...related, ...others].slice(0, 3);
               }
+
               if (!cancelled) {
                 setRelatedPosts(related);
               }
@@ -374,7 +365,7 @@ export default function BlogPostView() {
           </div>
 
           {/* Right Column: Sticky Editorial Sidebar (Trending Now & Editor Picks) */}
-          <div className="lg:col-span-4 space-y-8 lg:sticky lg:top-28 max-h-[calc(100vh-7rem)] overflow-y-auto no-scrollbar pb-12">
+          <div className="lg:col-span-4 space-y-8 lg:sticky lg:top-24 pb-12">
             {/* Trending Now Widget */}
             <div className="bg-zinc-50/60 dark:bg-zinc-950/40 p-6 rounded-xl border border-zinc-200/60 dark:border-zinc-800/60 shadow-sm backdrop-blur-sm space-y-5">
               <div className="flex items-center gap-2 border-b border-zinc-200 dark:border-zinc-800 pb-3.5">
