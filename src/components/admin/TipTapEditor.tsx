@@ -4,6 +4,8 @@ import StarterKit from "@tiptap/starter-kit";
 import Link from "@tiptap/extension-link";
 import Image from "@tiptap/extension-image";
 import Placeholder from "@tiptap/extension-placeholder";
+import { TextStyle } from "@tiptap/extension-text-style";
+import { FontSize } from "@/components/admin/FontSizeExtension";
 import {
   Bold,
   Italic,
@@ -22,6 +24,7 @@ import {
   Music,
   Undo,
   Redo,
+  RotateCcw,
 } from "lucide-react";
 import { MediaLibraryModal } from "@/components/admin/MediaLibraryModal";
 import { MusicEmbed } from "@/components/admin/MusicEmbedExtension";
@@ -33,6 +36,8 @@ interface TipTapEditorProps {
   /** Firebase Auth UID for Storage uploads (required for media library uploads) */
   uploaderUid?: string | null;
 }
+
+const FONT_SIZES = ["13px", "16px", "18px", "20px", "24px", "30px"];
 
 export function TipTapEditor({
   content,
@@ -49,6 +54,8 @@ export function TipTapEditor({
           levels: [1, 2, 3],
         },
       }),
+      TextStyle,
+      FontSize,
       Link.configure({
         openOnClick: false,
         HTMLAttributes: {
@@ -89,6 +96,37 @@ export function TipTapEditor({
   if (!editor) {
     return null;
   }
+
+  const currentFontSize =
+    editor.getAttributes("textStyle").fontSize || "16px";
+
+  const stepUpFontSize = () => {
+    const currentIndex = FONT_SIZES.indexOf(currentFontSize);
+    if (currentIndex === -1) {
+      editor.chain().focus().setFontSize("18px").run();
+    } else if (currentIndex < FONT_SIZES.length - 1) {
+      const nextSize = FONT_SIZES[currentIndex + 1];
+      if (nextSize === "16px") {
+        editor.chain().focus().unsetFontSize().run();
+      } else {
+        editor.chain().focus().setFontSize(nextSize).run();
+      }
+    }
+  };
+
+  const stepDownFontSize = () => {
+    const currentIndex = FONT_SIZES.indexOf(currentFontSize);
+    if (currentIndex === -1) {
+      editor.chain().focus().setFontSize("13px").run();
+    } else if (currentIndex > 0) {
+      const prevSize = FONT_SIZES[currentIndex - 1];
+      if (prevSize === "16px") {
+        editor.chain().focus().unsetFontSize().run();
+      } else {
+        editor.chain().focus().setFontSize(prevSize).run();
+      }
+    }
+  };
 
   const setLink = () => {
     const previousUrl = editor.getAttributes("link").href;
@@ -180,6 +218,61 @@ export function TipTapEditor({
           >
             <Code className="h-4 w-4" />
           </button>
+
+          <div className="w-px h-4 bg-zinc-300 mx-1 self-center" />
+
+          {/* Font Size Hybrid Controls (Option C: Steppers + Dropdown) */}
+          <div className="flex items-center bg-zinc-100 border border-zinc-200 rounded px-1 py-0.5 space-x-0.5">
+            <button
+              type="button"
+              onClick={stepDownFontSize}
+              className="p-1 text-zinc-600 hover:bg-zinc-200 hover:text-zinc-900 rounded transition-colors"
+              title="Decrease Font Size (A-)"
+            >
+              <span className="text-xs font-bold font-mono">A-</span>
+            </button>
+
+            <select
+              value={currentFontSize || "16px"}
+              onChange={(e) => {
+                const val = e.target.value;
+                if (val === "16px" || !val) {
+                  editor.chain().focus().unsetFontSize().run();
+                } else {
+                  editor.chain().focus().setFontSize(val).run();
+                }
+              }}
+              className="bg-transparent text-xs font-semibold text-zinc-800 focus:outline-none cursor-pointer py-0.5 px-1 rounded hover:bg-zinc-200 transition-colors"
+              title="Select Editorial Font Size"
+            >
+              <option value="13px">13px - Small</option>
+              <option value="16px">16px - Normal</option>
+              <option value="18px">18px - Medium</option>
+              <option value="20px">20px - Large</option>
+              <option value="24px">24px - XL</option>
+              <option value="30px">30px - Huge</option>
+            </select>
+
+            <button
+              type="button"
+              onClick={stepUpFontSize}
+              className="p-1 text-zinc-600 hover:bg-zinc-200 hover:text-zinc-900 rounded transition-colors"
+              title="Increase Font Size (A+)"
+            >
+              <span className="text-xs font-bold font-mono">A+</span>
+            </button>
+
+            {currentFontSize && currentFontSize !== "16px" && (
+              <button
+                type="button"
+                onClick={() => editor.chain().focus().unsetFontSize().run()}
+                className="p-1 text-zinc-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors ml-0.5"
+                title="Reset to Normal Size"
+              >
+                <RotateCcw className="h-3 w-3" />
+              </button>
+            )}
+          </div>
 
           <div className="w-px h-4 bg-zinc-300 mx-1 self-center" />
 
