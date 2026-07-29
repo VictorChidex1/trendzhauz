@@ -252,21 +252,7 @@ export default function MusicPage() {
                   </p>
                 )}
               </div>
-              
-              <div className="w-full aspect-[4/5] bg-zinc-900 rounded-2xl overflow-hidden relative group mt-8 shadow-2xl">
-                 <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent z-10" />
-                 <img src="https://images.unsplash.com/photo-1493225457124-a1a2a5f5f9af?q=80&w=1200&auto=format&fit=crop" alt="Premium Music" className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
-                 <div className="absolute inset-0 z-20 flex flex-col items-center justify-center text-center p-6 space-y-4">
-                    <Music2 className="w-12 h-12 text-brand mb-2" />
-                    <h4 className="text-2xl font-black uppercase tracking-tight text-white leading-none">Submit Your Sound</h4>
-                    <p className="text-xs font-medium text-zinc-300">Get featured on TrendzHauz and reach thousands of listeners globally.</p>
-                    <button className="bg-white text-black font-black uppercase tracking-widest text-[10px] px-6 py-3 rounded-full hover:bg-brand hover:text-white transition-colors mt-4">
-                      Submit Now
-                    </button>
-                 </div>
-              </div>
             </div>
-
           </div>
         </div>
       </section>
