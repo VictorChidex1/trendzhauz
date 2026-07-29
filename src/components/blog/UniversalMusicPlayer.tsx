@@ -22,7 +22,12 @@ interface UniversalMusicPlayerProps {
   className?: string;
 }
 
-type PlatformType = "spotify" | "youtube" | "audiomack" | "apple-music" | "unknown";
+type PlatformType =
+  | "spotify"
+  | "youtube"
+  | "audiomack"
+  | "apple-music"
+  | "unknown";
 
 interface ParsedEmbed {
   platform: PlatformType;
@@ -42,7 +47,7 @@ interface ParsedEmbed {
 function parseSpotify(url: string): ParsedEmbed | null {
   // Matches: https://open.spotify.com/track/ID, /album/ID, /playlist/ID, /episode/ID
   const match = url.match(
-    /open\.spotify\.com\/(track|album|playlist|episode)\/([a-zA-Z0-9]+)/i
+    /open\.spotify\.com\/(track|album|playlist|episode)\/([a-zA-Z0-9]+)/i,
   );
   if (!match) return null;
 
@@ -66,7 +71,7 @@ function parseYouTube(url: string): ParsedEmbed | null {
   let videoId: string | null = null;
 
   const longMatch = url.match(
-    /(?:youtube\.com\/watch\?.*v=)([a-zA-Z0-9_-]{11})/i
+    /(?:youtube\.com\/watch\?.*v=)([a-zA-Z0-9_-]{11})/i,
   );
   if (longMatch) {
     videoId = longMatch[1];
@@ -80,9 +85,7 @@ function parseYouTube(url: string): ParsedEmbed | null {
   }
 
   if (!videoId) {
-    const embedMatch = url.match(
-      /youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/i
-    );
+    const embedMatch = url.match(/youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/i);
     if (embedMatch) {
       videoId = embedMatch[1];
     }
@@ -102,7 +105,7 @@ function parseYouTube(url: string): ParsedEmbed | null {
 function parseAudiomack(url: string): ParsedEmbed | null {
   // Matches: audiomack.com/ARTIST/song/SLUG or /album/SLUG or /playlist/SLUG
   const match = url.match(
-    /audiomack\.com\/([^/]+)\/(song|album|playlist)\/([^/?#]+)/i
+    /audiomack\.com\/([^/]+)\/(song|album|playlist)\/([^/?#]+)/i,
   );
   if (!match) return null;
 
@@ -122,7 +125,7 @@ function parseAppleMusic(url: string): ParsedEmbed | null {
   // Matches: music.apple.com/REGION/album/NAME/ID
   // Also: music.apple.com/REGION/playlist/NAME/ID
   const match = url.match(
-    /music\.apple\.com\/([a-z]{2})\/(album|playlist)\/([^/?#]+)\/([^/?#]+)/i
+    /music\.apple\.com\/([a-z]{2})\/(album|playlist)\/([^/?#]+)\/([^/?#]+)/i,
   );
   if (!match) return null;
 
@@ -198,7 +201,10 @@ function AppleMusicIcon({ className }: { className?: string }) {
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
-export function UniversalMusicPlayer({ url, className = "" }: UniversalMusicPlayerProps) {
+export function UniversalMusicPlayer({
+  url,
+  className = "",
+}: UniversalMusicPlayerProps) {
   const parsed = React.useMemo(() => parseMusicUrl(url), [url]);
 
   // ── Fallback: unrecognized platform → styled external link ──────────
@@ -229,7 +235,11 @@ export function UniversalMusicPlayer({ url, className = "" }: UniversalMusicPlay
             stroke="currentColor"
             strokeWidth={2}
           >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+            />
           </svg>
         </a>
       </div>
@@ -249,9 +259,7 @@ export function UniversalMusicPlayer({ url, className = "" }: UniversalMusicPlay
     <div className={`my-6 ${className}`}>
       {/* Platform badge header */}
       <div className="flex items-center gap-2 mb-2.5">
-        {PlatformIcon && (
-          <PlatformIcon className="w-4 h-4" />
-        )}
+        {PlatformIcon && <PlatformIcon className="w-4 h-4" />}
         <span
           className="text-[10px] font-extrabold uppercase tracking-[0.08em]"
           style={{ color: parsed.color }}
@@ -276,9 +284,7 @@ export function UniversalMusicPlayer({ url, className = "" }: UniversalMusicPlay
           height="100%"
           style={{ border: 0, borderRadius: "12px", background: "transparent" }}
           loading="lazy"
-          allowTransparency={true}
           allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-          allowFullScreen
           sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-presentation"
         />
       </div>

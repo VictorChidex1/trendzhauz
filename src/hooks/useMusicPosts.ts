@@ -129,8 +129,8 @@ function musicCountQuery() {
 }
 
 export function useMusicPosts(pageSize = PAGE_SIZE_DEFAULT) {
-  const cachedPage1 = getCachedData<MusicListPost[]>(CACHE_PAGE(1));
-  const cachedCount = getCachedData<number>(CACHE_COUNT);
+  const cachedPage1 = React.useMemo(() => getCachedData<MusicListPost[]>(CACHE_PAGE(1)), []);
+  const cachedCount = React.useMemo(() => getCachedData<number>(CACHE_COUNT), []);
 
   const [posts, setPosts] = React.useState<MusicListPost[]>(
     cachedPage1 && typeof cachedCount === "number" ? cachedPage1 : []
