@@ -7,6 +7,7 @@ import { Footer } from "@/components/layout/Footer";
 import { ScrollToTop } from "@/components/ui/ScrollToTop";
 import { pruneExpiredCache } from "@/utils/queryCache";
 import BlogHome from "@/pages/BlogHome";
+import MusicPage from "@/pages/MusicPage";
 import ReviewsPage from "@/pages/ReviewsPage";
 import BlogPostView from "@/pages/BlogPostView";
 import LinkHub from "@/pages/LinkHub";
@@ -37,6 +38,7 @@ function AppContent() {
         <Routes>
           {/* Public Routing */}
           <Route path="/" element={<BlogHome />} />
+          <Route path="/category/music" element={<MusicPage />} />
           <Route path="/category/reviews" element={<ReviewsPage />} />
           <Route path="/category/:category" element={<BlogHome />} />
           <Route path="/links" element={<LinkHub />} />

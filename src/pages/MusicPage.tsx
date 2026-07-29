@@ -1,0 +1,275 @@
+import * as React from "react";
+import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
+import { Play, ArrowRight, Music2, Calendar, Flame, Eye } from "lucide-react";
+import { collection, query, where, onSnapshot } from "firebase/firestore";
+import { db } from "@/services/firebase";
+import { UniversalMusicPlayer } from "@/components/blog/UniversalMusicPlayer";
+import type { Post } from "@/types/post";
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.08 },
+  },
+} as const;
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { type: "spring", stiffness: 120, damping: 20 },
+  },
+} as const;
+
+export default function MusicPage() {
+  const [posts, setPosts] = React.useState<Post[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  
+  React.useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    
+    const q = query(
+      collection(db, "posts"),
+      where("status", "==", "published"),
+      where("category", "==", "Music")
+    );
+    
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const now = Date.now();
+      const livePosts = snapshot.docs
+        .map(doc => ({ id: doc.id, ...doc.data() } as Post))
+        .filter((post) => {
+           let postTime = 0;
+           if (post.createdAt && typeof post.createdAt.toDate === "function") {
+             postTime = post.createdAt.toDate().getTime();
+           } else if (typeof post.createdAt === "number") {
+             postTime = post.createdAt;
+           } else if (typeof post.createdAt === "string") {
+             postTime = new Date(post.createdAt).getTime();
+           }
+           return postTime === 0 || postTime <= now + 60000;
+        })
+        .sort((a, b) => {
+           const aTime = a.createdAt?.toDate?.()?.getTime() || 0;
+           const bTime = b.createdAt?.toDate?.()?.getTime() || 0;
+           return bTime - aTime;
+        });
+        
+      setPosts(livePosts);
+      setLoading(false);
+    });
+    
+    return () => unsubscribe();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center min-h-[60vh] p-8">
+        <div className="w-12 h-12 border-4 border-brand border-t-transparent rounded-full animate-spin mb-4" />
+        <p className="text-muted-foreground text-sm font-semibold uppercase tracking-widest">
+          Loading Music...
+        </p>
+      </div>
+    );
+  }
+
+  const heroPost = posts.find(p => p.isEditorPick) || posts[0];
+  const gridPosts = posts.filter(p => p.id !== heroPost?.id);
+  const trendingPosts = [...posts].sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 5);
+
+  const extractMusicUrl = (post: Post) => {
+    const spotifyMatch = post.content?.match(/https:\/\/open\.spotify\.com\/[a-zA-Z0-9\/\-]+/);
+    const youtubeMatch = post.content?.match(/https:\/\/(www\.)?youtube\.com\/watch\?v=[a-zA-Z0-9_-]+/);
+    const appleMatch = post.content?.match(/https:\/\/music\.apple\.com\/[a-zA-Z0-9\/\.\-]+/);
+    return spotifyMatch?.[0] || youtubeMatch?.[0] || appleMatch?.[0] || null;
+  };
+
+  const heroMusicUrl = heroPost ? extractMusicUrl(heroPost) : null;
+  
+  const formatDate = (dateObj: any) => {
+    if (!dateObj || typeof dateObj.toDate !== "function") return "Recent";
+    return dateObj.toDate().toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  };
+
+  return (
+    <div className="flex flex-col min-h-screen bg-background">
+      {heroPost && (
+        <section className="relative w-full h-[600px] lg:h-[700px] overflow-hidden group">
+          <img 
+            src={heroPost.coverImageUrl} 
+            alt={heroPost.title}
+            className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/60 to-transparent" />
+          
+          <div className="absolute inset-0 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col justify-end pb-12 lg:pb-24">
+            <motion.div 
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2, type: "spring" }}
+              className="max-w-3xl space-y-6"
+            >
+              <div className="flex items-center gap-3">
+                <span className="bg-brand text-white text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-sm shadow-lg">
+                  World Premiere
+                </span>
+                {heroPost.isEditorPick && (
+                  <span className="bg-amber-500 text-black text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-sm shadow-lg flex items-center gap-1">
+                    <Flame className="w-3 h-3 fill-current" /> Editor's Pick
+                  </span>
+                )}
+              </div>
+              
+              <Link to={`/music/${heroPost.slug}`} className="block group/title">
+                <h1 className="text-4xl sm:text-5xl lg:text-7xl font-black text-white uppercase tracking-tighter leading-[1.1] group-hover/title:text-brand transition-colors">
+                  {heroPost.title}
+                </h1>
+              </Link>
+              
+              <p className="text-zinc-300 text-sm sm:text-base md:text-lg max-w-2xl line-clamp-2 leading-relaxed">
+                {heroPost.description}
+              </p>
+
+              <div className="flex flex-wrap items-center gap-4 pt-4">
+                <Link
+                  to={`/music/${heroPost.slug}`}
+                  className="bg-brand hover:bg-brand/90 text-white font-bold uppercase tracking-wider text-xs px-8 py-4 rounded-full transition-all shadow-lg hover:shadow-brand/20 flex items-center gap-2"
+                >
+                  Read Story <ArrowRight className="w-4 h-4" />
+                </Link>
+                
+                {heroMusicUrl && (
+                  <div className="hidden sm:block flex-1 max-w-md ml-4">
+                    <UniversalMusicPlayer url={heroMusicUrl} className="shadow-2xl rounded-xl overflow-hidden ring-1 ring-white/10" />
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </div>
+        </section>
+      )}
+
+      <section className="py-16 sm:py-24 bg-background">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+            
+            <div className="lg:col-span-8 space-y-8">
+              <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b-2 border-zinc-900 dark:border-white pb-4">
+                <h2 className="text-3xl sm:text-4xl font-black uppercase tracking-tight text-foreground flex items-center gap-3">
+                  <Music2 className="w-8 h-8 text-brand" /> New Releases
+                </h2>
+              </div>
+
+              {gridPosts.length > 0 ? (
+                <motion.div variants={containerVariants}
+                  initial="hidden"
+                  animate="visible"
+                  className="grid grid-cols-2 sm:grid-cols-3 gap-4 sm:gap-6"
+                >
+                  {gridPosts.map((post) => (
+                    <motion.div key={post.id} variants={itemVariants} className="group relative">
+                      <Link to={`/music/${post.slug}`} className="block aspect-square relative rounded-xl overflow-hidden bg-zinc-100 dark:bg-zinc-900 mb-3 shadow-md group-hover:shadow-xl transition-all duration-300">
+                        <img
+                          src={post.coverImageUrl}
+                          alt={post.title}
+                          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                          loading="lazy"
+                        />
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors duration-300 flex items-center justify-center">
+                           <div className="w-12 h-12 rounded-full bg-brand/90 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 scale-50 group-hover:scale-100 transition-all duration-300 shadow-xl backdrop-blur-md">
+                             <Play className="w-5 h-5 ml-1 fill-current" />
+                           </div>
+                        </div>
+                        {post.isEditorPick && (
+                          <div className="absolute top-2 left-2 bg-amber-500 text-black text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-sm shadow-md">
+                            Hot
+                          </div>
+                        )}
+                      </Link>
+                      
+                      <Link to={`/music/${post.slug}`} className="block space-y-1">
+                        <h3 className="font-bold text-sm sm:text-base text-foreground line-clamp-2 group-hover:text-brand transition-colors leading-snug">
+                          {post.title}
+                        </h3>
+                        <p className="text-xs font-bold text-muted-foreground flex items-center gap-1.5 uppercase tracking-widest">
+                          {post.artistName || post.authorName || "Artist"}
+                        </p>
+                      </Link>
+                    </motion.div>
+                  ))}
+                </motion.div>
+              ) : (
+                <div className="py-20 text-center border-2 border-dashed border-border rounded-xl">
+                  <p className="text-muted-foreground font-bold uppercase tracking-widest text-sm">
+                    No new music releases yet.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="lg:col-span-4 space-y-8 lg:sticky lg:top-24 pb-12">
+              <div className="border-b border-border pb-4">
+                <h3 className="text-xl font-black uppercase tracking-widest text-foreground flex items-center gap-2">
+                  <Flame className="w-5 h-5 text-brand" /> Trending in Music
+                </h3>
+              </div>
+
+              <div className="flex flex-col gap-6">
+                {trendingPosts.slice(0, 5).map((post, idx) => (
+                  <Link
+                    key={post.id}
+                    to={`/music/${post.slug}`}
+                    className="group flex gap-4 items-start relative"
+                  >
+                    <div className="w-8 flex-shrink-0 text-right">
+                      <span className="text-3xl font-black text-zinc-200 dark:text-zinc-800 transition-colors group-hover:text-brand">
+                        {idx + 1}
+                      </span>
+                    </div>
+                    <div className="space-y-1">
+                      <h4 className="font-bold text-sm text-foreground group-hover:text-brand transition-colors line-clamp-2 leading-tight">
+                        {post.title}
+                      </h4>
+                      <div className="flex flex-wrap items-center gap-3 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                        <span className="flex items-center gap-1">
+                          <Eye className="w-3 h-3" /> {post.views?.toLocaleString() || 0}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Calendar className="w-3 h-3" />
+                          {formatDate(post.createdAt)}
+                        </span>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+
+                {trendingPosts.length === 0 && (
+                  <p className="text-sm text-muted-foreground font-medium italic">
+                    Not enough data to show trending music.
+                  </p>
+                )}
+              </div>
+              
+              <div className="w-full aspect-[4/5] bg-zinc-900 rounded-2xl overflow-hidden relative group mt-8 shadow-2xl">
+                 <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent z-10" />
+                 <img src="https://images.unsplash.com/photo-1493225457124-a1a2a5f5f9af?q=80&w=1200&auto=format&fit=crop" alt="Premium Music" className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                 <div className="absolute inset-0 z-20 flex flex-col items-center justify-center text-center p-6 space-y-4">
+                    <Music2 className="w-12 h-12 text-brand mb-2" />
+                    <h4 className="text-2xl font-black uppercase tracking-tight text-white leading-none">Submit Your Sound</h4>
+                    <p className="text-xs font-medium text-zinc-300">Get featured on TrendzHauz and reach thousands of listeners globally.</p>
+                    <button className="bg-white text-black font-black uppercase tracking-widest text-[10px] px-6 py-3 rounded-full hover:bg-brand hover:text-white transition-colors mt-4">
+                      Submit Now
+                    </button>
+                 </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}
