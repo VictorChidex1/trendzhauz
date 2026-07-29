@@ -79,6 +79,7 @@ export default function MusicPage() {
   const heroPost = posts.find(p => p.isEditorPick) || posts[0];
   const gridPosts = posts;
   const trendingPosts = [...posts].sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 5);
+  const editorPicks = posts.filter(p => p.isEditorPick && p.id !== heroPost?.id).slice(0, 3);
 
   const extractMusicUrl = (post: Post) => {
     const spotifyMatch = post.content?.match(/https:\/\/open\.spotify\.com\/[a-zA-Z0-9\/\-]+/);
@@ -257,6 +258,42 @@ export default function MusicPage() {
                   </p>
                 )}
               </div>
+
+              {editorPicks.length > 0 && (
+                <div className="mt-12 space-y-8">
+                  <div className="border-b border-border pb-4">
+                    <h3 className="text-xl font-black uppercase tracking-widest text-foreground flex items-center gap-2">
+                      <Flame className="w-5 h-5 text-amber-500" /> Editor's Picks
+                    </h3>
+                  </div>
+                  <div className="flex flex-col gap-6">
+                    {editorPicks.map((post) => (
+                      <Link
+                        key={post.id}
+                        to={`/music/${post.slug}`}
+                        className="group flex flex-col gap-3"
+                      >
+                        <div className="relative w-full aspect-[2/1] rounded-lg overflow-hidden bg-zinc-800 shadow-md">
+                          <img src={post.coverImageUrl} alt={post.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                          <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors" />
+                          <div className="absolute bottom-2 left-2 bg-brand text-white text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-sm shadow-sm">
+                            Music
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <h4 className="font-bold text-sm text-foreground group-hover:text-brand transition-colors line-clamp-2 leading-tight">
+                            {post.title}
+                          </h4>
+                          <div className="flex items-center gap-1 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                            <Calendar className="w-3 h-3" />
+                            {formatDate(post.createdAt)}
+                          </div>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

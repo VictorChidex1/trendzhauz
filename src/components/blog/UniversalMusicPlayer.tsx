@@ -48,7 +48,8 @@ function parseSpotify(url: string): ParsedEmbed | null {
 
   const [, type, id] = match;
   // Spotify embed height varies by type: tracks are compact, albums/playlists are taller
-  const fixedHeight = type === "track" || type === "episode" ? 152 : 352;
+  // We force 152px (compact layout) across all Spotify embeds to prevent the white box issue on single-track albums.
+  const fixedHeight = 152;
 
   return {
     platform: "spotify",
