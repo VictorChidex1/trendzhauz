@@ -229,6 +229,7 @@ export function useTrendingPosts() {
             coverImageUrl: data.coverImageUrl || "/assets/placeholder-cover.jpg",
             createdAt: formatDate(data.createdAt),
             slug: data.slug,
+            views: data.views || 0,
           }));
         setPosts(ranked);
         setLoading(false);
