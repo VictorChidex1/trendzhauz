@@ -72,6 +72,7 @@ export interface CreatePostInput {
    * When set on update, writers (own posts) and super-admins may reschedule.
    */
   createdAt?: Date;
+  views?: number;
 }
 
 export interface HeroSlide {

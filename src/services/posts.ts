@@ -130,7 +130,7 @@ export async function createPost(
       isEditorPick: input.isEditorPick ?? false,
       authorId: author.uid,
       authorName: author.displayName || "TrendzHauz Editor",
-      views: 0,
+      views: input.views ?? 0,
       createdAt: createdAtValue,
     };
 
@@ -181,6 +181,7 @@ export async function updatePost(
       updateData.rating = Number(input.rating);
     }
     if (input.verdict !== undefined) updateData.verdict = input.verdict.trim();
+    if (input.views !== undefined) updateData.views = Number(input.views);
     if (input.createdAt instanceof Date && !isNaN(input.createdAt.getTime())) {
       updateData.createdAt = Timestamp.fromDate(input.createdAt);
     }

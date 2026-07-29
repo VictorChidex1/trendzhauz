@@ -74,6 +74,7 @@ export function PostEditorModal({
   const [category, setCategory] = React.useState<PostCategory>("Music");
   const [status, setStatus] = React.useState<PostStatus>("published");
   const [isEditorPick, setIsEditorPick] = React.useState(false);
+  const [views, setViews] = React.useState<number>(0);
 
   const [coverMediaOpen, setCoverMediaOpen] = React.useState(false);
 
@@ -104,6 +105,7 @@ export function PostEditorModal({
       setCategory((postToEdit.category as PostCategory) || "Music");
       setStatus((postToEdit.status as PostStatus) || "published");
       setIsEditorPick(postToEdit.isEditorPick ?? false);
+      setViews(postToEdit.views ?? 0);
 
       setArtistName(
         postToEdit.artistName || postToEdit.reviewMeta?.artistName || ""
@@ -139,6 +141,7 @@ export function PostEditorModal({
       setCategory("Music");
       setStatus("published");
       setIsEditorPick(false);
+      setViews(0);
       setPublishTiming("now");
       setCustomPublishDate(new Date());
       setArtistName("");
@@ -246,6 +249,7 @@ export function PostEditorModal({
         coverImageUrl: coverImageUrl.trim() || "/assets/placeholder-cover.jpg",
         status: status,
         isEditorPick: isEditorPick,
+        views: Number(views) || 0,
         ...(category === "Reviews" || category === "Music" || artistName.trim()
           ? {
               artistName: artistName.trim(),
@@ -643,7 +647,7 @@ export function PostEditorModal({
             )}
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
             <div className="space-y-1.5">
               <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700 block">
                 Publish Status
@@ -656,6 +660,20 @@ export function PostEditorModal({
                 <option value="published">Published</option>
                 <option value="draft">Draft</option>
               </select>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700 block" title="Used to boost ranking in Trending sections">
+                Initial Views (Trending Boost 🚀)
+              </label>
+              <input
+                type="number"
+                min="0"
+                value={views}
+                onChange={(e) => setViews(parseInt(e.target.value) || 0)}
+                placeholder="e.g. 4500"
+                className="w-full bg-zinc-50 border border-zinc-300 rounded-lg px-4 py-2.5 text-xs text-zinc-900 font-bold"
+              />
             </div>
 
             <div className="flex items-center space-x-3 pt-6">
