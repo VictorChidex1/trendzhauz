@@ -223,8 +223,7 @@ export default function AdminPanel() {
   // Filtered Posts List based on active tab, search, and category
   const filteredPosts = React.useMemo(() => {
     return posts.filter((post) => {
-      // Tab filter
-      if (activeTab === "reviews" && post.category !== "Reviews") return false;
+      // Tab filter removed for 'reviews'
 
       // Category dropdown filter
       if (filterCategory !== "all" && post.category !== filterCategory) return false;
@@ -478,14 +477,14 @@ export default function AdminPanel() {
             </div>
           )}
 
-          {/* Posts & Reviews Management Table View */}
-          {(activeTab === "posts" || activeTab === "reviews") && (
+          {/* Posts Management Table View */}
+          {activeTab === "posts" && (
             <div className="bg-white border border-zinc-200 rounded-lg shadow-xs overflow-hidden space-y-4 p-6">
               {/* Header & Filter Controls */}
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-100 pb-4">
                 <div>
                   <h2 className="text-sm font-black uppercase tracking-wider text-zinc-900">
-                    {activeTab === "reviews" ? "Music Reviews" : "All Articles"}
+                    All Articles
                   </h2>
                   <p className="text-xs text-zinc-500 font-medium">
                     Filter, edit, preview, or remove articles.
@@ -505,19 +504,17 @@ export default function AdminPanel() {
                     />
                   </div>
 
-                  {activeTab !== "reviews" && (
-                    <select
-                      value={filterCategory}
-                      onChange={(e) => setFilterCategory(e.target.value)}
-                      className="bg-zinc-50 border border-zinc-300 rounded-md px-3 py-2 text-xs text-zinc-900 font-medium focus:outline-none focus:border-brand"
-                    >
-                      <option value="all">All Categories</option>
-                      <option value="Music">Music</option>
-                      <option value="Videos">Videos</option>
-                      <option value="Reviews">Reviews</option>
-                      <option value="News">News</option>
-                    </select>
-                  )}
+                  <select
+                    value={filterCategory}
+                    onChange={(e) => setFilterCategory(e.target.value)}
+                    className="bg-zinc-50 border border-zinc-300 rounded-md px-3 py-2 text-xs text-zinc-900 font-medium focus:outline-none focus:border-brand"
+                  >
+                    <option value="all">All Categories</option>
+                    <option value="Music">Music</option>
+                    <option value="Videos">Videos</option>
+                    <option value="Reviews">Reviews</option>
+                    <option value="News">News</option>
+                  </select>
 
                   <select
                     value={filterStatus}

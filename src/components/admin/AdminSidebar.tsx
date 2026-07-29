@@ -2,7 +2,6 @@ import { Link } from "react-router-dom";
 import {
   LayoutDashboard,
   FileText,
-  Star,
   Users,
   PlusCircle,
   LogOut,
@@ -115,20 +114,6 @@ export function AdminSidebar({
               <span>All Articles</span>
             </button>
 
-            <button
-              onClick={() => {
-                setActiveTab("reviews");
-                onCloseMobile();
-              }}
-              className={`w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-md text-xs font-black uppercase tracking-wider transition-colors ${
-                activeTab === "reviews"
-                  ? "bg-zinc-100 text-brand"
-                  : "text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900"
-              }`}
-            >
-              <Star className="h-4 w-4" />
-              <span>Music Reviews</span>
-            </button>
 
             {isSuperAdmin && (
               <button
