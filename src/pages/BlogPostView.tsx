@@ -233,6 +233,9 @@ export default function BlogPostView() {
               <span className="flex items-center gap-1.5">
                 <Clock className="w-4 h-4" /> {readTime} Min Read
               </span>
+              <span className="flex items-center gap-1.5">
+                <Eye className="w-4 h-4" /> {post.views?.toLocaleString() || 0} Views
+              </span>
             </div>
 
             <button
