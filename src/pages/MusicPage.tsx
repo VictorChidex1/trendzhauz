@@ -77,7 +77,7 @@ export default function MusicPage() {
   }
 
   const heroPost = posts.find(p => p.isEditorPick) || posts[0];
-  const gridPosts = posts.filter(p => p.id !== heroPost?.id);
+  const gridPosts = posts;
   const trendingPosts = [...posts].sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 5);
 
   const extractMusicUrl = (post: Post) => {
@@ -97,56 +97,60 @@ export default function MusicPage() {
   return (
     <div className="flex flex-col min-h-screen bg-background">
       {heroPost && (
-        <section className="relative w-full h-[600px] lg:h-[700px] overflow-hidden group">
+        <section className="relative w-full min-h-[600px] lg:min-h-[700px] flex flex-col group bg-zinc-950">
           <img 
             src={heroPost.coverImageUrl} 
             alt={heroPost.title}
-            className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
+            className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105 z-0 opacity-60"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/60 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/80 to-transparent z-0" />
           
-          <div className="absolute inset-0 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col justify-end pb-12 lg:pb-24">
+          <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col justify-end flex-1 pt-32 pb-12 lg:pb-24">
             <motion.div 
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2, type: "spring" }}
-              className="max-w-3xl space-y-6"
+              className="w-full flex flex-col lg:flex-row lg:items-end justify-between gap-8"
             >
-              <div className="flex items-center gap-3">
-                <span className="bg-brand text-white text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-sm shadow-lg">
-                  World Premiere
-                </span>
-                {heroPost.isEditorPick && (
-                  <span className="bg-amber-500 text-black text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-sm shadow-lg flex items-center gap-1">
-                    <Flame className="w-3 h-3 fill-current" /> Editor's Pick
+              <div className="max-w-3xl space-y-6">
+                <div className="flex items-center gap-3">
+                  <span className="bg-brand text-white text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-sm shadow-lg">
+                    World Premiere
                   </span>
-                )}
-              </div>
-              
-              <Link to={`/music/${heroPost.slug}`} className="block group/title">
-                <h1 className="text-4xl sm:text-5xl lg:text-7xl font-black text-white uppercase tracking-tighter leading-[1.1] group-hover/title:text-brand transition-colors">
-                  {heroPost.title}
-                </h1>
-              </Link>
-              
-              <p className="text-zinc-300 text-sm sm:text-base md:text-lg max-w-2xl line-clamp-2 leading-relaxed">
-                {heroPost.description}
-              </p>
-
-              <div className="flex flex-wrap items-center gap-4 pt-4">
-                <Link
-                  to={`/music/${heroPost.slug}`}
-                  className="bg-brand hover:bg-brand/90 text-white font-bold uppercase tracking-wider text-xs px-8 py-4 rounded-full transition-all shadow-lg hover:shadow-brand/20 flex items-center gap-2"
-                >
-                  Read Story <ArrowRight className="w-4 h-4" />
+                  {heroPost.isEditorPick && (
+                    <span className="bg-amber-500 text-black text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-sm shadow-lg flex items-center gap-1">
+                      <Flame className="w-3 h-3 fill-current" /> Editor's Pick
+                    </span>
+                  )}
+                </div>
+                
+                <Link to={`/music/${heroPost.slug}`} className="block group/title">
+                  <h1 className="text-4xl sm:text-5xl lg:text-7xl font-black text-white uppercase tracking-tighter leading-[1.1] group-hover/title:text-brand transition-colors">
+                    {heroPost.title}
+                  </h1>
                 </Link>
                 
-                {heroMusicUrl && (
-                  <div className="hidden sm:block flex-1 max-w-md ml-4">
-                    <UniversalMusicPlayer url={heroMusicUrl} className="shadow-2xl rounded-xl overflow-hidden ring-1 ring-white/10" />
-                  </div>
-                )}
+                <p className="text-zinc-300 text-sm sm:text-base md:text-lg max-w-2xl line-clamp-3 leading-relaxed">
+                  {heroPost.description}
+                </p>
+  
+                <div className="pt-2">
+                  <Link
+                    to={`/music/${heroPost.slug}`}
+                    className="inline-flex bg-brand hover:bg-brand/90 text-white font-bold uppercase tracking-wider text-xs px-8 py-4 rounded-full transition-all shadow-lg hover:shadow-brand/20 items-center gap-2"
+                  >
+                    Read Story <ArrowRight className="w-4 h-4" />
+                  </Link>
+                </div>
               </div>
+
+              {heroMusicUrl && (
+                <div className="w-full lg:w-96 flex-shrink-0 lg:mb-4">
+                  <div className="rounded-xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)] ring-1 ring-white/10 bg-zinc-900/50 backdrop-blur-md">
+                    <UniversalMusicPlayer url={heroMusicUrl} className="w-full" />
+                  </div>
+                </div>
+              )}
             </motion.div>
           </div>
         </section>
@@ -224,10 +228,11 @@ export default function MusicPage() {
                     to={`/music/${post.slug}`}
                     className="group flex gap-4 items-start relative"
                   >
-                    <div className="w-8 flex-shrink-0 text-right">
-                      <span className="text-3xl font-black text-zinc-200 dark:text-zinc-800 transition-colors group-hover:text-brand">
+                    <div className="relative w-16 h-16 rounded-md overflow-hidden flex-shrink-0 bg-zinc-800 shadow-md">
+                      <img src={post.coverImageUrl} alt={post.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                      <div className="absolute top-0 left-0 bg-brand text-white text-[10px] font-black w-5 h-5 flex items-center justify-center rounded-br-md shadow-sm z-10">
                         {idx + 1}
-                      </span>
+                      </div>
                     </div>
                     <div className="space-y-1">
                       <h4 className="font-bold text-sm text-foreground group-hover:text-brand transition-colors line-clamp-2 leading-tight">
