@@ -1,6 +1,6 @@
 import * as React from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, ArrowRight, Play, Eye } from "lucide-react";
+import { ArrowLeft, ArrowRight, Play, Eye, X } from "lucide-react";
 import { useHeroSlides } from "../../hooks/useBlogData";
 
 // Animation Variants for Text Stagger Slide-ins
@@ -31,6 +31,7 @@ export function HeroSection() {
   const { slides, loading } = useHeroSlides();
   const [activeIndex, setActiveIndex] = React.useState(0);
   const [isPaused, setIsPaused] = React.useState(false);
+  const [isPreviewModalOpen, setIsPreviewModalOpen] = React.useState(false);
 
   const handleNext = React.useCallback(() => {
     if (slides.length === 0) return;
@@ -193,13 +194,22 @@ export function HeroSection() {
                   initial={{ scale: 0, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   transition={{ delay: 0.2, type: "spring" }}
-                  className="absolute bottom-4 right-4 bg-brand text-white p-3 rounded-full shadow-lg"
+                  className="absolute bottom-4 right-4"
                 >
-                  {activeSlide.category === "Videos" ? (
-                    <Play className="h-4 w-4 fill-white" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setIsPreviewModalOpen(true);
+                    }}
+                    className="bg-brand text-white p-3.5 rounded-full shadow-lg hover:scale-110 hover:shadow-brand/40 transition-all duration-300 cursor-pointer"
+                    aria-label="Quick Preview"
+                  >
+                    {activeSlide.category === "Videos" ? (
+                      <Play className="h-4 w-4 fill-white" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
                 </motion.div>
               </motion.div>
             </AnimatePresence>
@@ -254,6 +264,79 @@ export function HeroSection() {
           </div>
         </div>
       </div>
+
+      {/* Quick Preview Modal */}
+      <AnimatePresence>
+        {isPreviewModalOpen && activeSlide && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsPreviewModalOpen(false)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm cursor-pointer"
+            />
+            
+            {/* Modal Content */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-2xl bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl overflow-hidden border border-zinc-200 dark:border-zinc-800 z-10"
+            >
+              <div className="relative h-48 sm:h-64 w-full">
+                <img
+                  src={activeSlide.image}
+                  alt={activeSlide.title}
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                <button
+                  onClick={() => setIsPreviewModalOpen(false)}
+                  className="absolute top-4 right-4 bg-black/50 hover:bg-black/80 text-white p-2 rounded-full backdrop-blur-md transition-colors cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+                <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between">
+                  <span className="text-[10px] sm:text-xs font-bold uppercase tracking-[0.25em] text-brand bg-brand/10 border border-brand/20 px-3 py-1 rounded-sm backdrop-blur-md">
+                    {activeSlide.category}
+                  </span>
+                </div>
+              </div>
+              
+              <div className="p-6 sm:p-8 space-y-5">
+                <h2 className="text-2xl sm:text-3xl font-black uppercase tracking-tight text-zinc-900 dark:text-white leading-tight">
+                  {activeSlide.title}
+                </h2>
+                <div className="flex items-center gap-3 text-xs font-bold uppercase tracking-widest text-zinc-400">
+                  <span>{activeSlide.meta}</span>
+                  <span className="w-1 h-1 rounded-full bg-zinc-700"></span>
+                  <span className="text-brand flex items-center gap-1.5"><Eye className="w-3.5 h-3.5" /> 1 Min Quick Read</span>
+                </div>
+                <div className="h-px w-full bg-zinc-200 dark:bg-zinc-800" />
+                <p className="text-sm sm:text-base text-zinc-600 dark:text-zinc-400 leading-relaxed max-h-[30vh] overflow-y-auto no-scrollbar">
+                  {activeSlide.description}
+                </p>
+                <div className="pt-4 flex justify-between items-center">
+                  <button
+                    onClick={() => setIsPreviewModalOpen(false)}
+                    className="text-xs font-bold uppercase tracking-widest text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition-colors cursor-pointer"
+                  >
+                    Close
+                  </button>
+                  <a
+                    href={activeSlide.link}
+                    className="inline-flex items-center gap-2 bg-brand text-white font-bold uppercase tracking-wider text-xs px-6 py-3 rounded-md hover:bg-brand/90 transition-colors shadow-lg shadow-brand/20"
+                  >
+                    Read Full Story <ArrowRight className="w-4 h-4" />
+                  </a>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </section>
   );
 }
