@@ -5,6 +5,7 @@ import { Play, ArrowRight, Music2, Calendar, Flame, Eye } from "lucide-react";
 import { collection, query, where, onSnapshot } from "firebase/firestore";
 import { db } from "@/services/firebase";
 import { UniversalMusicPlayer } from "@/components/blog/UniversalMusicPlayer";
+import { useEditorPicks } from "@/hooks/useBlogData";
 import type { Post } from "@/types/post";
 
 const containerVariants = {
@@ -79,8 +80,9 @@ export default function MusicPage() {
   const heroPost = posts.find(p => p.isEditorPick) || posts[0];
   const gridPosts = posts;
   const trendingPosts = [...posts].sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 5);
-  // We no longer exclude the hero post, so the sidebar always renders Editor's Picks
-  const editorPicks = posts.filter(p => p.isEditorPick).slice(0, 3);
+  
+  // Use the global Editor's Picks (same as homepage and article pages)
+  const { picks: editorPicks } = useEditorPicks();
 
   const extractMusicUrl = (post: Post) => {
     const spotifyMatch = post.content?.match(/https:\/\/open\.spotify\.com\/[a-zA-Z0-9\/\-]+/);
@@ -270,7 +272,7 @@ export default function MusicPage() {
                   <div className="flex flex-col gap-6">
                     {editorPicks.map((post) => (
                       <Link
-                        key={post.id}
+                        key={post.slug}
                         to={`/music/${post.slug}`}
                         className="group flex flex-col gap-3"
                       >
@@ -287,7 +289,7 @@ export default function MusicPage() {
                           </h4>
                           <div className="flex items-center gap-1 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
                             <Calendar className="w-3 h-3" />
-                            {formatDate(post.createdAt)}
+                            {post.createdAt}
                           </div>
                         </div>
                       </Link>
