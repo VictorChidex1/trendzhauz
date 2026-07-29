@@ -483,8 +483,11 @@ export default function AdminPanel() {
               {/* Header & Filter Controls */}
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-100 pb-4">
                 <div>
-                  <h2 className="text-sm font-black uppercase tracking-wider text-zinc-900">
-                    All Articles
+                  <h2 className="text-sm font-black uppercase tracking-wider text-zinc-900 flex items-center space-x-2">
+                    <span>All Articles</span>
+                    <span className="bg-brand/10 text-brand px-2 py-0.5 rounded-full text-[10px] font-bold">
+                      {filteredPosts.length}
+                    </span>
                   </h2>
                   <p className="text-xs text-zinc-500 font-medium">
                     Filter, edit, preview, or remove articles.
