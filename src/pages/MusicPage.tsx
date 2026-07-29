@@ -28,6 +28,7 @@ const itemVariants = {
 export default function MusicPage() {
   const [posts, setPosts] = React.useState<Post[]>([]);
   const [loading, setLoading] = React.useState(true);
+  const { picks: editorPicks } = useEditorPicks();
   
   React.useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -82,7 +83,7 @@ export default function MusicPage() {
   const trendingPosts = [...posts].sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 5);
   
   // Use the global Editor's Picks (same as homepage and article pages)
-  const { picks: editorPicks } = useEditorPicks();
+  // editorPicks is fetched via useEditorPicks hook at the top of the component
 
   const extractMusicUrl = (post: Post) => {
     const spotifyMatch = post.content?.match(/https:\/\/open\.spotify\.com\/[a-zA-Z0-9\/\-]+/);
@@ -273,14 +274,14 @@ export default function MusicPage() {
                     {editorPicks.map((post) => (
                       <Link
                         key={post.slug}
-                        to={`/music/${post.slug}`}
+                        to={`/${(post.category || 'music').toLowerCase()}/${post.slug}`}
                         className="group flex flex-col gap-3"
                       >
                         <div className="relative w-full aspect-[2/1] rounded-lg overflow-hidden bg-zinc-800 shadow-md">
                           <img src={post.coverImageUrl} alt={post.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
                           <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors" />
                           <div className="absolute bottom-2 left-2 bg-brand text-white text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-sm shadow-sm">
-                            Music
+                            {post.category || "Music"}
                           </div>
                         </div>
                         <div className="space-y-1">
