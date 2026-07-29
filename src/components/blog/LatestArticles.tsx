@@ -1,5 +1,6 @@
 import * as React from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Flame, Eye, Calendar } from "lucide-react";
 import {
   useLatestStories,
   useTrendingPosts,
@@ -157,87 +158,81 @@ export function LatestArticles() {
           </div>
 
           {/* ── Right Column: Sticky Sidebar Feed (1/3 width) ── */}
-          <div className="lg:col-span-4 space-y-12 lg:sticky lg:top-24">
+          <div className="lg:col-span-4 space-y-8 lg:sticky lg:top-24 pb-12">
             {/* Trending Now Section */}
-            <div className="bg-zinc-50/50 dark:bg-zinc-950/20 p-6 rounded-md border border-zinc-200/40 dark:border-zinc-900/60 shadow-sm">
-              <h3 className="text-sm font-black uppercase tracking-widest text-foreground border-b border-zinc-200 dark:border-zinc-800 pb-3 mb-5">
-                Trending Now
+            <div className="border-b border-border pb-4">
+              <h3 className="text-xl font-black uppercase tracking-widest text-foreground flex items-center gap-2">
+                <Flame className="w-5 h-5 text-brand" /> Trending Now
               </h3>
+            </div>
 
-              <div className="flex flex-col">
-                {trendingPosts.map((post) => (
-                  <a
-                    key={post.rank}
-                    href={`/${(post.category || "news").toLowerCase()}/${post.slug}`}
-                    className="group flex gap-4 items-center py-4 border-b border-zinc-100 dark:border-zinc-900/40 last:border-0"
-                  >
-                    {/* Image with Rank Badge */}
-                    <div className="relative w-16 h-16 rounded-sm overflow-hidden shrink-0 border border-zinc-200/20 dark:border-zinc-800/20">
-                      <img
-                        src={post.coverImageUrl}
-                        alt={post.title}
-                        loading="lazy"
-                        decoding="async"
-                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                      />
-                      {/* Absolute Rank Badge */}
-                      <span className="absolute top-0 left-0 bg-brand text-white font-black text-[9px] w-5 h-5 flex items-center justify-center rounded-br-sm shadow-sm">
-                        {post.rank}
+            <div className="flex flex-col gap-6">
+              {trendingPosts.slice(0, 5).map((post, idx) => (
+                <a
+                  key={post.rank}
+                  href={`/${(post.category || "news").toLowerCase()}/${post.slug}`}
+                  className="group flex gap-4 items-start relative"
+                >
+                  <div className="relative w-16 h-16 rounded-md overflow-hidden flex-shrink-0 bg-zinc-800 shadow-md">
+                    <img src={post.coverImageUrl} alt={post.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" loading="lazy" decoding="async" />
+                    <div className="absolute top-0 left-0 bg-brand text-white text-[10px] font-black w-5 h-5 flex items-center justify-center rounded-br-md shadow-sm z-10">
+                      {idx + 1}
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <h4 className="font-bold text-sm text-foreground group-hover:text-brand transition-colors line-clamp-2 leading-tight">
+                      {post.title}
+                    </h4>
+                    <div className="flex flex-wrap items-center gap-3 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                      <span className="flex items-center gap-1">
+                        <Eye className="w-3 h-3" /> {post.views?.toLocaleString() || 0}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Calendar className="w-3 h-3" />
+                        {post.createdAt}
                       </span>
                     </div>
-                    {/* Details */}
-                    <div className="space-y-1">
-                      <h4 className="text-xs sm:text-sm font-bold uppercase tracking-tight text-zinc-800 dark:text-zinc-200 group-hover:text-brand transition-colors duration-200 leading-tight line-clamp-2">
-                        {post.title}
-                      </h4>
-                      <p className="text-[9px] font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">
-                        {post.createdAt}
-                      </p>
-                    </div>
-                  </a>
-                ))}
-              </div>
+                  </div>
+                </a>
+              ))}
             </div>
 
             {/* Editor Picks Section */}
-            <div className="bg-zinc-50/50 dark:bg-zinc-950/20 p-6 rounded-md border border-zinc-200/40 dark:border-zinc-900/60 shadow-sm">
-              <h3 className="text-sm font-black uppercase tracking-widest text-foreground border-b border-zinc-200 dark:border-zinc-800 pb-3 mb-5">
-                Editor Picks
-              </h3>
-
-              <div className="flex flex-col gap-5">
-                {editorPicks.map((pick, index) => (
-                  <a
-                    key={index}
-                    href={`/${(pick.category || "reviews").toLowerCase()}/${pick.slug}`}
-                    className="group flex gap-4 items-center"
-                  >
-                    {/* Cover image */}
-                    <div className="w-16 h-16 bg-zinc-100 dark:bg-zinc-900/60 rounded-sm overflow-hidden shrink-0 relative border border-zinc-200/20 dark:border-zinc-800/20">
-                      <img
-                        src={pick.coverImageUrl}
-                        alt={pick.title}
-                        loading="lazy"
-                        decoding="async"
-                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                      />
-                    </div>
-                    {/* Content */}
-                    <div className="space-y-1">
-                      <span className="text-[8px] font-bold uppercase tracking-wider text-brand">
-                        {pick.category}
-                      </span>
-                      <h4 className="text-xs font-bold uppercase tracking-tight text-zinc-800 dark:text-zinc-200 group-hover:text-brand transition-colors duration-200 leading-tight line-clamp-2">
-                        {pick.title}
-                      </h4>
-                      <p className="text-[8px] font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">
-                        {pick.createdAt}
-                      </p>
-                    </div>
-                  </a>
-                ))}
+            {editorPicks.length > 0 && (
+              <div className="mt-12 space-y-8">
+                <div className="border-b border-border pb-4">
+                  <h3 className="text-xl font-black uppercase tracking-widest text-foreground flex items-center gap-2">
+                    <Flame className="w-5 h-5 text-amber-500" /> Editor's Picks
+                  </h3>
+                </div>
+                <div className="flex flex-col gap-6">
+                  {editorPicks.map((pick, index) => (
+                    <a
+                      key={index}
+                      href={`/${(pick.category || "reviews").toLowerCase()}/${pick.slug}`}
+                      className="group flex flex-col gap-3"
+                    >
+                      <div className="relative w-full aspect-[2/1] rounded-lg overflow-hidden bg-zinc-800 shadow-md">
+                        <img src={pick.coverImageUrl} alt={pick.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" loading="lazy" decoding="async" />
+                        <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors" />
+                        <div className="absolute bottom-2 left-2 bg-brand text-white text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-sm shadow-sm">
+                          {pick.category || "News"}
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        <h4 className="font-bold text-sm text-foreground group-hover:text-brand transition-colors line-clamp-2 leading-tight">
+                          {pick.title}
+                        </h4>
+                        <div className="flex items-center gap-1 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                          <Calendar className="w-3 h-3" />
+                          {pick.createdAt}
+                        </div>
+                      </div>
+                    </a>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </motion.div>
       </div>

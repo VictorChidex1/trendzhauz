@@ -121,6 +121,7 @@ export interface TrendingPost {
   slug: string;
   coverImageUrl?: string;
   createdAt?: string;
+  views?: number;
 }
 
 export interface EditorPick {
