@@ -13,6 +13,7 @@ import {
   Clock,
   Flame,
   Award,
+  AlertTriangle,
 } from "lucide-react";
 import { ArticleCard } from "@/components/blog/ArticleCard";
 import { ArticleRenderer } from "@/components/blog/ArticleRenderer";
@@ -178,6 +179,16 @@ export default function BlogPostView() {
 
   return (
     <article className="flex-1 flex flex-col w-full bg-background transition-colors duration-300">
+      {/* Secret Draft Preview Banner */}
+      {post.status === "draft" && (
+        <div className="w-full bg-amber-500 text-black px-4 py-3 flex items-center justify-center gap-2">
+          <AlertTriangle className="h-5 w-5 flex-shrink-0" />
+          <p className="text-sm font-black uppercase tracking-wider text-center">
+            Secret Draft Preview Mode — This article is not live yet
+          </p>
+        </div>
+      )}
+
       {/* Hero Header */}
       <div className="w-full bg-zinc-950 text-white py-12 px-4 sm:px-6 lg:px-8 border-b border-zinc-800">
         <div className="max-w-4xl mx-auto space-y-6">
