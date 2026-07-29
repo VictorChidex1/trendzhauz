@@ -48,8 +48,8 @@ function parseSpotify(url: string): ParsedEmbed | null {
 
   const [, type, id] = match;
   // Spotify embed height varies by type: tracks are compact, albums/playlists are taller
-  // We force 152px (compact layout) across all Spotify embeds to prevent the white box issue on single-track albums.
-  const fixedHeight = 152;
+  // We force 80px (mini player layout) across all Spotify embeds to completely eliminate white space.
+  const fixedHeight = 80;
 
   return {
     platform: "spotify",
@@ -274,8 +274,9 @@ export function UniversalMusicPlayer({ url, className = "" }: UniversalMusicPlay
           title={`${parsed.label} embed`}
           width="100%"
           height="100%"
-          style={{ border: 0 }}
+          style={{ border: 0, borderRadius: "12px", background: "transparent" }}
           loading="lazy"
+          allowTransparency={true}
           allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
           allowFullScreen
           sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-presentation"

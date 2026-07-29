@@ -79,7 +79,8 @@ export default function MusicPage() {
   const heroPost = posts.find(p => p.isEditorPick) || posts[0];
   const gridPosts = posts;
   const trendingPosts = [...posts].sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 5);
-  const editorPicks = posts.filter(p => p.isEditorPick && p.id !== heroPost?.id).slice(0, 3);
+  // We no longer exclude the hero post, so the sidebar always renders Editor's Picks
+  const editorPicks = posts.filter(p => p.isEditorPick).slice(0, 3);
 
   const extractMusicUrl = (post: Post) => {
     const spotifyMatch = post.content?.match(/https:\/\/open\.spotify\.com\/[a-zA-Z0-9\/\-]+/);
