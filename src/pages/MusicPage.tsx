@@ -101,7 +101,7 @@ export default function MusicPage() {
           <img
             src={heroPost.coverImageUrl}
             alt={heroPost.title}
-            className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105 z-0 opacity-60"
+            className="absolute inset-0 w-full h-full object-cover transition-transform transform-gpu duration-1000 lg:group-hover:scale-105 z-0 opacity-60"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/80 to-transparent z-0" />
 
