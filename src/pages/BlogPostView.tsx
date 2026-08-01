@@ -62,7 +62,7 @@ export default function BlogPostView() {
             if (!draftSnap.empty) {
               snap = draftSnap;
             }
-          } catch (draftErr) {
+          } catch {
             // Ignore permission error if an unauthenticated user queries a non-existent slug
           }
         }

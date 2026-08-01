@@ -1,7 +1,7 @@
 import * as React from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
 import { Sun, Moon, Menu, X, Search } from "lucide-react";
-import { useTheme } from "@/hooks/useTheme";
+import { useTheme } from "@/hooks/theme-context";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import { SearchModal } from "@/components/layout/SearchModal";

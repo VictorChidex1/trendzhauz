@@ -242,7 +242,7 @@ export default function AdminPanel() {
 
       return true;
     });
-  }, [posts, activeTab, filterCategory, filterStatus, searchQuery]);
+  }, [posts, filterCategory, filterStatus, searchQuery]);
 
   return (
     <div className="min-h-screen bg-slate-50 text-zinc-900 flex flex-col lg:flex-row">

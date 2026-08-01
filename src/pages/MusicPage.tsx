@@ -37,13 +37,13 @@ const itemVariants = {
 function extractMusicUrl(post: MusicListPost): string | null {
   const content = post.content || "";
   const spotifyMatch = content.match(
-    /https:\/\/open\.spotify\.com\/[a-zA-Z0-9\/\-]+/
+    /https:\/\/open\.spotify\.com\/[a-zA-Z0-9/-]+/
   );
   const youtubeMatch = content.match(
     /https:\/\/(www\.)?youtube\.com\/watch\?v=[a-zA-Z0-9_-]+/
   );
   const appleMatch = content.match(
-    /https:\/\/music\.apple\.com\/[a-zA-Z0-9\/\.\-]+/
+    /https:\/\/music\.apple\.com\/[a-zA-Z0-9/.-]+/
   );
   return spotifyMatch?.[0] || youtubeMatch?.[0] || appleMatch?.[0] || null;
 }
