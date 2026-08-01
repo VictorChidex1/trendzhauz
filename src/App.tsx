@@ -1,21 +1,23 @@
-import { useEffect } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "@/hooks/useTheme";
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 import { MainNavbar } from "@/components/layout/MainNavbar";
 import { Footer } from "@/components/layout/Footer";
 import { ScrollToTop } from "@/components/ui/ScrollToTop";
+import { PageLoader } from "@/components/ui/PageLoader";
 import { pruneExpiredCache } from "@/utils/queryCache";
 import BlogHome from "@/pages/BlogHome";
-import MusicPage from "@/pages/MusicPage";
-import ReviewsPage from "@/pages/ReviewsPage";
-import BlogPostView from "@/pages/BlogPostView";
-import LinkHub from "@/pages/LinkHub";
-import AdminLogin from "@/pages/AdminLogin";
-import AdminPanel from "@/pages/AdminPanel";
-import ForgotPassword from "@/pages/ForgotPassword";
-import ResetPassword from "@/pages/ResetPassword";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+
+const MusicPage = lazy(() => import("@/pages/MusicPage"));
+const ReviewsPage = lazy(() => import("@/pages/ReviewsPage"));
+const BlogPostView = lazy(() => import("@/pages/BlogPostView"));
+const LinkHub = lazy(() => import("@/pages/LinkHub"));
+const AdminLogin = lazy(() => import("@/pages/AdminLogin"));
+const AdminPanel = lazy(() => import("@/pages/AdminPanel"));
+const ForgotPassword = lazy(() => import("@/pages/ForgotPassword"));
+const ResetPassword = lazy(() => import("@/pages/ResetPassword"));
 
 import { useLocation } from "react-router-dom";
 
@@ -35,7 +37,8 @@ function AppContent() {
 
       {/* Main Page Layout Envelope */}
       <main className="flex-1 flex flex-col w-full">
-        <Routes>
+        <Suspense fallback={<PageLoader />}>
+          <Routes>
           {/* Public Routing */}
           <Route path="/" element={<BlogHome />} />
           <Route path="/category/music" element={<MusicPage />} />
@@ -73,7 +76,8 @@ function AppContent() {
               </div>
             }
           />
-        </Routes>
+          </Routes>
+        </Suspense>
       </main>
 
       {/* Show Core Footer and ScrollToTop only on public routes */}
