@@ -26,6 +26,10 @@ functions/.secret.*
 # Firebase CLI local cache (regenerated on every deploy/hosting run)
 .firebase/
 
+# Local AI assistant config folders (never commit to GitHub)
+.agents/
+.opencode/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
@@ -64,3 +68,6 @@ How-to-untrack-a-file-that-is-in-git.md
 /*.md
 !.github/**/*.md
 !README.md
+
+# Firebase Hosting cache
+.firebase/hosting.*.cache
