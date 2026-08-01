@@ -107,7 +107,7 @@ export default function ResetPassword() {
   };
 
   return (
-    <div className="min-h-screen w-full flex flex-col items-center justify-center p-4 sm:p-6 bg-slate-50 relative overflow-hidden text-zinc-900">
+    <div className="min-h-[100svh] w-full flex flex-col items-center justify-center p-4 sm:p-6 bg-slate-50 relative overflow-hidden text-zinc-900">
       {/* Return to Login Link at Top Left */}
       <div className="absolute top-6 left-6 z-20">
         <Link

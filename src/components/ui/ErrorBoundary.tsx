@@ -82,7 +82,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
 
       // Full Global App-Level Error Boundary fallback
       return (
-        <div className="min-h-screen w-full flex flex-col items-center justify-center p-4 sm:p-8 bg-background text-foreground transition-colors duration-300">
+        <div className="min-h-[100svh] w-full flex flex-col items-center justify-center p-4 sm:p-8 bg-background text-foreground transition-colors duration-300">
           <div className="max-w-xl w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-900 rounded-xl p-6 sm:p-8 shadow-2xl space-y-6 text-center">
             {/* Warning Icon Badge */}
             <div className="w-16 h-16 bg-brand/10 border border-brand/30 text-brand rounded-full flex items-center justify-center mx-auto shadow-md">

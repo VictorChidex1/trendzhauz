@@ -32,7 +32,7 @@ function AppContent() {
   }, []);
 
   return (
-    <div className="theme min-h-screen flex flex-col bg-background text-foreground transition-colors duration-300">
+    <div className="theme min-h-[100svh] flex flex-col bg-background text-foreground transition-colors duration-300">
       {/* Show Main Navigation Bar only on public routes */}
       {!isAdminRoute && <MainNavbar />}
 

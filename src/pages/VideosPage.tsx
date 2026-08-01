@@ -96,7 +96,7 @@ export default function VideosPage() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-background">
+    <div className="flex flex-col flex-1 w-full bg-background">
       {heroPost && (
         <section className="relative w-full min-h-[600px] lg:min-h-[700px] flex flex-col group bg-zinc-950">
           <img

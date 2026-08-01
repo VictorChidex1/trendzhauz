@@ -245,7 +245,7 @@ export default function AdminPanel() {
   }, [posts, filterCategory, filterStatus, searchQuery]);
 
   return (
-    <div className="min-h-screen bg-slate-50 text-zinc-900 flex flex-col lg:flex-row">
+    <div className="min-h-[100svh] bg-slate-50 text-zinc-900 flex flex-col lg:flex-row">
       {/* Sidebar Navigation */}
       <AdminSidebar
         activeTab={activeTab}
