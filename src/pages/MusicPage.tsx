@@ -64,7 +64,10 @@ export default function MusicPage() {
 
   React.useEffect(() => {
     if (currentPage === 1) return;
-    gridRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    const timer = setTimeout(() => {
+      gridRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 100);
+    return () => clearTimeout(timer);
   }, [currentPage]);
 
   const heroPost = posts.find((p) => p.isEditorPick) || posts[0] || null;
