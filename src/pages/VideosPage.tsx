@@ -5,15 +5,16 @@ import {
   Play,
   ArrowRight,
   ArrowLeft,
-  Music2,
+  Video,
   Calendar,
   Flame,
   Eye,
 } from "lucide-react";
 import { UniversalMusicPlayer } from "@/components/blog/UniversalMusicPlayer";
 import { useEditorPicks } from "@/hooks/useBlogData";
-import { findFirstEmbedUrl } from "@/utils/mediaUrl";
-import { useMusicPosts } from "@/hooks/useMusicPosts";
+import {
+  useVideosPosts,
+} from "@/hooks/useVideosPosts";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -32,7 +33,7 @@ const itemVariants = {
   },
 } as const;
 
-export default function MusicPage() {
+export default function VideosPage() {
   const {
     posts,
     loading,
@@ -41,7 +42,7 @@ export default function MusicPage() {
     setCurrentPage,
     totalPages,
     totalCount,
-  } = useMusicPosts(12);
+  } = useVideosPosts(12);
   const { picks: editorPicks } = useEditorPicks();
 
   const gridRef = React.useRef<HTMLDivElement>(null);
@@ -62,15 +63,22 @@ export default function MusicPage() {
         .slice(0, 5),
     [posts]
   );
+  const videosEditorPicks = React.useMemo(
+    () =>
+      editorPicks.filter(
+        (p) => (p.category || "").toLowerCase() === "videos"
+      ),
+    [editorPicks]
+  );
 
-  const heroMusicUrl = heroPost ? findFirstEmbedUrl(heroPost.content) : null;
+  const heroVideoUrl = heroPost ? heroPost.videoUrl : null;
 
   if (loading && posts.length === 0) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center min-h-[60vh] p-8">
         <div className="w-12 h-12 border-4 border-brand border-t-transparent rounded-full animate-spin mb-4" />
         <p className="text-muted-foreground text-sm font-semibold uppercase tracking-widest">
-          Loading Music...
+          Loading Videos...
         </p>
       </div>
     );
@@ -80,7 +88,7 @@ export default function MusicPage() {
     return (
       <div className="flex-1 flex flex-col items-center justify-center min-h-[60vh] p-8 text-center max-w-md mx-auto space-y-4">
         <h2 className="text-xl font-black uppercase tracking-tight text-foreground">
-          Couldn&apos;t load music
+          Couldn&apos;t load videos
         </h2>
         <p className="text-sm text-muted-foreground font-medium">{error}</p>
         <button
@@ -115,7 +123,7 @@ export default function MusicPage() {
               <div className="max-w-3xl space-y-6">
                 <div className="flex items-center gap-3">
                   <span className="bg-brand text-white text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-sm shadow-lg">
-                    World Premiere
+                    Latest Video
                   </span>
                   {heroPost.isEditorPick && (
                     <span className="bg-amber-500 text-black text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-sm shadow-lg flex items-center gap-1">
@@ -126,7 +134,7 @@ export default function MusicPage() {
                 </div>
 
                 <Link
-                  to={`/music/${heroPost.slug}`}
+                  to={`/videos/${heroPost.slug}`}
                   className="block group/title"
                 >
                   <h1 className="text-4xl sm:text-5xl lg:text-7xl font-black text-white uppercase tracking-tighter leading-[1.1] group-hover/title:text-brand transition-colors">
@@ -140,19 +148,19 @@ export default function MusicPage() {
 
                 <div className="pt-2">
                   <Link
-                    to={`/music/${heroPost.slug}`}
+                    to={`/videos/${heroPost.slug}`}
                     className="inline-flex bg-brand hover:bg-brand/90 text-white font-bold uppercase tracking-wider text-xs px-8 py-4 rounded-full transition-all shadow-lg hover:shadow-brand/20 items-center gap-2"
                   >
-                    Read Story <ArrowRight className="w-4 h-4" />
+                    Watch Now <ArrowRight className="w-4 h-4" />
                   </Link>
                 </div>
               </div>
 
-              {heroMusicUrl && (
-                <div className="w-full lg:w-96 flex-shrink-0 lg:mb-4">
+              {heroVideoUrl && (
+                <div className="w-full lg:w-[560px] flex-shrink-0">
                   <div className="rounded-xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)] ring-1 ring-white/10 bg-zinc-900/50 backdrop-blur-md">
                     <UniversalMusicPlayer
-                      url={heroMusicUrl}
+                      url={heroVideoUrl}
                       className="w-full"
                     />
                   </div>
@@ -169,11 +177,11 @@ export default function MusicPage() {
             <div ref={gridRef} className="lg:col-span-8 space-y-8">
               <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b-2 border-zinc-900 dark:border-white pb-4">
                 <h2 className="text-3xl sm:text-4xl font-black uppercase tracking-tight text-foreground flex items-center gap-3">
-                  <Music2 className="w-8 h-8 text-brand" /> New Releases
+                  <Video className="w-8 h-8 text-brand" /> New Videos
                 </h2>
                 <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                   {totalCount > 0
-                    ? `${totalCount} ${totalCount === 1 ? "track" : "stories"} · Page ${currentPage} of ${totalPages}`
+                    ? `${totalCount} ${totalCount === 1 ? "video" : "videos"} · Page ${currentPage} of ${totalPages}`
                     : null}
                 </span>
               </div>
@@ -192,7 +200,7 @@ export default function MusicPage() {
                     initial="hidden"
                     animate="visible"
                     exit={{ opacity: 0 }}
-                    className="grid grid-cols-2 sm:grid-cols-3 gap-4 sm:gap-6"
+                    className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6"
                   >
                     {posts.map((post) => (
                       <motion.div
@@ -201,8 +209,8 @@ export default function MusicPage() {
                         className="group relative"
                       >
                         <Link
-                          to={`/music/${post.slug}`}
-                          className="block aspect-square relative rounded-xl overflow-hidden bg-zinc-100 dark:bg-zinc-900 mb-3 shadow-md group-hover:shadow-xl transition-all duration-300"
+                          to={`/videos/${post.slug}`}
+                          className="block aspect-video relative rounded-xl overflow-hidden bg-zinc-100 dark:bg-zinc-900 mb-3 shadow-md group-hover:shadow-xl transition-all duration-300"
                         >
                           <img
                             src={post.coverImageUrl}
@@ -223,14 +231,14 @@ export default function MusicPage() {
                         </Link>
 
                         <Link
-                          to={`/music/${post.slug}`}
+                          to={`/videos/${post.slug}`}
                           className="block space-y-1"
                         >
                           <h3 className="font-bold text-sm sm:text-base text-foreground line-clamp-2 group-hover:text-brand transition-colors leading-snug">
                             {post.title}
                           </h3>
                           <p className="text-xs font-bold text-muted-foreground flex items-center gap-1.5 uppercase tracking-widest">
-                            {post.artistName || post.authorName || "Artist"}
+                            {post.authorName || "TrendzHauz"}
                           </p>
                         </Link>
                       </motion.div>
@@ -239,10 +247,10 @@ export default function MusicPage() {
                 ) : (
                   <div className="py-20 text-center border-2 border-dashed border-border rounded-xl">
                     <p className="text-muted-foreground font-bold uppercase tracking-widest text-sm">
-                      No new music releases yet.
+                      No new videos yet.
                     </p>
                     <p className="text-xs text-muted-foreground mt-2 max-w-sm mx-auto">
-                      Publish a Music story from the CMS to see it here.
+                      Publish a Videos story from the CMS to see it here.
                     </p>
                   </div>
                 )}
@@ -269,7 +277,8 @@ export default function MusicPage() {
                       })
                       .map((page, idx, arr) => {
                         const prev = arr[idx - 1];
-                        const showEllipsis = prev !== undefined && page - prev > 1;
+                        const showEllipsis =
+                          prev !== undefined && page - prev > 1;
                         return (
                           <React.Fragment key={page}>
                             {showEllipsis && (
@@ -310,7 +319,7 @@ export default function MusicPage() {
             <div className="lg:col-span-4 space-y-8 lg:sticky lg:top-24 pb-12">
               <div className="border-b border-border pb-4">
                 <h3 className="text-xl font-black uppercase tracking-widest text-foreground flex items-center gap-2">
-                  <Flame className="w-5 h-5 text-brand" /> Trending in Music
+                  <Flame className="w-5 h-5 text-brand" /> Trending in Videos
                 </h3>
                 <p className="text-[10px] text-muted-foreground font-medium mt-1">
                   From this page · sorted by views
@@ -321,7 +330,7 @@ export default function MusicPage() {
                 {trendingPosts.slice(0, 5).map((post, idx) => (
                   <Link
                     key={post.id}
-                    to={`/music/${post.slug}`}
+                    to={`/videos/${post.slug}`}
                     className="group flex gap-4 items-start relative"
                   >
                     <div className="relative w-16 h-16 rounded-md overflow-hidden flex-shrink-0 bg-zinc-800 shadow-md">
@@ -354,12 +363,12 @@ export default function MusicPage() {
 
                 {trendingPosts.length === 0 && (
                   <p className="text-sm text-muted-foreground font-medium italic">
-                    Not enough data to show trending music.
+                    Not enough data to show trending videos.
                   </p>
                 )}
               </div>
 
-              {editorPicks.length > 0 && (
+              {videosEditorPicks.length > 0 && (
                 <div className="mt-12 space-y-8">
                   <div className="border-b border-border pb-4">
                     <h3 className="text-xl font-black uppercase tracking-widest text-foreground flex items-center gap-2">
@@ -368,13 +377,13 @@ export default function MusicPage() {
                     </h3>
                   </div>
                   <div className="flex flex-col gap-6">
-                    {editorPicks.map((post) => (
+                    {videosEditorPicks.map((post) => (
                       <Link
                         key={post.slug}
-                        to={`/${(post.category || "music").toLowerCase()}/${post.slug}`}
+                        to={`/videos/${post.slug}`}
                         className="group flex flex-col gap-3"
                       >
-                        <div className="relative w-full aspect-[2/1] rounded-lg overflow-hidden bg-zinc-800 shadow-md">
+                        <div className="relative w-full aspect-video rounded-lg overflow-hidden bg-zinc-800 shadow-md">
                           <img
                             src={post.coverImageUrl}
                             alt={post.title}
@@ -382,7 +391,7 @@ export default function MusicPage() {
                           />
                           <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors" />
                           <div className="absolute bottom-2 left-2 bg-brand text-white text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-sm shadow-sm">
-                            {post.category || "Music"}
+                            {post.category || "Videos"}
                           </div>
                         </div>
                         <div className="space-y-1">

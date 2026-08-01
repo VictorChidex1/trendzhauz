@@ -20,11 +20,11 @@ const POSTS_COLLECTION = "posts";
 
 /**
  * Invalidate the SWR localStorage caches for the server-side paginated lists.
- * Called after every successful write so the Music and Reviews pages never
- * serve a stale page 1 / count / cursor boundaries after a CMS edit.
+ * Called after every successful write so the Music, Reviews and Videos pages
+ * never serve a stale page 1 / count / cursor boundaries after a CMS edit.
  */
 function invalidateListCaches(): void {
-  for (const prefix of ["music", "reviews"]) {
+  for (const prefix of ["music", "reviews", "videos"]) {
     clearCachedData(`${prefix}_p1`);
     clearCachedData(`${prefix}_count`);
     clearCachedData(`${prefix}_boundaries`);
