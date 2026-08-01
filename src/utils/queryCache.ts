@@ -38,6 +38,22 @@ export function getCachedData<T>(key: string): T | null {
 }
 
 /**
+ * Retrieve cached data together with its timestamp.
+ * Returns null if no cache exists or if parsing fails.
+ * Used for SWR background revalidation (serve stale, then refresh).
+ */
+export function getCachedMeta<T>(key: string): { data: T; timestamp: number } | null {
+  try {
+    const raw = localStorage.getItem(`${CACHE_PREFIX}${key}`);
+    if (!raw) return null;
+    const entry: CacheEntry<T> = JSON.parse(raw);
+    return { data: entry.data, timestamp: entry.timestamp };
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Check if cached data is still within its TTL window.
  * Returns false if no cache exists or if the data has expired.
  */

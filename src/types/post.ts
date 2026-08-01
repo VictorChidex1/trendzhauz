@@ -96,6 +96,7 @@ export interface StoryCard {
   description?: string;
   coverImageUrl?: string;
   createdAt: string;
+  rawCreatedAt?: number;
   slug: string;
   artistName?: string;
   projectTitle?: string;

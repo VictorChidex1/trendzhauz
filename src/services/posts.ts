@@ -12,10 +12,24 @@ import {
   Timestamp,
 } from "firebase/firestore";
 import { db } from "@/services/firebase";
+import { clearCachedData } from "@/utils/queryCache";
 import type { Post, CreatePostInput, PostCategory } from "@/types/post";
 import type { UserProfile } from "@/types/user";
 
 const POSTS_COLLECTION = "posts";
+
+/**
+ * Invalidate the SWR localStorage caches for the server-side paginated lists.
+ * Called after every successful write so the Music and Reviews pages never
+ * serve a stale page 1 / count / cursor boundaries after a CMS edit.
+ */
+function invalidateListCaches(): void {
+  for (const prefix of ["music", "reviews"]) {
+    clearCachedData(`${prefix}_p1`);
+    clearCachedData(`${prefix}_count`);
+    clearCachedData(`${prefix}_boundaries`);
+  }
+}
 
 /**
  * Utility helper to convert string titles into SEO-friendly URL slugs
@@ -137,12 +151,13 @@ export async function createPost(
     if (input.artistName) newPostData.artistName = input.artistName.trim();
     if (input.projectTitle) newPostData.projectTitle = input.projectTitle.trim();
     if (input.projectType) newPostData.projectType = input.projectType.trim();
-    if (input.rating !== undefined && input.rating !== null) {
-      newPostData.rating = Number(input.rating);
-    }
+    // Always store a numeric rating (default 0) so server-side
+    // orderBy("rating") works for every review.
+    newPostData.rating = Number(input.rating ?? 0);
     if (input.verdict) newPostData.verdict = input.verdict.trim();
 
     const docRef = await addDoc(collection(db, POSTS_COLLECTION), newPostData);
+    invalidateListCaches();
     return docRef.id;
   } catch (error) {
     console.error("Error creating post:", error);
@@ -187,6 +202,7 @@ export async function updatePost(
     }
 
     await updateDoc(postRef, updateData);
+    invalidateListCaches();
   } catch (error) {
     console.error("Error updating post:", error);
     throw error;
@@ -200,6 +216,7 @@ export async function deletePost(postId: string): Promise<void> {
   try {
     const postRef = doc(db, POSTS_COLLECTION, postId);
     await deleteDoc(postRef);
+    invalidateListCaches();
   } catch (error) {
     console.error("Error deleting post:", error);
     throw error;
