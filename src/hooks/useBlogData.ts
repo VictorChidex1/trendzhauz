@@ -247,7 +247,7 @@ export function useTrendingPosts() {
 }
 
 // HOOK 4: useEditorPicks (Real-Time Firestore Listener)
-export function useEditorPicks() {
+export function useEditorPicks(categoryFilter?: string) {
   const [picks, setPicks] = React.useState<EditorPick[]>([]);
   const [loading, setLoading] = React.useState(true);
 
@@ -261,8 +261,12 @@ export function useEditorPicks() {
       q,
       (snapshot) => {
         const livePosts = parsePublishedPosts(snapshot.docs);
-        const editorOnly = livePosts.filter((p) => p.isEditorPick);
-        const source = editorOnly.length > 0 ? editorOnly : livePosts;
+        const targetPosts = categoryFilter
+          ? livePosts.filter((p) => (p.category || "").toLowerCase() === categoryFilter.toLowerCase())
+          : livePosts;
+
+        const editorOnly = targetPosts.filter((p) => p.isEditorPick);
+        const source = editorOnly.length > 0 ? editorOnly : targetPosts;
 
         const livePicks: EditorPick[] = source.slice(0, 3).map((data) => ({
           category: data.category,
@@ -281,7 +285,7 @@ export function useEditorPicks() {
     );
 
     return () => unsubscribe();
-  }, []);
+  }, [categoryFilter]);
 
   return { picks, loading };
 }

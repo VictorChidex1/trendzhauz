@@ -43,7 +43,7 @@ export default function VideosPage() {
     totalPages,
     totalCount,
   } = useVideosPosts(12);
-  const { picks: editorPicks } = useEditorPicks();
+  const { picks: videosEditorPicks } = useEditorPicks("videos");
 
   const gridRef = React.useRef<HTMLDivElement>(null);
 
@@ -62,13 +62,6 @@ export default function VideosPage() {
         .sort((a, b) => (b.views || 0) - (a.views || 0))
         .slice(0, 5),
     [posts]
-  );
-  const videosEditorPicks = React.useMemo(
-    () =>
-      editorPicks.filter(
-        (p) => (p.category || "").toLowerCase() === "videos"
-      ),
-    [editorPicks]
   );
 
   const heroVideoUrl = heroPost ? heroPost.videoUrl : null;

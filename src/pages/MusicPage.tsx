@@ -42,7 +42,7 @@ export default function MusicPage() {
     totalPages,
     totalCount,
   } = useMusicPosts(12);
-  const { picks: editorPicks } = useEditorPicks();
+  const { picks: editorPicks } = useEditorPicks("music");
 
   const gridRef = React.useRef<HTMLDivElement>(null);
 
