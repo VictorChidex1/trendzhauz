@@ -164,7 +164,6 @@ export function useCursorPaginatedPosts<T extends { id: string }>({
         ...Object.entries(filters).map(([field, value]) =>
           where(field, "==", value)
         ),
-        where("createdAt", "<=", Timestamp.now()),
         ...order.map((field) => orderBy(field, "desc")),
         orderBy("__name__", "desc"),
       ];
@@ -181,7 +180,6 @@ export function useCursorPaginatedPosts<T extends { id: string }>({
       ...Object.entries(filters).map(([field, value]) =>
         where(field, "==", value)
       ),
-      where("createdAt", "<=", Timestamp.now()),
     ];
     return query(collection(db, "posts"), ...constraints);
   }, [filtersKey]);
@@ -340,7 +338,7 @@ export function useCursorPaginatedPosts<T extends { id: string }>({
   // Load the count once per mount, unless a fresh cached count exists.
   React.useEffect(() => {
     if (!enabledRef.current) return;
-    void loadCount();
+    void loadCount(true);
   }, [loadCount, enabled]);
 
   // Clamp to the last page when the count shrinks (e.g. a post was deleted).

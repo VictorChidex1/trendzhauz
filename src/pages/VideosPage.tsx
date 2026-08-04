@@ -249,7 +249,7 @@ export default function VideosPage() {
                 )}
               </AnimatePresence>
 
-              {totalCount > 12 && (
+              {totalPages > 1 && (
                 <div className="flex flex-wrap items-center justify-center gap-3 pt-8 border-t border-border">
                   <button
                     type="button"
