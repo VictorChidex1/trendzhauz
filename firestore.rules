@@ -168,7 +168,7 @@ service cloud.firestore {
         && request.resource.data.content.size() >= 1
         && request.resource.data.category in ['Music', 'Videos', 'Reviews', 'News']
         && request.resource.data.coverImageUrl is string
-        && request.resource.data.status in ['draft', 'published']
+        && request.resource.data.status in ['draft', 'published', 'scheduled']
         && request.resource.data.isEditorPick is bool
         && request.resource.data.authorId == request.auth.uid
         && request.resource.data.authorName is string
@@ -187,7 +187,7 @@ service cloud.firestore {
         && isValidSearchIndex()
         && isValidRating()
         && request.resource.data.category in ['Music', 'Videos', 'Reviews', 'News']
-        && request.resource.data.status in ['draft', 'published']
+        && request.resource.data.status in ['draft', 'published', 'scheduled']
         && request.resource.data.authorId == resource.data.authorId
         && request.resource.data.views is number
         && request.resource.data.views >= 0

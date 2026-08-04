@@ -138,6 +138,11 @@ export default function MusicPage() {
                   {heroPost.description}
                 </p>
 
+                <p className="text-zinc-400 text-[10px] sm:text-xs font-bold uppercase tracking-widest flex items-center gap-1.5">
+                  <Calendar className="h-3.5 w-3.5 text-brand" />
+                  Published {heroPost.createdAtLabel}
+                </p>
+
                 <div className="pt-2">
                   <Link
                     to={`/music/${heroPost.slug}`}
@@ -192,7 +197,7 @@ export default function MusicPage() {
                     initial="hidden"
                     animate="visible"
                     exit={{ opacity: 0 }}
-                    className="grid grid-cols-2 sm:grid-cols-3 gap-4 sm:gap-6"
+                    className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-10 sm:gap-x-6 sm:gap-y-12"
                   >
                     {posts.map((post) => (
                       <motion.div
@@ -226,6 +231,10 @@ export default function MusicPage() {
                           to={`/music/${post.slug}`}
                           className="block space-y-1"
                         >
+                          <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
+                            <Calendar className="h-2.5 w-2.5 text-brand" />
+                            {post.createdAtLabel}
+                          </p>
                           <h3 className="font-bold text-sm sm:text-base text-foreground line-clamp-2 group-hover:text-brand transition-colors leading-snug">
                             {post.title}
                           </h3>

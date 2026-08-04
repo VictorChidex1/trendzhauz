@@ -263,6 +263,9 @@ export function PostEditorModal({
 
       if (publishTiming === "custom") {
         payload.createdAt = customPublishDate;
+        if (customPublishDate.getTime() > Date.now()) {
+          payload.status = "scheduled";
+        }
       } else if (!isEditing) {
         // create uses serverTimestamp when createdAt omitted
       } else if (isEditing && publishTiming === "now") {
@@ -640,8 +643,7 @@ export function PostEditorModal({
                   onChange={setCustomPublishDate}
                 />
                 <span className="text-[11px] text-zinc-500 font-medium">
-                  Past date = backdate. Future date = scheduled (hidden until
-                  that time). Super-admins and post owners can change this later.
+                  Past date = backdate. Future date = scheduled (this post will automatically publish on this date).
                 </span>
               </div>
             )}
@@ -653,12 +655,16 @@ export function PostEditorModal({
                 Publish Status
               </label>
               <select
-                value={status}
+                value={publishTiming === "custom" && customPublishDate.getTime() > Date.now() ? "scheduled" : status}
                 onChange={(e) => setStatus(e.target.value as PostStatus)}
                 className="w-full bg-zinc-50 border border-zinc-300 rounded-lg px-4 py-2.5 text-xs text-zinc-900 font-bold"
+                disabled={publishTiming === "custom" && customPublishDate.getTime() > Date.now()}
               >
                 <option value="published">Published</option>
                 <option value="draft">Draft</option>
+                {(status === "scheduled" || (publishTiming === "custom" && customPublishDate.getTime() > Date.now())) && (
+                  <option value="scheduled">Scheduled</option>
+                )}
               </select>
             </div>
 

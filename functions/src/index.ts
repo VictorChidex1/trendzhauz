@@ -11,9 +11,13 @@ import { getFirestore, FieldValue } from "firebase-admin/firestore";
 // Initialize Firebase Admin SDK (uses default service account credentials)
 initializeApp();
 const db = getFirestore();
+db.settings({ ignoreUndefinedProperties: true });
 
 // Custom password-reset email (Resend + Admin generatePasswordResetLink)
 export { requestPasswordReset } from "./requestPasswordReset";
+
+// Auto-publish scheduled posts
+export { publishScheduled } from "./publishScheduled";
 
 // ─── Helper: Format Firestore Timestamp to readable string ───
 function formatTimestamp(ts: FirebaseFirestore.Timestamp | undefined): string {

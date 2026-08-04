@@ -1,6 +1,6 @@
 export type PostCategory = "Music" | "Videos" | "Reviews" | "News";
 
-export type PostStatus = "draft" | "published";
+export type PostStatus = "draft" | "published" | "scheduled";
 
 export interface ReviewMetadata {
   artistName?: string;

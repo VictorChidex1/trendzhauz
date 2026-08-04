@@ -527,6 +527,7 @@ export default function AdminPanel() {
                     <option value="all">All Status</option>
                     <option value="published">Published</option>
                     <option value="draft">Draft</option>
+                    <option value="scheduled">Scheduled</option>
                   </select>
                 </div>
               </div>
@@ -612,6 +613,8 @@ export default function AdminPanel() {
                               className={`text-[9px] font-black uppercase px-2.5 py-1 rounded-full ${
                                 post.status === "published"
                                   ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                  : post.status === "scheduled"
+                                  ? "bg-amber-50 text-amber-700 border border-amber-200"
                                   : "bg-zinc-100 text-zinc-600 border border-zinc-200"
                               }`}
                             >
