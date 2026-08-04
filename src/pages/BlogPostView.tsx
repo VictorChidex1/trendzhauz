@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useParams, Link } from "react-router-dom";
-import { collection, query, where, getDocs, limit } from "firebase/firestore";
+import { collection, query, where, getDocs, limit, doc, updateDoc, increment } from "firebase/firestore";
 import { db } from "@/services/firebase";
 import type { Post } from "@/types/post";
 import {
@@ -72,6 +72,14 @@ export default function BlogPostView() {
             const docSnap = snap.docs[0];
             const loadedPost = { ...(docSnap.data() as Post), id: docSnap.id };
             setPost(loadedPost);
+
+            // Auto view counting: +1 for every public open of a published post.
+            if (loadedPost.status === "published") {
+              const postRef = doc(db, "posts", docSnap.id);
+              updateDoc(postRef, { views: increment(1) }).catch(() => {
+                // Ignore permission errors (e.g. authenticated writers viewing own draft)
+              });
+            }
 
             // Fetch related posts with zero-index requirement (single field equality filter)
             try {

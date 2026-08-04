@@ -194,6 +194,31 @@ service cloud.firestore {
         && request.resource.data.createdAt is timestamp
         && (isSuperAdmin() || (isWriter() && isOwnPost()));
 
+      // ── ANONYMOUS VIEW INCREMENT ────────────────────────────────────────
+      // Public visitors can increment views by exactly 1 (auto view counting).
+      // Every other field must remain byte-for-byte identical so anonymous
+      // users cannot modify any post content.
+      allow update: if request.auth == null
+        && request.resource.data.views == resource.data.views + 1
+        && request.resource.data.keys().hasOnly(resource.data.keys())
+        && request.resource.data.title == resource.data.title
+        && request.resource.data.slug == resource.data.slug
+        && request.resource.data.description == resource.data.description
+        && request.resource.data.content == resource.data.content
+        && request.resource.data.category == resource.data.category
+        && request.resource.data.coverImageUrl == resource.data.coverImageUrl
+        && request.resource.data.searchIndex == resource.data.searchIndex
+        && request.resource.data.status == resource.data.status
+        && request.resource.data.isEditorPick == resource.data.isEditorPick
+        && request.resource.data.authorId == resource.data.authorId
+        && request.resource.data.authorName == resource.data.authorName
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.artistName == resource.data.artistName
+        && request.resource.data.projectTitle == resource.data.projectTitle
+        && request.resource.data.projectType == resource.data.projectType
+        && request.resource.data.rating == resource.data.rating
+        && request.resource.data.verdict == resource.data.verdict;
+
       // ── DELETE ──────────────────────────────────────────────────────────
       // Super-admins can delete any post. Writers can delete their OWN posts.
       allow delete: if isSuperAdmin() || (isWriter() && isOwnPost());

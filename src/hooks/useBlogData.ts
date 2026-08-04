@@ -5,6 +5,10 @@ import {
   where,
   onSnapshot,
   Timestamp,
+  orderBy,
+  startAfter,
+  getDocs,
+  limit,
 } from "firebase/firestore";
 import { db } from "../services/firebase";
 import type {
@@ -14,7 +18,8 @@ import type {
   TrendingPost,
   EditorPick,
 } from "../types/post";
-import { setCachedData } from "../utils/queryCache";
+import { useHomepageAggregation } from "./useHomepageAggregation";
+import type { HomepageAggregation } from "./useHomepageAggregation";
 
 // HELPER: Convert Firestore Timestamp / Date into epoch milliseconds
 function getMillis(val: unknown): number {
@@ -49,12 +54,56 @@ const CTA_MAP: Record<string, string> = {
   News: "Read Story",
 };
 
+// HELPER: Convert a raw published post doc into a StoryCard
+function toStoryCard(docSnap: { id: string; data: () => Record<string, unknown> }): StoryCard {
+  const data = docSnap.data();
+  return {
+    id: docSnap.id,
+    category: String(data.category || "News"),
+    title: String(data.title || ""),
+    description:
+      String(data.description || "") ||
+      (String(data.content || "").replace(/<[^>]*>/g, "").slice(0, 150) + "..."),
+    coverImageUrl:
+      String(data.coverImageUrl || "") || "/assets/placeholder-cover.jpg",
+    createdAt: formatDate(data.createdAt),
+    slug: String(data.slug || ""),
+    artistName: data.artistName ? String(data.artistName) : undefined,
+    projectTitle: data.projectTitle ? String(data.projectTitle) : undefined,
+    projectType: data.projectType ? String(data.projectType) : undefined,
+    rating: typeof data.rating === "number" ? data.rating : undefined,
+    verdict: data.verdict ? String(data.verdict) : undefined,
+    authorName: data.authorName ? String(data.authorName) : undefined,
+  };
+}
+
+// HELPER: Convert a parsed published Post into a StoryCard
+function postToStoryCard(post: Post): StoryCard {
+  return {
+    id: post.id,
+    category: post.category,
+    title: post.title,
+    description:
+      post.description ||
+      (post.content || "").replace(/<[^>]*>/g, "").slice(0, 150) + "...",
+    coverImageUrl: post.coverImageUrl || "/assets/placeholder-cover.jpg",
+    createdAt: formatDate(post.createdAt),
+    slug: post.slug,
+    artistName: post.artistName,
+    projectTitle: post.projectTitle,
+    projectType: post.projectType,
+    rating: post.rating,
+    verdict: post.verdict,
+    authorName: post.authorName,
+  };
+}
+
 /**
  * Helper to process raw Firestore docs into sorted & scheduled-filtered Post objects
  */
 function parsePublishedPosts(docs: Array<{ id: string; data: () => Record<string, unknown> }>): Post[] {
   const now = Date.now();
-  const posts = docs
+  return docs
     .map((docSnap) => ({ id: docSnap.id, ...docSnap.data() } as Post))
     .filter((post) => post.status === "published")
     .filter((post) => {
@@ -62,15 +111,6 @@ function parsePublishedPosts(docs: Array<{ id: string; data: () => Record<string
       return postTime === 0 || postTime <= now + 60000; // include current/past posts
     })
     .sort((a, b) => getMillis(b.createdAt) - getMillis(a.createdAt));
-
-  // Proactively seed published posts into localStorage cache so article navigation is instant (0ms)
-  posts.forEach((post) => {
-    if (post.slug) {
-      setCachedData(`post_${post.slug.trim().toLowerCase()}`, post);
-    }
-  });
-
-  return posts;
 }
 
 /**
@@ -80,12 +120,56 @@ function articleUrl(category: string, slug: string): string {
   return `/${(category || "news").toLowerCase()}/${slug}`;
 }
 
-// HOOK 1: useHeroSlides (Real-Time Firestore Listener)
+// HELPER: Build hero slides from the aggregation doc (fill up to 3 slides)
+function buildHeroSlides(aggregation: HomepageAggregation): HeroSlide[] {
+  const slides: HeroSlide[] = (aggregation.heroSlides || []).map((slide) => ({
+    category: slide.category,
+    title: slide.title,
+    description: slide.description || "",
+    link: slide.link || articleUrl(slide.category, slide.slug || ""),
+    image: slide.image || "/assets/placeholder-cover.jpg",
+    meta: slide.meta || "",
+    ctaText: slide.ctaText || "Read Story",
+    slug: slide.slug,
+  }));
+
+  const used = new Set(slides.map((s) => s.slug).filter(Boolean));
+  const stories = aggregation.latestStories || [];
+
+  if (slides.length < 3) {
+    for (const story of stories) {
+      if (slides.length >= 3) break;
+      if (used.has(story.slug)) continue;
+      slides.push({
+        category: story.category,
+        title: story.title,
+        description: story.description || "",
+        link: articleUrl(story.category, story.slug),
+        image: story.coverImageUrl || "/assets/placeholder-cover.jpg",
+        meta: `By ${story.authorName || "TrendzHauz Editor"}`,
+        ctaText: CTA_MAP[story.category] || "Read Story",
+        slug: story.slug,
+      });
+      used.add(story.slug);
+    }
+  }
+
+  return slides;
+}
+
+// HOOK 1: useHeroSlides (aggregation doc, falls back to real-time query)
 export function useHeroSlides() {
+  const { data, isFresh } = useHomepageAggregation();
   const [slides, setSlides] = React.useState<HeroSlide[]>([]);
   const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
+    if (data && isFresh && (data.heroSlides || []).length > 0) {
+      setSlides(buildHeroSlides(data));
+      setLoading(false);
+      return;
+    }
+
     const q = query(
       collection(db, "posts"),
       where("status", "==", "published")
@@ -149,67 +233,142 @@ export function useHeroSlides() {
     );
 
     return () => unsubscribe();
-  }, []);
+  }, [data, isFresh]);
 
   return { slides, loading };
 }
 
-// HOOK 2: useLatestStories (Real-Time Firestore Listener)
+// HOOK 2: useLatestStories (36 from aggregation, page 4+ via cursor query)
 export function useLatestStories(postsPerPage = 12) {
+  const { data, isFresh } = useHomepageAggregation();
+  const aggregationActive = Boolean(data && isFresh);
+
   const [allPosts, setAllPosts] = React.useState<StoryCard[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [currentPage, setCurrentPage] = React.useState(1);
+  const [deepPosts, setDeepPosts] = React.useState<StoryCard[]>([]);
+  const [hasMore, setHasMore] = React.useState(false);
+  const pageCursors = React.useRef<Record<number, unknown>>({});
 
+  // Load the aggregation slice, or fall back to the real-time listener
   React.useEffect(() => {
+    if (aggregationActive && data) {
+      setAllPosts(data.latestStories || []);
+      setDeepPosts([]);
+      pageCursors.current = {};
+      setHasMore(Boolean(data.paginatedCursor));
+      setCurrentPage((p) => (p > 3 ? 3 : p));
+      setLoading(false);
+      return;
+    }
+
+    if (!aggregationActive) {
+      setDeepPosts([]);
+      pageCursors.current = {};
+      const q = query(
+        collection(db, "posts"),
+        where("status", "==", "published")
+      );
+
+      const unsubscribe = onSnapshot(
+        q,
+        (snapshot) => {
+          setAllPosts(parsePublishedPosts(snapshot.docs).map(postToStoryCard));
+          setHasMore(false);
+          setLoading(false);
+        },
+        (error) => {
+          console.error("useLatestStories onSnapshot error:", error);
+          setAllPosts([]);
+          setLoading(false);
+        }
+      );
+
+      return () => unsubscribe();
+    }
+  }, [aggregationActive, data]);
+
+  // Deep pagination: pages 4+ are fetched from Firestore with a cursor
+  React.useEffect(() => {
+    if (!aggregationActive || currentPage < 4) return;
+
+    let cancelled = false;
+    const startAt =
+      pageCursors.current[currentPage - 1] ?? data?.paginatedCursor ?? null;
+    if (startAt == null) {
+      setHasMore(false);
+      return;
+    }
+
     const q = query(
       collection(db, "posts"),
-      where("status", "==", "published")
+      where("status", "==", "published"),
+      orderBy("createdAt", "desc"),
+      startAfter(startAt),
+      limit(postsPerPage)
     );
 
-    const unsubscribe = onSnapshot(
-      q,
-      (snapshot) => {
-        const posts = parsePublishedPosts(snapshot.docs);
-        const liveCards: StoryCard[] = posts.map((data) => ({
-          id: data.id,
-          category: data.category,
-          title: data.title,
-          description: data.description || (data.content || "").replace(/<[^>]*>/g, "").slice(0, 150) + "...",
-          coverImageUrl: data.coverImageUrl || "/assets/placeholder-cover.jpg",
-          createdAt: formatDate(data.createdAt),
-          slug: data.slug,
-          artistName: data.artistName,
-          projectTitle: data.projectTitle,
-          projectType: data.projectType,
-          rating: data.rating,
-          verdict: data.verdict,
-        }));
-        setAllPosts(liveCards);
+    getDocs(q)
+      .then((snapshot) => {
+        if (cancelled) return;
+        const cards = snapshot.docs.map(toStoryCard);
+        const lastDoc = snapshot.docs[snapshot.docs.length - 1];
+        pageCursors.current[currentPage] = lastDoc
+          ? lastDoc.data().createdAt
+          : null;
+        setDeepPosts(cards);
+        setHasMore(snapshot.docs.length === postsPerPage);
+        if (cards.length === 0) setCurrentPage(3);
         setLoading(false);
-      },
-      (error) => {
-        console.error("useLatestStories onSnapshot error:", error);
-        setAllPosts([]);
+      })
+      .catch((error) => {
+        console.error("useLatestStories deep page error:", error);
         setLoading(false);
-      }
-    );
+      });
 
-    return () => unsubscribe();
-  }, []);
+    return () => {
+      cancelled = true;
+    };
+  }, [aggregationActive, currentPage, data, postsPerPage]);
 
-  const totalPages = Math.max(1, Math.ceil(allPosts.length / postsPerPage));
-  const start = (currentPage - 1) * postsPerPage;
-  const stories = allPosts.slice(start, start + postsPerPage);
+  const storedPages = Math.max(1, Math.ceil(allPosts.length / postsPerPage));
+
+  let totalPages: number;
+  if (aggregationActive) {
+    const base = Math.max(storedPages, currentPage);
+    totalPages = hasMore ? base + 1 : base;
+  } else {
+    totalPages = storedPages;
+  }
+
+  const stories = aggregationActive
+    ? currentPage >= 4
+      ? deepPosts
+      : allPosts.slice(
+          (currentPage - 1) * postsPerPage,
+          currentPage * postsPerPage
+        )
+    : allPosts.slice(
+        (currentPage - 1) * postsPerPage,
+        currentPage * postsPerPage
+      );
 
   return { stories, loading, currentPage, setCurrentPage, totalPages };
 }
 
-// HOOK 3: useTrendingPosts (Real-Time Firestore Listener)
+// HOOK 3: useTrendingPosts (aggregation doc, falls back to real-time query)
 export function useTrendingPosts() {
+  const { data, isFresh } = useHomepageAggregation();
   const [posts, setPosts] = React.useState<TrendingPost[]>([]);
   const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
+    if (data && isFresh && (data.trending || []).length > 0) {
+      setPosts(data.trending || []);
+      setLoading(false);
+      return;
+    }
+
     const q = query(
       collection(db, "posts"),
       where("status", "==", "published")
@@ -241,17 +400,29 @@ export function useTrendingPosts() {
     );
 
     return () => unsubscribe();
-  }, []);
+  }, [data, isFresh]);
 
   return { posts, loading };
 }
 
-// HOOK 4: useEditorPicks (Real-Time Firestore Listener)
+// HOOK 4: useEditorPicks (aggregation when unfiltered; live query for category filters)
 export function useEditorPicks(categoryFilter?: string) {
+  const { data, isFresh } = useHomepageAggregation();
   const [picks, setPicks] = React.useState<EditorPick[]>([]);
   const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
+    if (
+      !categoryFilter &&
+      data &&
+      isFresh &&
+      (data.editorPicks || []).length > 0
+    ) {
+      setPicks(data.editorPicks || []);
+      setLoading(false);
+      return;
+    }
+
     const q = query(
       collection(db, "posts"),
       where("status", "==", "published")
@@ -285,7 +456,7 @@ export function useEditorPicks(categoryFilter?: string) {
     );
 
     return () => unsubscribe();
-  }, [categoryFilter]);
+  }, [data, isFresh, categoryFilter]);
 
   return { picks, loading };
 }

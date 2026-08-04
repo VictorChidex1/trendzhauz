@@ -104,6 +104,7 @@ export interface StoryCard {
   rating?: number;
   verdict?: string;
   genre?: string;
+  authorName?: string;
   scoreBreakdown?: {
     production?: number;
     lyricism?: number;
