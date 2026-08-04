@@ -198,7 +198,7 @@ export default function VideosPage() {
                     initial="hidden"
                     animate="visible"
                     exit={{ opacity: 0 }}
-                    className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-10 sm:gap-x-6 sm:gap-y-12"
+                    className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-10 sm:gap-x-6 sm:gap-y-12"
                   >
                     {posts.map((post) => (
                       <motion.div
