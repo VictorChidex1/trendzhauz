@@ -9,6 +9,9 @@ import {
   Flame,
   Eye,
   Zap,
+  Share2,
+  Check,
+  TrendingUp,
 } from "lucide-react";
 import { useEditorPicks } from "@/hooks/useBlogData";
 import { useNewsPosts } from "@/hooks/useNewsPosts";
@@ -29,6 +32,28 @@ const itemVariants = {
     transition: { type: "spring", stiffness: 120, damping: 20 },
   },
 } as const;
+
+function ShareButton({ slug }: { slug: string }) {
+  const [copied, setCopied] = React.useState(false);
+
+  const handleShare = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    navigator.clipboard.writeText(`${window.location.origin}/news/${slug}`);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <button
+      onClick={handleShare}
+      className="absolute top-2 right-2 bg-black/50 hover:bg-brand text-white p-2 rounded-full backdrop-blur-md opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100 transition-all duration-300 z-20 shadow-lg border border-white/10"
+      aria-label="Share article"
+    >
+      {copied ? <Check className="w-4 h-4 text-green-400" /> : <Share2 className="w-4 h-4" />}
+    </button>
+  );
+}
 
 type DayBucket = "Today" | "Yesterday" | "This Week" | "Earlier";
 
@@ -274,36 +299,40 @@ export default function NewsPage() {
                               <motion.div
                                 key={post.id}
                                 variants={itemVariants}
-                                className="group relative"
+                                className="group relative flex flex-col"
                               >
-                                <Link
-                                  to={`/news/${post.slug}`}
-                                  className="block aspect-square relative rounded-xl overflow-hidden bg-zinc-100 dark:bg-zinc-900 mb-3 shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:shadow-[0_20px_40px_rgb(0,0,0,0.2)] dark:shadow-none dark:hover:shadow-[0_20px_40px_rgba(0,0,0,0.5)] group-hover:-translate-y-1 transition-all duration-300"
-                                >
-                                  {/* inner ring for glossy magazine feel */}
-                                  <div className="absolute inset-0 rounded-xl ring-1 ring-inset ring-black/5 dark:ring-white/10 z-10 pointer-events-none" />
-                                  <img
-                                    src={post.coverImageUrl}
-                                    alt={post.title}
-                                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                                    loading="lazy"
-                                  />
-                                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors duration-300 flex items-center justify-center">
-                                    <div className="w-12 h-12 rounded-full bg-brand/90 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 scale-50 group-hover:scale-100 transition-all duration-300 shadow-xl backdrop-blur-md">
-                                      <ArrowRight className="w-5 h-5" />
+                                <div className="relative block">
+                                  <Link
+                                    to={`/news/${post.slug}`}
+                                    className="block aspect-square relative rounded-xl overflow-hidden bg-zinc-100 dark:bg-zinc-900 mb-3 shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:shadow-[0_20px_40px_rgb(0,0,0,0.2)] dark:shadow-none dark:hover:shadow-[0_20px_40px_rgba(0,0,0,0.5)] group-hover:-translate-y-1 transition-all duration-300"
+                                  >
+                                    {/* inner ring for glossy magazine feel */}
+                                    <div className="absolute inset-0 rounded-xl ring-1 ring-inset ring-black/5 dark:ring-white/10 z-10 pointer-events-none" />
+                                    <img
+                                      src={post.coverImageUrl}
+                                      alt={post.title}
+                                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                                      loading="lazy"
+                                    />
+                                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors duration-300 flex items-center justify-center">
+                                      <div className="w-12 h-12 rounded-full bg-brand/90 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 scale-50 group-hover:scale-100 transition-all duration-300 shadow-xl backdrop-blur-md">
+                                        <ArrowRight className="w-5 h-5" />
+                                      </div>
                                     </div>
-                                  </div>
-                                  {isNewDrop && (
-                                    <div className="absolute top-2 left-2 bg-brand text-white text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-sm shadow-md">
-                                      New Drop
-                                    </div>
-                                  )}
-                                  {!isNewDrop && post.isEditorPick && (
-                                    <div className="absolute top-2 left-2 bg-amber-500 text-black text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-sm shadow-md">
-                                      Hot
-                                    </div>
-                                  )}
-                                </Link>
+                                    {isNewDrop && (
+                                      <div className="absolute top-2 left-2 bg-brand text-white text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-sm shadow-md">
+                                        New Drop
+                                      </div>
+                                    )}
+                                    {!isNewDrop && post.isEditorPick && (
+                                      <div className="absolute top-2 left-2 bg-amber-500 text-black text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-sm shadow-md">
+                                        Hot
+                                      </div>
+                                    )}
+                                  </Link>
+                                  
+                                  <ShareButton slug={post.slug} />
+                                </div>
 
                                 <Link
                                   to={`/news/${post.slug}`}
@@ -435,6 +464,12 @@ export default function NewsPage() {
                       <div className="absolute top-0 left-0 bg-brand text-white text-[10px] font-black w-5 h-5 flex items-center justify-center rounded-br-md shadow-sm z-10">
                         {idx + 1}
                       </div>
+
+                      {idx < 2 && (
+                        <div className="absolute -bottom-2 -right-2 bg-background border border-border rounded-full p-1.5 shadow-lg z-20" title="Trending Up">
+                          <TrendingUp className="w-3 h-3 text-brand" />
+                        </div>
+                      )}
                     </div>
                     <div className="space-y-1">
                       <h4 className="font-bold text-sm text-foreground group-hover:text-brand transition-colors line-clamp-2 leading-tight">
