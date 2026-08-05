@@ -128,6 +128,9 @@ export function useCursorPaginatedPosts<T extends { id: string }>({
     !(cachedPage1 && typeof cachedCount === "number")
   );
   const [error, setError] = React.useState<string | null>(null);
+  const [countLoaded, setCountLoaded] = React.useState(
+    typeof cachedCount === "number"
+  );
 
   const pageMemoryRef = React.useRef<Map<number, T[]>>(new Map());
   const cursorForPageRef = React.useRef<Map<number, CursorValue>>(new Map());
@@ -136,6 +139,9 @@ export function useCursorPaginatedPosts<T extends { id: string }>({
   const lastFocusRefetchRef = React.useRef(0);
   const currentPageRef = React.useRef(currentPage);
   currentPageRef.current = currentPage;
+  const countLoadedRef = React.useRef(countLoaded);
+  countLoadedRef.current = countLoaded;
+  const pendingPageRef = React.useRef<number | null>(null);
 
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
 
@@ -305,6 +311,7 @@ export function useCursorPaginatedPosts<T extends { id: string }>({
         const count = snap.data().count;
         setTotalCount(count);
         setCachedData(countKey, count);
+        setCountLoaded(true);
       } catch (err) {
         console.error(`${cachePrefix} count failed:`, err);
         if (seq === countFetchSeqRef.current) setError(errorMessage);
@@ -348,6 +355,15 @@ export function useCursorPaginatedPosts<T extends { id: string }>({
     }
   }, [currentPage, totalPages]);
 
+  // If a page was requested before the count arrived, apply it now that the
+  // real total is known — clamped so it can never land on a page that doesn't exist.
+  React.useEffect(() => {
+    if (!countLoaded || pendingPageRef.current === null) return;
+    const pending = pendingPageRef.current;
+    pendingPageRef.current = null;
+    setCurrentPage(Math.min(Math.max(1, pending), totalPages));
+  }, [countLoaded, totalPages]);
+
   // Focus revalidation — throttled to one refetch per 60 seconds.
   React.useEffect(() => {
     if (!enabledRef.current) return;
@@ -377,6 +393,12 @@ export function useCursorPaginatedPosts<T extends { id: string }>({
     (page: number | ((prev: number) => number)) => {
       const next =
         typeof page === "function" ? page(currentPageRef.current) : page;
+      // The count is still unknown — remember the request and apply it once
+      // the real totalPages is known, instead of clamping against a guess.
+      if (!countLoadedRef.current) {
+        pendingPageRef.current = next;
+        return;
+      }
       const clamped = Math.min(Math.max(1, next), totalPages);
       setCurrentPage(clamped);
     },

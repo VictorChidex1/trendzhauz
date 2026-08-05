@@ -9,7 +9,6 @@ import {
   Flame,
   Eye,
   Zap,
-  Mail,
 } from "lucide-react";
 import { useEditorPicks } from "@/hooks/useBlogData";
 import { useNewsPosts } from "@/hooks/useNewsPosts";
@@ -61,7 +60,6 @@ export default function NewsPage() {
     totalCount,
   } = useNewsPosts(12);
   const { picks: editorPicks } = useEditorPicks("news");
-  const [subscribed, setSubscribed] = React.useState(false);
 
   const gridRef = React.useRef<HTMLDivElement>(null);
 
@@ -73,10 +71,21 @@ export default function NewsPage() {
     return () => clearTimeout(timer);
   }, [currentPage]);
 
-  const nowMs = React.useMemo(() => Date.now(), []);
+  const [nowMs, setNowMs] = React.useState(() => Date.now());
+
+  React.useEffect(() => {
+    const tick = () => setNowMs(Date.now());
+    const id = window.setInterval(tick, 60_000);
+    window.addEventListener("focus", tick);
+    document.addEventListener("visibilitychange", tick);
+    return () => {
+      window.clearInterval(id);
+      window.removeEventListener("focus", tick);
+      document.removeEventListener("visibilitychange", tick);
+    };
+  }, []);
 
   const leadStory = posts[0] || null;
-  const secondaryStories = posts.slice(1, 3);
   const tickerItems = posts.slice(0, 8);
 
   const trendingPosts = React.useMemo(
@@ -130,6 +139,63 @@ export default function NewsPage() {
 
   return (
     <div className="flex flex-col flex-1 w-full bg-background">
+      {leadStory && (
+        <section className="relative w-full min-h-[600px] lg:min-h-[700px] flex flex-col group bg-zinc-950">
+          <img
+            src={leadStory.coverImageUrl}
+            alt={leadStory.title}
+            className="absolute inset-0 w-full h-full object-cover transition-transform transform-gpu duration-1000 lg:group-hover:scale-105 z-0 opacity-60"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/80 to-transparent z-0" />
+
+          <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col justify-end flex-1 pt-32 pb-12 lg:pb-24">
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2, type: "spring" }}
+              className="w-full flex flex-col lg:flex-row lg:items-end justify-between gap-8"
+            >
+              <div className="max-w-3xl space-y-6">
+                <div className="flex items-center gap-3">
+                  <span className="bg-brand text-white text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-sm shadow-lg">
+                    Latest News
+                  </span>
+                  {leadStory.isEditorPick && (
+                    <span className="bg-amber-500 text-black text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-sm shadow-lg flex items-center gap-1">
+                      <Flame className="w-3 h-3 fill-current" /> Editor&apos;s Pick
+                    </span>
+                  )}
+                </div>
+
+                <Link to={`/news/${leadStory.slug}`} className="block group/title">
+                  <h1 className="text-4xl sm:text-5xl lg:text-7xl font-black text-white uppercase tracking-tighter leading-[1.1] group-hover/title:text-brand transition-colors">
+                    {leadStory.title}
+                  </h1>
+                </Link>
+
+                <p className="text-zinc-300 text-sm sm:text-base md:text-lg max-w-2xl line-clamp-3 leading-relaxed">
+                  {leadStory.description}
+                </p>
+
+                <p className="text-zinc-400 text-[10px] sm:text-xs font-bold uppercase tracking-widest flex items-center gap-1.5">
+                  <Calendar className="h-3.5 w-3.5 text-brand" />
+                  Published {leadStory.createdAtLabel}
+                </p>
+
+                <div className="pt-2">
+                  <Link
+                    to={`/news/${leadStory.slug}`}
+                    className="inline-flex bg-brand hover:bg-brand/90 text-white font-bold uppercase tracking-wider text-xs px-8 py-4 rounded-full transition-all shadow-lg hover:shadow-brand/20 items-center gap-2"
+                  >
+                    Read Full Story <ArrowRight className="w-4 h-4" />
+                  </Link>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        </section>
+      )}
+
       {posts.length > 0 && (
         <>
           {/* Breaking ticker */}
@@ -154,78 +220,6 @@ export default function NewsPage() {
                     </Link>
                   ))}
                 </div>
-              </div>
-            </div>
-          </section>
-
-          {/* The Buzz — lead story + just-in stories */}
-          <section className="relative bg-zinc-950 text-white">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12 grid grid-cols-1 lg:grid-cols-12 gap-6">
-              {leadStory && (
-                <Link
-                  to={`/news/${leadStory.slug}`}
-                  className="lg:col-span-8 relative aspect-[16/9] rounded-2xl overflow-hidden group bg-zinc-900"
-                >
-                  <img
-                    src={leadStory.coverImageUrl}
-                    alt={leadStory.title}
-                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/60 to-transparent" />
-                  <div className="absolute inset-x-0 bottom-0 p-6 sm:p-8 space-y-3">
-                    <span className="inline-flex bg-brand text-white text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-sm shadow-lg">
-                      The Buzz
-                    </span>
-                    <h1 className="text-2xl sm:text-4xl lg:text-5xl font-black uppercase tracking-tighter leading-tight group-hover:text-brand transition-colors line-clamp-3">
-                      {leadStory.title}
-                    </h1>
-                    <p className="text-zinc-300 text-xs sm:text-sm max-w-2xl line-clamp-2">
-                      {leadStory.description}
-                    </p>
-                    <div className="flex flex-wrap items-center gap-4 text-[10px] font-bold uppercase tracking-widest text-zinc-400">
-                      <span className="flex items-center gap-1.5">
-                        <Calendar className="w-3.5 h-3.5 text-brand" />
-                        Published {leadStory.createdAtLabel}
-                      </span>
-                      {leadStory.isEditorPick && (
-                        <span className="flex items-center gap-1.5 text-amber-400">
-                          <Flame className="w-3.5 h-3.5 fill-current" />
-                          Editor&apos;s Pick
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </Link>
-              )}
-
-              <div className="lg:col-span-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-6">
-                {secondaryStories.map((post) => (
-                  <Link
-                    key={post.id}
-                    to={`/news/${post.slug}`}
-                    className="group relative aspect-[16/9] rounded-2xl overflow-hidden bg-zinc-900"
-                  >
-                    <img
-                      src={post.coverImageUrl}
-                      alt={post.title}
-                      className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
-                      loading="lazy"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/70 to-transparent" />
-                    <div className="absolute inset-x-0 bottom-0 p-4 sm:p-5 space-y-2">
-                      <span className="inline-flex bg-zinc-900/80 backdrop-blur text-white text-[9px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-sm border border-white/10">
-                        Just In
-                      </span>
-                      <h3 className="font-black text-base sm:text-lg leading-snug group-hover:text-brand transition-colors line-clamp-2">
-                        {post.title}
-                      </h3>
-                      <p className="text-[9px] font-bold uppercase tracking-widest text-zinc-400 flex items-center gap-1.5">
-                        <Calendar className="w-3 h-3 text-brand" />
-                        {post.createdAtLabel}
-                      </p>
-                    </div>
-                  </Link>
-                ))}
               </div>
             </div>
           </section>
@@ -284,8 +278,10 @@ export default function NewsPage() {
                               >
                                 <Link
                                   to={`/news/${post.slug}`}
-                                  className="block aspect-square relative rounded-xl overflow-hidden bg-zinc-100 dark:bg-zinc-900 mb-3 shadow-md group-hover:shadow-xl transition-all duration-300"
+                                  className="block aspect-square relative rounded-xl overflow-hidden bg-zinc-100 dark:bg-zinc-900 mb-3 shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:shadow-[0_20px_40px_rgb(0,0,0,0.2)] dark:shadow-none dark:hover:shadow-[0_20px_40px_rgba(0,0,0,0.5)] group-hover:-translate-y-1 transition-all duration-300"
                                 >
+                                  {/* inner ring for glossy magazine feel */}
+                                  <div className="absolute inset-0 rounded-xl ring-1 ring-inset ring-black/5 dark:ring-white/10 z-10 pointer-events-none" />
                                   <img
                                     src={post.coverImageUrl}
                                     alt={post.title}
@@ -333,14 +329,22 @@ export default function NewsPage() {
                   </motion.div>
                 </AnimatePresence>
               ) : (
-                <div className="py-20 text-center border-2 border-dashed border-border rounded-xl">
-                  <p className="text-muted-foreground font-bold uppercase tracking-widest text-sm">
-                    No stories yet — chart buzz, drops &amp; tour news coming
-                    soon.
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-2 max-w-sm mx-auto">
-                    Publish a News story from the CMS to see it here.
-                  </p>
+                <div className="relative w-full rounded-2xl overflow-hidden bg-zinc-950 border border-white/5 p-12 sm:p-20 flex flex-col items-center justify-center text-center shadow-2xl">
+                  <div className="absolute inset-0 bg-gradient-to-tr from-brand/5 via-zinc-900/50 to-zinc-950" />
+                  <div className="absolute top-0 right-0 w-64 h-64 bg-brand/10 blur-[80px] rounded-full mix-blend-screen pointer-events-none" />
+                  <div className="absolute bottom-0 left-0 w-64 h-64 bg-purple-500/10 blur-[80px] rounded-full mix-blend-screen pointer-events-none" />
+                  
+                  <div className="relative z-10 flex flex-col items-center">
+                    <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mb-6 shadow-xl backdrop-blur-md">
+                      <Zap className="w-8 h-8 text-brand animate-pulse" />
+                    </div>
+                    <h3 className="text-2xl sm:text-3xl font-black text-white uppercase tracking-tighter mb-3">
+                      Stay Tuned
+                    </h3>
+                    <p className="text-zinc-400 font-bold uppercase tracking-widest text-[10px] sm:text-xs max-w-md leading-relaxed">
+                      Our editors are currently tracking the hottest stories. Chart buzz, exclusive drops, and tour news will appear here shortly.
+                    </p>
+                  </div>
                 </div>
               )}
 
@@ -498,42 +502,6 @@ export default function NewsPage() {
                   </div>
                 </div>
               )}
-
-              <div className="mt-12 rounded-xl border border-border bg-gradient-to-br from-brand/10 via-transparent to-transparent p-6 space-y-4">
-                <h3 className="text-lg font-black uppercase tracking-widest text-foreground flex items-center gap-2">
-                  <Mail className="w-5 h-5 text-brand" /> The Drop
-                </h3>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  Get the hottest drops, chart moves and tour news in your
-                  inbox — no spam, just heat.
-                </p>
-                {subscribed ? (
-                  <p className="text-xs font-bold text-brand uppercase tracking-widest">
-                    You&apos;re on the list — stay locked.
-                  </p>
-                ) : (
-                  <form
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      setSubscribed(true);
-                    }}
-                    className="space-y-3"
-                  >
-                    <input
-                      type="email"
-                      required
-                      placeholder="you@email.com"
-                      className="w-full px-4 py-2.5 text-sm rounded-md border border-border bg-background text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-brand/40"
-                    />
-                    <button
-                      type="submit"
-                      className="w-full bg-brand hover:bg-brand/90 text-white text-[10px] font-black uppercase tracking-widest px-4 py-3 rounded-md transition-colors"
-                    >
-                      Subscribe
-                    </button>
-                  </form>
-                )}
-              </div>
             </div>
           </div>
         </div>
