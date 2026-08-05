@@ -4,10 +4,10 @@ import { Link } from "react-router-dom";
 const footerLinks = {
   Content: [
     { name: "Home", path: "/" },
-    { name: "Reviews", path: "/category/reviews" },
-    { name: "Music", path: "/category/music" },
-    { name: "Videos", path: "/category/videos" },
-    { name: "News", path: "/category/news" },
+    { name: "Reviews", path: "/reviews" },
+    { name: "Music", path: "/music" },
+    { name: "Videos", path: "/videos" },
+    { name: "News", path: "/news" },
   ],
   Platform: [{ name: "Bio Links", path: "/links" }],
 };

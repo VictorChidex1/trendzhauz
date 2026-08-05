@@ -20,6 +20,28 @@
       "**/.*",
       "**/node_modules/**"
     ],
+    "redirects": [
+      {
+        "source": "/category/music",
+        "destination": "/music",
+        "type": 301
+      },
+      {
+        "source": "/category/reviews",
+        "destination": "/reviews",
+        "type": 301
+      },
+      {
+        "source": "/category/videos",
+        "destination": "/videos",
+        "type": 301
+      },
+      {
+        "source": "/category/news",
+        "destination": "/news",
+        "type": 301
+      }
+    ],
     "rewrites": [
       {
         "source": "**",

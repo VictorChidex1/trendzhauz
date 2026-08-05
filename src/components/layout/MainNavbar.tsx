@@ -8,10 +8,10 @@ import { SearchModal } from "@/components/layout/SearchModal";
 
 const navItems = [
   { name: "Home", path: "/" },
-  { name: "Reviews", path: "/category/reviews" },
-  { name: "Music", path: "/category/music" },
-  { name: "Videos", path: "/category/videos" },
-  { name: "News", path: "/category/news" },
+  { name: "Reviews", path: "/reviews" },
+  { name: "Music", path: "/music" },
+  { name: "Videos", path: "/videos" },
+  { name: "News", path: "/news" },
   { name: "Bio Links", path: "/links" },
 ];
 

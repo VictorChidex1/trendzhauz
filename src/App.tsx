@@ -42,10 +42,10 @@ function AppContent() {
           <Routes>
           {/* Public Routing */}
           <Route path="/" element={<BlogHome />} />
-          <Route path="/category/music" element={<MusicPage />} />
-          <Route path="/category/reviews" element={<ReviewsPage />} />
-          <Route path="/category/videos" element={<VideosPage />} />
-          <Route path="/category/:category" element={<BlogHome />} />
+          <Route path="/music" element={<MusicPage />} />
+          <Route path="/reviews" element={<ReviewsPage />} />
+          <Route path="/videos" element={<VideosPage />} />
+          <Route path="/news" element={<BlogHome />} />
           <Route path="/links" element={<LinkHub />} />
 
           {/* Article Detail — category-based URL: /{category}/{slug} */}

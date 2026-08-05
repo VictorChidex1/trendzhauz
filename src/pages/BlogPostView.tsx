@@ -173,7 +173,7 @@ export default function BlogPostView() {
 
   // Format the category for breadcrumb display
   const displayCategory = post.category || category || "News";
-  const categoryPath = `/category/${displayCategory.toLowerCase()}`;
+  const categoryPath = `/${displayCategory.toLowerCase()}`;
 
   const formattedDate = post.createdAt?.toDate
     ? post.createdAt.toDate().toLocaleDateString("en-US", {
