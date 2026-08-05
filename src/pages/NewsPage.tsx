@@ -111,7 +111,6 @@ export default function NewsPage() {
   }, []);
 
   const leadStory = posts[0] || null;
-  const tickerItems = posts.slice(0, 8);
 
   const trendingPosts = React.useMemo(
     () =>
@@ -221,35 +220,7 @@ export default function NewsPage() {
         </section>
       )}
 
-      {posts.length > 0 && (
-        <>
-          {/* Breaking ticker */}
-          <section className="relative z-20 border-b border-zinc-800 bg-zinc-950 text-white overflow-hidden">
-            <div className="flex items-stretch">
-              <div className="flex-shrink-0 flex items-center gap-2 bg-brand px-4 py-2.5">
-                <Zap className="w-3.5 h-3.5 fill-current animate-pulse" />
-                <span className="text-[10px] font-black uppercase tracking-widest">
-                  Breaking
-                </span>
-              </div>
-              <div className="relative flex-1 overflow-hidden flex items-center">
-                <div className="flex whitespace-nowrap animate-[news-ticker_40s_linear_infinite] motion-reduce:animate-none hover:[animation-play-state:paused] motion-reduce:overflow-x-auto">
-                  {[...tickerItems, ...tickerItems].map((post, idx) => (
-                    <Link
-                      key={`${post.id}-${idx}`}
-                      to={`/news/${post.slug}`}
-                      className="inline-flex items-center gap-2 px-6 text-xs font-bold text-zinc-300 hover:text-brand transition-colors flex-shrink-0"
-                    >
-                      <span className="w-1.5 h-1.5 rounded-full bg-brand flex-shrink-0" />
-                      {post.title}
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </section>
-        </>
-      )}
+
 
       <section className="py-12 sm:py-16 bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
