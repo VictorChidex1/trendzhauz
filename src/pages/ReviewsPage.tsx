@@ -47,11 +47,13 @@ export default function ReviewsPage() {
 
   // Sort State
   const [sortBy, setSortBy] = React.useState<"newest" | "highest-rated">(
-    "newest"
+    "newest",
   );
 
   // 3️⃣ Active Tooltip / Popover for Score Matrix Breakdown
-  const [activeMatrixId, setActiveMatrixId] = React.useState<string | null>(null);
+  const [activeMatrixId, setActiveMatrixId] = React.useState<string | null>(
+    null,
+  );
 
   const {
     reviews,
@@ -60,13 +62,7 @@ export default function ReviewsPage() {
     setCurrentPage,
     totalPages,
     totalEstimate,
-  } = useReviews(
-    12,
-    projectTypeFilter,
-    sortBy,
-    genreFilter,
-    inlineSearchQuery
-  );
+  } = useReviews(12, projectTypeFilter, sortBy, genreFilter, inlineSearchQuery);
 
   // Scroll to top of window on page change
   React.useEffect(() => {
@@ -165,12 +161,16 @@ export default function ReviewsPage() {
                 <div className="space-y-1">
                   <div className="flex justify-between text-[10px] uppercase font-bold text-zinc-300">
                     <span>Production</span>
-                    <span className="text-brand">{(breakdown?.production ?? 0).toFixed(1)}</span>
+                    <span className="text-brand">
+                      {(breakdown?.production ?? 0).toFixed(1)}
+                    </span>
                   </div>
                   <div className="h-1.5 w-full bg-zinc-800 rounded-full overflow-hidden">
                     <div
                       className="h-full bg-brand rounded-full transition-all duration-500"
-                      style={{ width: `${((breakdown?.production ?? 0) / 10) * 100}%` }}
+                      style={{
+                        width: `${((breakdown?.production ?? 0) / 10) * 100}%`,
+                      }}
                     />
                   </div>
                 </div>
@@ -179,12 +179,16 @@ export default function ReviewsPage() {
                 <div className="space-y-1">
                   <div className="flex justify-between text-[10px] uppercase font-bold text-zinc-300">
                     <span>Lyricism</span>
-                    <span className="text-brand">{(breakdown?.lyricism ?? 0).toFixed(1)}</span>
+                    <span className="text-brand">
+                      {(breakdown?.lyricism ?? 0).toFixed(1)}
+                    </span>
                   </div>
                   <div className="h-1.5 w-full bg-zinc-800 rounded-full overflow-hidden">
                     <div
                       className="h-full bg-brand rounded-full transition-all duration-500"
-                      style={{ width: `${((breakdown?.lyricism ?? 0) / 10) * 100}%` }}
+                      style={{
+                        width: `${((breakdown?.lyricism ?? 0) / 10) * 100}%`,
+                      }}
                     />
                   </div>
                 </div>
@@ -193,12 +197,16 @@ export default function ReviewsPage() {
                 <div className="space-y-1">
                   <div className="flex justify-between text-[10px] uppercase font-bold text-zinc-300">
                     <span>Replay Value</span>
-                    <span className="text-brand">{(breakdown?.replayValue ?? 0).toFixed(1)}</span>
+                    <span className="text-brand">
+                      {(breakdown?.replayValue ?? 0).toFixed(1)}
+                    </span>
                   </div>
                   <div className="h-1.5 w-full bg-zinc-800 rounded-full overflow-hidden">
                     <div
                       className="h-full bg-brand rounded-full transition-all duration-500"
-                      style={{ width: `${((breakdown?.replayValue ?? 0) / 10) * 100}%` }}
+                      style={{
+                        width: `${((breakdown?.replayValue ?? 0) / 10) * 100}%`,
+                      }}
                     />
                   </div>
                 </div>
@@ -207,12 +215,16 @@ export default function ReviewsPage() {
                 <div className="space-y-1">
                   <div className="flex justify-between text-[10px] uppercase font-bold text-zinc-300">
                     <span>Originality</span>
-                    <span className="text-brand">{(breakdown?.originality ?? 0).toFixed(1)}</span>
+                    <span className="text-brand">
+                      {(breakdown?.originality ?? 0).toFixed(1)}
+                    </span>
                   </div>
                   <div className="h-1.5 w-full bg-zinc-800 rounded-full overflow-hidden">
                     <div
                       className="h-full bg-brand rounded-full transition-all duration-500"
-                      style={{ width: `${((breakdown?.originality ?? 0) / 10) * 100}%` }}
+                      style={{
+                        width: `${((breakdown?.originality ?? 0) / 10) * 100}%`,
+                      }}
                     />
                   </div>
                 </div>
@@ -256,9 +268,7 @@ export default function ReviewsPage() {
 
               <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-black uppercase text-white tracking-tighter leading-tight sm:leading-none">
                 {spotlightReview.artistName}{" "}
-                <span className="text-zinc-400 font-extralight block sm:inline">
-                  /
-                </span>{" "}
+                <span className="text-zinc-400 font-extralight block sm:inline"></span>{" "}
                 {spotlightReview.projectTitle}
               </h1>
 
@@ -306,7 +316,6 @@ export default function ReviewsPage() {
       {/* ── RESPONSIVE FILTER & CONTROL BAR ── */}
       <section className="sticky top-20 z-30 w-full border-b border-zinc-200/50 dark:border-zinc-800/50 bg-background/95 backdrop-blur-md py-3 sm:py-4 px-3 sm:px-6 lg:px-8 transition-all space-y-3 sm:space-y-4">
         <div className="max-w-7xl mx-auto flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 sm:gap-4">
-          
           {/* LEFT: Format Segmented Tabs (Touch-Scrollable on Mobile) */}
           <div className="w-full lg:w-auto overflow-x-auto no-scrollbar pb-1 lg:pb-0">
             <div className="inline-flex items-center space-x-1 p-1 bg-zinc-100 dark:bg-zinc-900/60 rounded-md border border-zinc-200/40 dark:border-zinc-800/40 min-w-max">
@@ -330,12 +339,16 @@ export default function ReviewsPage() {
                         <motion.span
                           layoutId="active-review-filter-tab"
                           className="absolute inset-0 bg-zinc-900 dark:bg-white rounded-sm"
-                          transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                          transition={{
+                            type: "spring",
+                            stiffness: 380,
+                            damping: 30,
+                          }}
                         />
                       )}
                     </button>
                   );
-                }
+                },
               )}
             </div>
           </div>
@@ -392,7 +405,14 @@ export default function ReviewsPage() {
             <span>Genre:</span>
           </div>
           {(
-            ["All", "Afrobeats", "Amapiano", "Hip-Hop", "Street-Pop", "R&B"] as const
+            [
+              "All",
+              "Afrobeats",
+              "Amapiano",
+              "Hip-Hop",
+              "Street-Pop",
+              "R&B",
+            ] as const
           ).map((g) => {
             const isActive = genreFilter === g;
             return (
@@ -548,7 +568,8 @@ export default function ReviewsPage() {
               No Matching Reviews Found
             </h3>
             <p className="text-xs text-muted-foreground uppercase tracking-widest max-w-md mx-auto">
-              No music reviews match your active filter selection. Try clearing the search query or score filter.
+              No music reviews match your active filter selection. Try clearing
+              the search query or score filter.
             </p>
             <button
               onClick={() => {
