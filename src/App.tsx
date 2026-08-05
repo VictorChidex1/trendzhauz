@@ -13,6 +13,7 @@ import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 const MusicPage = lazy(() => import("@/pages/MusicPage"));
 const ReviewsPage = lazy(() => import("@/pages/ReviewsPage"));
 const VideosPage = lazy(() => import("@/pages/VideosPage"));
+const NewsPage = lazy(() => import("@/pages/NewsPage"));
 const BlogPostView = lazy(() => import("@/pages/BlogPostView"));
 const LinkHub = lazy(() => import("@/pages/LinkHub"));
 const AdminLogin = lazy(() => import("@/pages/AdminLogin"));
@@ -45,7 +46,7 @@ function AppContent() {
           <Route path="/music" element={<MusicPage />} />
           <Route path="/reviews" element={<ReviewsPage />} />
           <Route path="/videos" element={<VideosPage />} />
-          <Route path="/news" element={<BlogHome />} />
+          <Route path="/news" element={<NewsPage />} />
           <Route path="/links" element={<LinkHub />} />
 
           {/* Article Detail — category-based URL: /{category}/{slug} */}
