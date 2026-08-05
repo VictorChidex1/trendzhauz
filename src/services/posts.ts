@@ -12,7 +12,7 @@ import {
   Timestamp,
 } from "firebase/firestore";
 import { db } from "@/services/firebase";
-import { clearCachedData } from "@/utils/queryCache";
+import { clearCachedData, clearAllListCaches } from "@/utils/queryCache";
 import type { Post, CreatePostInput, PostCategory } from "@/types/post";
 import type { UserProfile } from "@/types/user";
 
@@ -20,15 +20,23 @@ const POSTS_COLLECTION = "posts";
 
 /**
  * Invalidate the SWR localStorage caches for the server-side paginated lists.
- * Called after every successful write so the Music, Reviews and Videos pages
- * never serve a stale page 1 / count / cursor boundaries after a CMS edit.
+ * Called after every successful write so the category pages never serve a
+ * stale page 1 / count / cursor boundaries after a CMS edit.
+ *
+ * When the post's category is known, only that category's list is cleared.
+ * When it isn't (delete, or an update that didn't change the category), every
+ * list cache is swept generically — so new categories are covered automatically
+ * without maintaining a hardcoded category list.
  */
-function invalidateListCaches(): void {
-  for (const prefix of ["music", "reviews", "videos"]) {
+function invalidateListCaches(category?: string): void {
+  if (category) {
+    const prefix = category.toLowerCase();
     clearCachedData(`${prefix}_p1`);
     clearCachedData(`${prefix}_count`);
     clearCachedData(`${prefix}_boundaries`);
+    return;
   }
+  clearAllListCaches();
 }
 
 /**
@@ -157,7 +165,7 @@ export async function createPost(
     if (input.verdict) newPostData.verdict = input.verdict.trim();
 
     const docRef = await addDoc(collection(db, POSTS_COLLECTION), newPostData);
-    invalidateListCaches();
+    invalidateListCaches(input.category);
     return docRef.id;
   } catch (error) {
     console.error("Error creating post:", error);
@@ -202,7 +210,7 @@ export async function updatePost(
     }
 
     await updateDoc(postRef, updateData);
-    invalidateListCaches();
+    invalidateListCaches(input.category);
   } catch (error) {
     console.error("Error updating post:", error);
     throw error;

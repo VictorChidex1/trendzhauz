@@ -93,6 +93,28 @@ export function clearCachedData(key: string): void {
 }
 
 /**
+ * Remove every cursor-paginated list cache (…_p{n}, …_count, …_boundaries).
+ * Category-agnostic: sweeps all prefixes so future categories are covered
+ * without ever updating a hardcoded list again.
+ */
+export function clearAllListCaches(): void {
+  try {
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const fullKey = localStorage.key(i);
+      if (
+        fullKey &&
+        fullKey.startsWith(CACHE_PREFIX) &&
+        /(_p\d+$|_count$|_boundaries$)/.test(fullKey)
+      ) {
+        localStorage.removeItem(fullKey);
+      }
+    }
+  } catch {
+    // fail silently
+  }
+}
+
+/**
  * Scans localStorage for stale Trendzhauz cache keys and removes expired entries
  * to keep local storage clean and prevent QuotaExceededError.
  */
