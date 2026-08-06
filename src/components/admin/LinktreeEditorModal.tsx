@@ -9,6 +9,7 @@ interface LinktreeEditorModalProps {
   onClose: () => void;
   itemToEdit: LinktreeItem | null;
   onSuccess: () => void;
+  linksLength: number;
 }
 
 export function LinktreeEditorModal({
@@ -16,11 +17,11 @@ export function LinktreeEditorModal({
   onClose,
   itemToEdit,
   onSuccess,
+  linksLength,
 }: LinktreeEditorModalProps) {
   const [title, setTitle] = useState("");
   const [targetUrl, setTargetUrl] = useState("");
   const [iconType, setIconType] = useState("generic");
-  const [order, setOrder] = useState<number>(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -29,12 +30,10 @@ export function LinktreeEditorModal({
       setTitle(itemToEdit.title);
       setTargetUrl(itemToEdit.targetUrl);
       setIconType(itemToEdit.iconType);
-      setOrder(itemToEdit.order);
     } else if (isOpen) {
       setTitle("");
       setTargetUrl("");
       setIconType("generic");
-      setOrder(0);
     }
   }, [itemToEdit, isOpen]);
 
@@ -47,13 +46,12 @@ export function LinktreeEditorModal({
 
     try {
       if (itemToEdit) {
-        // Update existing link
+        // Update existing link (order stays the same)
         const linkRef = doc(db, "linktree", itemToEdit.id);
         await updateDoc(linkRef, {
           title: title.trim(),
           targetUrl: targetUrl.trim(),
           iconType,
-          order,
         });
       } else {
         // Create new link
@@ -61,7 +59,7 @@ export function LinktreeEditorModal({
           title: title.trim(),
           targetUrl: targetUrl.trim(),
           iconType,
-          order,
+          order: linksLength,
           isActive: true,
           clickCount: 0,
           createdAt: serverTimestamp(),
@@ -138,42 +136,26 @@ export function LinktreeEditorModal({
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-black uppercase tracking-widest text-zinc-500">
-                Platform Icon
-              </label>
-              <select
-                value={iconType}
-                onChange={(e) => setIconType(e.target.value)}
-                className="w-full bg-zinc-50 border border-zinc-300 rounded-md px-3 py-2 text-sm text-zinc-900 focus:outline-none focus:border-brand"
-              >
-                <option value="generic">Generic Link</option>
-                <option value="spotify">Spotify</option>
-                <option value="apple">Apple Music</option>
-                <option value="audiomack">Audiomack</option>
-                <option value="youtube">YouTube</option>
-                <option value="instagram">Instagram</option>
-                <option value="twitter">Twitter / X</option>
-                <option value="tiktok">TikTok</option>
-                <option value="facebook">Facebook</option>
-                <option value="email">Email</option>
-              </select>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-black uppercase tracking-widest text-zinc-500">
-                Display Order
-              </label>
-              <input
-                type="number"
-                required
-                min={0}
-                value={order}
-                onChange={(e) => setOrder(parseInt(e.target.value))}
-                className="w-full bg-zinc-50 border border-zinc-300 rounded-md px-3 py-2 text-sm text-zinc-900 focus:outline-none focus:border-brand"
-              />
-            </div>
+          <div className="space-y-1.5">
+            <label className="text-[11px] font-black uppercase tracking-widest text-zinc-500">
+              Platform Icon
+            </label>
+            <select
+              value={iconType}
+              onChange={(e) => setIconType(e.target.value)}
+              className="w-full bg-zinc-50 border border-zinc-300 rounded-md px-3 py-2 text-sm text-zinc-900 focus:outline-none focus:border-brand"
+            >
+              <option value="generic">Generic Link</option>
+              <option value="spotify">Spotify</option>
+              <option value="apple">Apple Music</option>
+              <option value="audiomack">Audiomack</option>
+              <option value="youtube">YouTube</option>
+              <option value="instagram">Instagram</option>
+              <option value="twitter">Twitter / X</option>
+              <option value="tiktok">TikTok</option>
+              <option value="facebook">Facebook</option>
+              <option value="email">Email</option>
+            </select>
           </div>
 
           <div className="pt-4 flex items-center justify-end space-x-3 border-t border-zinc-100">

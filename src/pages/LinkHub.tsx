@@ -93,10 +93,10 @@ export default function LinkHub() {
           </div>
         </div>
 
-        <h1 className="text-2xl sm:text-3xl font-black uppercase tracking-tighter mb-2">
+        <h1 className={`text-2xl sm:text-3xl font-black uppercase tracking-tighter mb-2 ${isDarkMode ? "text-white" : "text-zinc-900"}`}>
           TRENDZHAUZ
         </h1>
-        <p className={`text-sm sm:text-base mb-8 text-center max-w-[280px] ${isDarkMode ? "text-zinc-400" : "text-zinc-600"}`}>
+        <p className={`text-sm sm:text-base mb-8 text-center max-w-[280px] ${isDarkMode ? "text-zinc-400" : "text-zinc-700"}`}>
           Listen to the latest mixes, view bookings, and connect.
         </p>
 

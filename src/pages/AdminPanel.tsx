@@ -17,6 +17,8 @@ import {
   Loader2,
   AlertTriangle,
   ExternalLink,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import type { Post } from "@/types/post";
@@ -271,6 +273,29 @@ export default function AdminPanel() {
     } catch (err) {
       console.error("Failed to toggle link:", err);
       alert("Failed to update link status.");
+    }
+  };
+
+  // Handle Moving Link Order
+  const handleMoveLink = async (index: number, direction: 'up' | 'down') => {
+    if (direction === 'up' && index === 0) return;
+    if (direction === 'down' && index === links.length - 1) return;
+
+    const newLinks = [...links];
+    const swapIndex = direction === 'up' ? index - 1 : index + 1;
+
+    [newLinks[index], newLinks[swapIndex]] = [newLinks[swapIndex], newLinks[index]];
+    setLinks(newLinks); // Optimistic UI update
+
+    try {
+      const updatePromises = newLinks.map((link, i) => 
+        updateDoc(doc(db, "linktree", link.id), { order: i })
+      );
+      await Promise.all(updatePromises);
+    } catch (err) {
+      console.error("Failed to reorder links:", err);
+      alert("Failed to reorder links.");
+      await loadLinks();
     }
   };
 
@@ -794,13 +819,32 @@ export default function AdminPanel() {
                             </button>
                           </td>
                           <td className="py-3 px-4 text-right">
-                            <div className="flex items-center justify-end space-x-3">
+                            <div className="flex items-center justify-end space-x-1 sm:space-x-2">
+                              {/* Move Up */}
+                              <button
+                                onClick={() => handleMoveLink(links.indexOf(link), 'up')}
+                                disabled={links.indexOf(link) === 0}
+                                className="p-1 text-zinc-400 hover:text-brand rounded hover:bg-zinc-100 transition-colors cursor-pointer disabled:opacity-20"
+                                title="Move Up"
+                              >
+                                <ArrowUp className="h-4 w-4" />
+                              </button>
+                              {/* Move Down */}
+                              <button
+                                onClick={() => handleMoveLink(links.indexOf(link), 'down')}
+                                disabled={links.indexOf(link) === links.length - 1}
+                                className="p-1 text-zinc-400 hover:text-brand rounded hover:bg-zinc-100 transition-colors cursor-pointer disabled:opacity-20"
+                                title="Move Down"
+                              >
+                                <ArrowDown className="h-4 w-4" />
+                              </button>
+                              
                               <button
                                 onClick={() => {
                                   setLinkToEdit(link);
                                   setIsLinktreeEditorOpen(true);
                                 }}
-                                className="p-1 text-zinc-400 hover:text-brand rounded hover:bg-zinc-100 transition-colors cursor-pointer"
+                                className="p-1 text-zinc-400 hover:text-brand rounded hover:bg-zinc-100 transition-colors cursor-pointer ml-2"
                                 title="Edit Link"
                               >
                                 <Edit2 className="h-4 w-4" />
@@ -930,6 +974,7 @@ export default function AdminPanel() {
         onClose={() => setIsLinktreeEditorOpen(false)}
         itemToEdit={linkToEdit}
         onSuccess={loadLinks}
+        linksLength={links.length}
       />
 
       {/* Create / Edit Article Modal */}
