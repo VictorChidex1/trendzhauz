@@ -156,6 +156,7 @@ export function LinktreeEditorModal({
                 <option value="instagram">Instagram</option>
                 <option value="twitter">Twitter / X</option>
                 <option value="tiktok">TikTok</option>
+                <option value="facebook">Facebook</option>
                 <option value="email">Email</option>
               </select>
             </div>
