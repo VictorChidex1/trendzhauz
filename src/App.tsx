@@ -26,6 +26,7 @@ import { useLocation } from "react-router-dom";
 function AppContent() {
   const location = useLocation();
   const isAdminRoute = location.pathname.startsWith("/admin");
+  const isIsolatedRoute = isAdminRoute || location.pathname.startsWith("/links");
 
   // Automatically prune expired localStorage cache entries on app boot
   useEffect(() => {
@@ -35,7 +36,7 @@ function AppContent() {
   return (
     <div className="theme min-h-[100svh] flex flex-col bg-background text-foreground transition-colors duration-300">
       {/* Show Main Navigation Bar only on public routes */}
-      {!isAdminRoute && <MainNavbar />}
+      {!isIsolatedRoute && <MainNavbar />}
 
       {/* Main Page Layout Envelope */}
       <main className="flex-1 flex flex-col w-full">
@@ -84,8 +85,8 @@ function AppContent() {
       </main>
 
       {/* Show Core Footer and ScrollToTop only on public routes */}
-      {!isAdminRoute && <Footer />}
-      {!isAdminRoute && <ScrollToTop />}
+      {!isIsolatedRoute && <Footer />}
+      {!isIsolatedRoute && <ScrollToTop />}
     </div>
   );
 }

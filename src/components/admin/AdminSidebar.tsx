@@ -13,8 +13,8 @@ import {
 import type { UserProfile } from "@/types/user";
 
 interface AdminSidebarProps {
-  activeTab: "overview" | "posts" | "reviews" | "team";
-  setActiveTab: (tab: "overview" | "posts" | "reviews" | "team") => void;
+  activeTab: "overview" | "posts" | "reviews" | "team" | "linktree";
+  setActiveTab: (tab: "overview" | "posts" | "reviews" | "team" | "linktree") => void;
   onOpenCreateModal: () => void;
   onOpenEditProfile?: () => void;
   profile: UserProfile | null;
@@ -116,20 +116,37 @@ export function AdminSidebar({
 
 
             {isSuperAdmin && (
-              <button
-                onClick={() => {
-                  setActiveTab("team");
-                  onCloseMobile();
-                }}
-                className={`w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-md text-xs font-black uppercase tracking-wider transition-colors ${
-                  activeTab === "team"
-                    ? "bg-zinc-100 text-brand"
-                    : "text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900"
-                }`}
-              >
-                <Users className="h-4 w-4" />
-                <span>Team Members</span>
-              </button>
+              <>
+                <button
+                  onClick={() => {
+                    setActiveTab("team");
+                    onCloseMobile();
+                  }}
+                  className={`w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-md text-xs font-black uppercase tracking-wider transition-colors ${
+                    activeTab === "team"
+                      ? "bg-zinc-100 text-brand"
+                      : "text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900"
+                  }`}
+                >
+                  <Users className="h-4 w-4" />
+                  <span>Team Members</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setActiveTab("linktree");
+                    onCloseMobile();
+                  }}
+                  className={`w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-md text-xs font-black uppercase tracking-wider transition-colors ${
+                    activeTab === "linktree"
+                      ? "bg-zinc-100 text-brand"
+                      : "text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900"
+                  }`}
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  <span>Bio Links</span>
+                </button>
+              </>
             )}
           </nav>
         </div>

@@ -16,6 +16,7 @@ import {
   X,
   Loader2,
   AlertTriangle,
+  ExternalLink,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import type { Post } from "@/types/post";
@@ -30,12 +31,16 @@ import {
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import { PostEditorModal } from "@/components/admin/PostEditorModal";
 import { EditProfileModal } from "@/components/admin/EditProfileModal";
+import { LinktreeEditorModal } from "@/components/admin/LinktreeEditorModal";
+import type { LinktreeItem } from "@/types/linktree";
+import { db } from "@/services/firebase";
+import { collection, getDocs, query, orderBy, doc, updateDoc, deleteDoc } from "firebase/firestore";
 
 export default function AdminPanel() {
   const { profile, logout, isAdmin, refreshProfile } = useAuth();
 
   // Sidebar & Navigation State
-  const [activeTab, setActiveTab] = React.useState<"overview" | "posts" | "reviews" | "team">("overview");
+  const [activeTab, setActiveTab] = React.useState<"overview" | "posts" | "reviews" | "team" | "linktree">("overview");
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = React.useState(false);
 
   // Edit Profile Modal State
@@ -67,6 +72,13 @@ export default function AdminPanel() {
   const [postToDelete, setPostToDelete] = React.useState<Post | null>(null);
   const [deletingPostId, setDeletingPostId] = React.useState<string | null>(null);
 
+  // Linktree State
+  const [links, setLinks] = React.useState<LinktreeItem[]>([]);
+  const [isLoadingLinks, setIsLoadingLinks] = React.useState(false);
+  const [isLinktreeEditorOpen, setIsLinktreeEditorOpen] = React.useState(false);
+  const [linkToEdit, setLinkToEdit] = React.useState<LinktreeItem | null>(null);
+  const [deletingLinkId, setDeletingLinkId] = React.useState<string | null>(null);
+
   // Load Posts from Firestore
   const loadPosts = React.useCallback(async () => {
     setIsLoadingPosts(true);
@@ -94,12 +106,32 @@ export default function AdminPanel() {
     }
   }, [isAdmin]);
 
+  // Load Linktree Links
+  const loadLinks = React.useCallback(async () => {
+    if (!isAdmin) return;
+    setIsLoadingLinks(true);
+    try {
+      const q = query(collection(db, "linktree"), orderBy("order", "asc"));
+      const snapshot = await getDocs(q);
+      const data = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as LinktreeItem[];
+      setLinks(data);
+    } catch (err) {
+      console.error("Error loading linktree:", err);
+    } finally {
+      setIsLoadingLinks(false);
+    }
+  }, [isAdmin]);
+
   React.useEffect(() => {
     loadPosts();
     if (isAdmin) {
       loadUsers();
+      loadLinks();
     }
-  }, [loadPosts, loadUsers, isAdmin]);
+  }, [loadPosts, loadUsers, loadLinks, isAdmin]);
 
   // Handle Edit Post Modal Open
   const handleOpenEdit = (post: Post) => {
@@ -211,6 +243,34 @@ export default function AdminPanel() {
     } catch (err) {
       console.error("Failed to delete user profile:", err);
       alert("Failed to delete user profile.");
+    }
+  };
+
+  // Handle Delete Linktree Item
+  const handleDeleteLink = async (linkId: string) => {
+    if (!window.confirm("Are you sure you want to delete this link?")) return;
+    setDeletingLinkId(linkId);
+    try {
+      await deleteDoc(doc(db, "linktree", linkId));
+      await loadLinks();
+    } catch (err) {
+      console.error("Failed to delete link:", err);
+      alert("Failed to delete link.");
+    } finally {
+      setDeletingLinkId(null);
+    }
+  };
+
+  // Handle Toggle Link Active Status
+  const handleToggleLink = async (link: LinktreeItem) => {
+    try {
+      await updateDoc(doc(db, "linktree", link.id), {
+        isActive: !link.isActive
+      });
+      await loadLinks();
+    } catch (err) {
+      console.error("Failed to toggle link:", err);
+      alert("Failed to update link status.");
     }
   };
 
@@ -663,6 +723,107 @@ export default function AdminPanel() {
             </div>
           )}
 
+          {/* Bio Links Management Table View (Super-Admin) */}
+          {activeTab === "linktree" && isAdmin && (
+            <div className="bg-white border border-zinc-200 rounded-lg shadow-xs overflow-hidden space-y-4 p-6">
+              <div className="flex items-center justify-between border-b border-zinc-100 pb-4">
+                <div>
+                  <h2 className="text-sm font-black uppercase tracking-wider text-zinc-900 flex items-center space-x-2">
+                    <ExternalLink className="h-4 w-4 text-brand" />
+                    <span>Bio Links Management</span>
+                  </h2>
+                  <p className="text-xs text-zinc-500 font-medium">
+                    Manage the public Linktree shown on /links.
+                  </p>
+                </div>
+
+                <button
+                  onClick={() => {
+                    setLinkToEdit(null);
+                    setIsLinktreeEditorOpen(true);
+                  }}
+                  className="bg-brand text-white font-black text-xs uppercase tracking-widest px-4 py-2 rounded-md shadow-xs flex items-center space-x-2 cursor-pointer"
+                >
+                  <PlusCircle className="h-4 w-4" />
+                  <span>+ Add Link</span>
+                </button>
+              </div>
+
+              {isLoadingLinks ? (
+                <div className="py-12 text-center text-xs text-zinc-400 font-medium">
+                  Loading links...
+                </div>
+              ) : links.length === 0 ? (
+                <div className="py-12 text-center space-y-3">
+                  <p className="text-xs text-zinc-500 font-medium">
+                    No bio links found.
+                  </p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="border-b border-zinc-200 text-[10px] font-black uppercase tracking-widest text-zinc-400 bg-zinc-50/50">
+                        <th className="py-3 px-4">Title</th>
+                        <th className="py-3 px-4">Platform</th>
+                        <th className="py-3 px-4">Order</th>
+                        <th className="py-3 px-4">Clicks</th>
+                        <th className="py-3 px-4">Status</th>
+                        <th className="py-3 px-4 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-zinc-100 text-xs font-medium">
+                      {links.map((link) => (
+                        <tr key={link.id} className="hover:bg-zinc-50/70 transition-colors">
+                          <td className="py-3 px-4">
+                            <span className="font-bold text-zinc-900">{link.title}</span>
+                          </td>
+                          <td className="py-3 px-4 text-zinc-600 capitalize">{link.iconType}</td>
+                          <td className="py-3 px-4 text-zinc-600">{link.order}</td>
+                          <td className="py-3 px-4 text-zinc-600">{link.clickCount || 0}</td>
+                          <td className="py-3 px-4">
+                            <button
+                              onClick={() => handleToggleLink(link)}
+                              className={`text-[9px] font-black uppercase px-2.5 py-1 rounded-full cursor-pointer transition-colors ${
+                                link.isActive
+                                  ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                  : "bg-zinc-100 text-zinc-500 border border-zinc-200"
+                              }`}
+                            >
+                              {link.isActive ? "ACTIVE" : "HIDDEN"}
+                            </button>
+                          </td>
+                          <td className="py-3 px-4 text-right">
+                            <div className="flex items-center justify-end space-x-3">
+                              <button
+                                onClick={() => {
+                                  setLinkToEdit(link);
+                                  setIsLinktreeEditorOpen(true);
+                                }}
+                                className="p-1 text-zinc-400 hover:text-brand rounded hover:bg-zinc-100 transition-colors cursor-pointer"
+                                title="Edit Link"
+                              >
+                                <Edit2 className="h-4 w-4" />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteLink(link.id)}
+                                disabled={deletingLinkId === link.id}
+                                className="p-1 text-zinc-400 hover:text-red-600 rounded hover:bg-red-50 transition-colors cursor-pointer disabled:opacity-50"
+                                title="Delete Link"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Team Members Management Table View (Super-Admin) */}
           {activeTab === "team" && isAdmin && (
             <div className="bg-white border border-zinc-200 rounded-lg shadow-xs overflow-hidden space-y-4 p-6">
@@ -763,6 +924,13 @@ export default function AdminPanel() {
           )}
         </main>
       </div>
+
+      <LinktreeEditorModal
+        isOpen={isLinktreeEditorOpen}
+        onClose={() => setIsLinktreeEditorOpen(false)}
+        itemToEdit={linkToEdit}
+        onSuccess={loadLinks}
+      />
 
       {/* Create / Edit Article Modal */}
       <PostEditorModal
