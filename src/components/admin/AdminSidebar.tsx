@@ -11,10 +11,11 @@ import {
   Edit2,
 } from "lucide-react";
 import type { UserProfile } from "@/types/user";
+import type { AdminTab } from "@/types/admin";
 
 interface AdminSidebarProps {
-  activeTab: "overview" | "posts" | "reviews" | "team" | "linktree";
-  setActiveTab: (tab: "overview" | "posts" | "reviews" | "team" | "linktree") => void;
+  activeTab: AdminTab;
+  setActiveTab: (tab: AdminTab) => void;
   onOpenCreateModal: () => void;
   onOpenEditProfile?: () => void;
   profile: UserProfile | null;
