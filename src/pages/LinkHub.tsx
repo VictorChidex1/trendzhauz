@@ -51,7 +51,7 @@ export default function LinkHub() {
       case "apple":
         return <svg viewBox="0 0 24 24" fill="#FA243C" className="w-6 h-6"><path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-1.9.04-3.664 1.11-4.632 2.787-1.952 3.39-.497 8.423 1.405 11.164.928 1.34 2.022 2.84 3.473 2.791 1.378-.04 1.91-.877 3.477-.877 1.563 0 2.05.836 3.483.877 1.488.04 2.417-1.3 3.33-2.628 1.059-1.546 1.495-3.045 1.517-3.12-.03-.016-2.92-1.12-2.946-4.464-.025-2.79 2.277-4.137 2.385-4.197-1.306-1.905-3.328-2.164-4.043-2.222-1.782-.163-3.528 1.04-4.489 1.04v-.113zm1.5-3.11c.789-.955 1.32-2.283 1.176-3.6-.11.05-.173.08-.236.104-1.264.475-2.656 1.258-3.535 2.275-.767.893-1.404 2.247-1.229 3.551 1.407.108 2.873-.64 3.824-2.33z"/></svg>;
       case "audiomack":
-        return <svg role="img" viewBox="0 0 24 24" fill="#FFA200" className="w-6 h-6"><path d="M11.996 0L.987 19.349h6.14l4.87-8.528 4.869 8.528h6.146L11.996 0zm0 14.545l-2.64-4.57 2.64-4.572 2.639 4.572-2.639 4.57z"/></svg>;
+        return <img src="/assets/audiomack.png" alt="Audiomack" className="w-6 h-6 object-contain" />;
       case "youtube":
         return <svg viewBox="0 0 24 24" fill="#FF0000" className="w-6 h-6"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>;
       case "instagram":
@@ -71,7 +71,7 @@ export default function LinkHub() {
         );
       case "twitter":
       case "x":
-        return <svg viewBox="0 0 24 24" className={`w-6 h-6 fill-current ${isDark ? "text-white" : "text-zinc-900"}`}><path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z"/></svg>;
+        return <img src="/assets/x-logo.png" alt="X" className={`w-6 h-6 object-contain ${isDark ? "invert" : ""}`} />;
       case "tiktok":
         return <svg viewBox="0 0 24 24" className={`w-6 h-6 fill-current ${isDark ? "text-white" : "text-zinc-900"}`}><path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 2.22-1.15 4.36-2.93 5.68-1.78 1.33-4.14 1.73-6.19 1.24-2.06-.48-3.79-1.92-4.72-3.83-.93-1.92-.93-4.22 0-6.14.93-1.92 2.66-3.35 4.72-3.83 2.05-.49 4.41-.09 6.19 1.24.16.12.31.25.46.39v-4.66c-.46-.17-.95-.29-1.45-.37-1.41-.21-2.88-.13-4.24.28-1.36.41-2.58 1.21-3.5 2.29-.91 1.08-1.46 2.44-1.59 3.86-.13 1.42.15 2.86.81 4.12.67 1.25 1.69 2.27 2.94 2.94 1.26.66 2.7.94 4.12.81 1.42-.13 2.78-.68 3.86-1.59 1.08-.92 1.88-2.14 2.29-3.5.41-1.36.49-2.83.28-4.24v-6.93Z"/></svg>;
       case "facebook":
@@ -139,10 +139,12 @@ export default function LinkHub() {
             {/* Primary Action: Link Back to Website */}
             <a
               href="/"
-              className={`group relative w-full overflow-hidden rounded-2xl transition-all duration-300 p-4 flex items-center justify-between ${
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`group relative w-full overflow-hidden rounded-2xl transition-all duration-300 p-4 flex items-center justify-between hover:-translate-y-1 ${
                 isDarkMode 
-                  ? "bg-white/5 hover:bg-white/10 border border-white/10 hover:border-orange-500/30" 
-                  : "bg-white hover:bg-white border border-zinc-100 shadow-[0_4px_20px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_20px_rgba(0,0,0,0.08)] hover:border-orange-500/20"
+                  ? "bg-white/5 hover:bg-white/10 border border-white/10 hover:border-orange-500/30 shadow-lg shadow-black/20 hover:shadow-orange-500/10" 
+                  : "bg-white hover:bg-zinc-50 border border-zinc-100 shadow-[0_4px_20px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.08)] hover:border-orange-500/30"
               }`}
             >
               <div className="flex items-center gap-4 z-10 relative">
@@ -170,10 +172,10 @@ export default function LinkHub() {
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={() => handleLinkClick(link)}
-                className={`group relative w-full overflow-hidden rounded-2xl transition-all duration-300 p-4 flex items-center justify-between ${
+                className={`group relative w-full overflow-hidden rounded-2xl transition-all duration-300 p-4 flex items-center justify-between hover:-translate-y-1 ${
                   isDarkMode 
-                    ? "bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20" 
-                    : "bg-white hover:bg-white border border-zinc-100 shadow-[0_4px_20px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_20px_rgba(0,0,0,0.08)] hover:border-zinc-200"
+                    ? "bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 shadow-lg shadow-black/20 hover:shadow-white/5" 
+                    : "bg-white hover:bg-zinc-50 border border-zinc-100 shadow-[0_4px_20px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.08)] hover:border-zinc-300"
                 }`}
               >
                 <div className="flex items-center gap-4 z-10 relative">
