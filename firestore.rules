@@ -79,6 +79,18 @@ service cloud.firestore {
     }
 
     // ──────────────────────────────────────────────────────────────────────
+    // URL safety guard for Bio Links — prevents javascript: URIs,
+    // data: URIs, or bare strings being saved as a targetUrl.
+    // Firestore rules have no native URL parser, so we enforce the
+    // minimum trustworthy contract: the value must be a string AND
+    // must begin with 'https://'.
+    // ──────────────────────────────────────────────────────────────────────
+    function isValidLinktreeUrl() {
+      return request.resource.data.targetUrl is string
+          && request.resource.data.targetUrl.matches('https://.*');
+    }
+
+    // ──────────────────────────────────────────────────────────────────────
     // Exact field whitelist for CREATE — blocks data injection by
     // ensuring no unexpected fields can be written into a post document.
     // Required fields + all optional fields declared in post.ts are listed.
@@ -248,10 +260,15 @@ service cloud.firestore {
 
       // ── ADMIN FULL UPDATE ────────────────────────────────────────────────
       // Super-admins can update any field (reorder, rename, toggle, change URL).
-      allow update: if isSuperAdmin();
+      // isValidLinktreeUrl() ensures targetUrl is always a safe https:// URL —
+      // this blocks javascript: URIs, data: URIs, and bare strings even if
+      // the Firebase console or REST API is used directly.
+      allow update: if isSuperAdmin() && isValidLinktreeUrl();
 
       // CREATE & DELETE: Only a super-admin can add or remove bio links.
-      allow create, delete: if isSuperAdmin();
+      // isValidLinktreeUrl() is enforced on creation too.
+      allow create: if isSuperAdmin() && isValidLinktreeUrl();
+      allow delete: if isSuperAdmin();
     }
 
 

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { collection, query, orderBy, onSnapshot, doc, updateDoc, increment } from "firebase/firestore";
 import { db } from "@/services/firebase";
 import type { LinktreeItem } from "@/types/linktree";
@@ -7,6 +7,9 @@ import { Loader2, Link as LinkIcon, Mail, Sun, Moon, Globe } from "lucide-react"
 export default function LinkHub() {
   const [links, setLinks] = useState<LinktreeItem[]>([]);
   const [loading, setLoading] = useState(true);
+  // Cooldown set: tracks link IDs that were recently clicked.
+  // Prevents click-count spam without any backend cost.
+  const clickCooldowns = useRef<Set<string>>(new Set());
   const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
     // Check OS preference
     if (typeof window !== "undefined") {
@@ -34,13 +37,22 @@ export default function LinkHub() {
   }, []);
 
   const handleLinkClick = async (link: LinktreeItem) => {
+    // If this link was already clicked in the last 5 seconds, silently bail out.
+    if (clickCooldowns.current.has(link.id)) return;
+
+    // Mark this link as "on cooldown" immediately.
+    clickCooldowns.current.add(link.id);
+    // Remove it from cooldown after 5 seconds.
+    setTimeout(() => clickCooldowns.current.delete(link.id), 5000);
+
     try {
       const linkRef = doc(db, "linktree", link.id);
       await updateDoc(linkRef, {
         clickCount: increment(1)
       });
-    } catch (error) {
-      console.error("Error updating click count:", error);
+    } catch {
+      // Log a plain string — never expose raw Firebase errors in production.
+      console.error("Click tracking failed.");
     }
   };
 
