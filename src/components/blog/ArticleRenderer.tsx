@@ -80,7 +80,7 @@ export function ArticleRenderer({ content, className = "" }: ArticleRendererProp
   if (segments.length === 1 && segments[0].type === "html") {
     return (
       <div
-        className={`prose prose-lg dark:prose-invert max-w-none text-foreground leading-relaxed space-y-4 font-serif text-base sm:text-lg ${className}`}
+        className={`prose prose-lg dark:prose-invert max-w-none text-foreground leading-relaxed space-y-4 font-body text-base sm:text-lg ${className}`}
         dangerouslySetInnerHTML={{ __html: segments[0].value }}
       />
     );
@@ -102,7 +102,7 @@ export function ArticleRenderer({ content, className = "" }: ArticleRendererProp
         return (
           <div
             key={`html-${index}`}
-            className="prose prose-lg dark:prose-invert max-w-none text-foreground leading-relaxed space-y-4 font-serif text-base sm:text-lg"
+            className="prose prose-lg dark:prose-invert max-w-none text-foreground leading-relaxed space-y-4 font-body text-base sm:text-lg"
             dangerouslySetInnerHTML={{ __html: segment.value }}
           />
         );

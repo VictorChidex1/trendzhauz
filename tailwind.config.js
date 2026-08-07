@@ -46,6 +46,9 @@ export default {
           foreground: "#ffffff",
         },
       },
+      fontFamily: {
+        body: ["var(--font-body)"],
+      },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
