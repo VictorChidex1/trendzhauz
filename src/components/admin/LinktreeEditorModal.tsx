@@ -44,20 +44,28 @@ export function LinktreeEditorModal({
     setError(null);
     setIsSubmitting(true);
 
+    const normalizedUrl = targetUrl
+      .trim()
+      .replace(/^(https?:|mailto:)/i, (m) => m.toLowerCase());
+    const finalUrl =
+      iconType === "email" && !/^(https?:|mailto:)/i.test(normalizedUrl)
+        ? `mailto:${normalizedUrl}`
+        : normalizedUrl;
+
     try {
       if (itemToEdit) {
         // Update existing link (order stays the same)
         const linkRef = doc(db, "linktree", itemToEdit.id);
         await updateDoc(linkRef, {
           title: title.trim(),
-          targetUrl: targetUrl.trim(),
+          targetUrl: finalUrl,
           iconType,
         });
       } else {
         // Create new link
         await addDoc(collection(db, "linktree"), {
           title: title.trim(),
-          targetUrl: targetUrl.trim(),
+          targetUrl: finalUrl,
           iconType,
           order: linksLength,
           isActive: true,
@@ -124,20 +132,6 @@ export function LinktreeEditorModal({
 
           <div className="space-y-1.5">
             <label className="text-[11px] font-black uppercase tracking-widest text-zinc-500">
-              Target URL
-            </label>
-            <input
-              type="url"
-              required
-              value={targetUrl}
-              onChange={(e) => setTargetUrl(e.target.value)}
-              placeholder="https://..."
-              className="w-full bg-zinc-50 border border-zinc-300 rounded-md px-3 py-2 text-sm text-zinc-900 focus:outline-none focus:border-brand"
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-[11px] font-black uppercase tracking-widest text-zinc-500">
               Platform Icon
             </label>
             <select
@@ -156,6 +150,25 @@ export function LinktreeEditorModal({
               <option value="facebook">Facebook</option>
               <option value="email">Email</option>
             </select>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-[11px] font-black uppercase tracking-widest text-zinc-500">
+              Target URL
+            </label>
+            <input
+              type={iconType === "email" ? "text" : "url"}
+              required
+              value={targetUrl}
+              onChange={(e) => setTargetUrl(e.target.value)}
+              placeholder={iconType === "email" ? "you@example.com or mailto:you@example.com" : "https://..."}
+              className="w-full bg-zinc-50 border border-zinc-300 rounded-md px-3 py-2 text-sm text-zinc-900 focus:outline-none focus:border-brand"
+            />
+            {iconType === "email" && (
+              <p className="text-[10px] text-zinc-400 font-medium">
+                Enter a plain email address (e.g. you@gmail.com) — we'll handle the rest.
+              </p>
+            )}
           </div>
 
           <div className="pt-4 flex items-center justify-end space-x-3 border-t border-zinc-100">

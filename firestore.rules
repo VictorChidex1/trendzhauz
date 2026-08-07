@@ -83,11 +83,13 @@ service cloud.firestore {
     // data: URIs, or bare strings being saved as a targetUrl.
     // Firestore rules have no native URL parser, so we enforce the
     // minimum trustworthy contract: the value must be a string AND
-    // must begin with 'https://'.
+    // begin with 'https://' or 'mailto:'. Anchored with ^ so the scheme
+    // must appear at the very start (blocks scheme-prefix bypasses).
     // ──────────────────────────────────────────────────────────────────────
     function isValidLinktreeUrl() {
       return request.resource.data.targetUrl is string
-          && request.resource.data.targetUrl.matches('https://.*');
+          && (request.resource.data.targetUrl.matches('^https://.*')
+              || request.resource.data.targetUrl.matches('^mailto:.*'));
     }
 
     // ──────────────────────────────────────────────────────────────────────
