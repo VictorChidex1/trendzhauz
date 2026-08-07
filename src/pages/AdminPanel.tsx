@@ -17,9 +17,22 @@ import {
   Loader2,
   AlertTriangle,
   ExternalLink,
-  ArrowUp,
-  ArrowDown,
 } from "lucide-react";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import type { DragEndEvent } from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
 import { useAuth } from "@/hooks/useAuth";
 import type { Post } from "@/types/post";
 import type { UserProfile, UserRole } from "@/types/user";
@@ -34,6 +47,7 @@ import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import { PostEditorModal } from "@/components/admin/PostEditorModal";
 import { EditProfileModal } from "@/components/admin/EditProfileModal";
 import { LinktreeEditorModal } from "@/components/admin/LinktreeEditorModal";
+import { SortableLinkRow } from "@/components/admin/SortableLinkRow";
 import type { LinktreeItem } from "@/types/linktree";
 import { db } from "@/services/firebase";
 import { collection, getDocs, query, orderBy, doc, updateDoc, deleteDoc } from "firebase/firestore";
@@ -276,15 +290,26 @@ export default function AdminPanel() {
     }
   };
 
-  // Handle Moving Link Order
-  const handleMoveLink = async (index: number, direction: 'up' | 'down') => {
+  // Handle Moving Link Order (Quick Actions)
+  const handleMoveLink = async (index: number, direction: 'up' | 'down' | 'top' | 'bottom') => {
     if (direction === 'up' && index === 0) return;
     if (direction === 'down' && index === links.length - 1) return;
+    if (direction === 'top' && index === 0) return;
+    if (direction === 'bottom' && index === links.length - 1) return;
 
     const newLinks = [...links];
-    const swapIndex = direction === 'up' ? index - 1 : index + 1;
+    
+    if (direction === 'top') {
+      const [moved] = newLinks.splice(index, 1);
+      newLinks.unshift(moved);
+    } else if (direction === 'bottom') {
+      const [moved] = newLinks.splice(index, 1);
+      newLinks.push(moved);
+    } else {
+      const swapIndex = direction === 'up' ? index - 1 : index + 1;
+      [newLinks[index], newLinks[swapIndex]] = [newLinks[swapIndex], newLinks[index]];
+    }
 
-    [newLinks[index], newLinks[swapIndex]] = [newLinks[swapIndex], newLinks[index]];
     setLinks(newLinks); // Optimistic UI update
 
     try {
@@ -296,6 +321,37 @@ export default function AdminPanel() {
       console.error("Failed to reorder links:", err);
       alert("Failed to reorder links.");
       await loadLinks();
+    }
+  };
+
+  // Drag and Drop Sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      const oldIndex = links.findIndex((link) => link.id === active.id);
+      const newIndex = links.findIndex((link) => link.id === over.id);
+
+      const newLinks = arrayMove(links, oldIndex, newIndex);
+      setLinks(newLinks);
+
+      try {
+        const updatePromises = newLinks.map((link, i) => 
+          updateDoc(doc(db, "linktree", link.id), { order: i })
+        );
+        await Promise.all(updatePromises);
+      } catch (err) {
+        console.error("Failed to reorder links via drag:", err);
+        alert("Failed to reorder links.");
+        await loadLinks();
+      }
     }
   };
 
@@ -786,83 +842,46 @@ export default function AdminPanel() {
                 </div>
               ) : (
                 <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse">
-                    <thead>
-                      <tr className="border-b border-zinc-200 text-[10px] font-black uppercase tracking-widest text-zinc-400 bg-zinc-50/50">
-                        <th className="py-3 px-4">Title</th>
-                        <th className="py-3 px-4">Platform</th>
-                        <th className="py-3 px-4">Order</th>
-                        <th className="py-3 px-4">Clicks</th>
-                        <th className="py-3 px-4">Status</th>
-                        <th className="py-3 px-4 text-right">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-zinc-100 text-xs font-medium">
-                      {links.map((link) => (
-                        <tr key={link.id} className="hover:bg-zinc-50/70 transition-colors">
-                          <td className="py-3 px-4">
-                            <span className="font-bold text-zinc-900">{link.title}</span>
-                          </td>
-                          <td className="py-3 px-4 text-zinc-600 capitalize">{link.iconType}</td>
-                          <td className="py-3 px-4 text-zinc-600">{link.order}</td>
-                          <td className="py-3 px-4 text-zinc-600">{link.clickCount || 0}</td>
-                          <td className="py-3 px-4">
-                            <button
-                              onClick={() => handleToggleLink(link)}
-                              className={`text-[9px] font-black uppercase px-2.5 py-1 rounded-full cursor-pointer transition-colors ${
-                                link.isActive
-                                  ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                                  : "bg-zinc-100 text-zinc-500 border border-zinc-200"
-                              }`}
-                            >
-                              {link.isActive ? "ACTIVE" : "HIDDEN"}
-                            </button>
-                          </td>
-                          <td className="py-3 px-4 text-right">
-                            <div className="flex items-center justify-end space-x-1 sm:space-x-2">
-                              {/* Move Up */}
-                              <button
-                                onClick={() => handleMoveLink(links.indexOf(link), 'up')}
-                                disabled={links.indexOf(link) === 0}
-                                className="p-1 text-zinc-400 hover:text-brand rounded hover:bg-zinc-100 transition-colors cursor-pointer disabled:opacity-20"
-                                title="Move Up"
-                              >
-                                <ArrowUp className="h-4 w-4" />
-                              </button>
-                              {/* Move Down */}
-                              <button
-                                onClick={() => handleMoveLink(links.indexOf(link), 'down')}
-                                disabled={links.indexOf(link) === links.length - 1}
-                                className="p-1 text-zinc-400 hover:text-brand rounded hover:bg-zinc-100 transition-colors cursor-pointer disabled:opacity-20"
-                                title="Move Down"
-                              >
-                                <ArrowDown className="h-4 w-4" />
-                              </button>
-                              
-                              <button
-                                onClick={() => {
-                                  setLinkToEdit(link);
-                                  setIsLinktreeEditorOpen(true);
-                                }}
-                                className="p-1 text-zinc-400 hover:text-brand rounded hover:bg-zinc-100 transition-colors cursor-pointer ml-2"
-                                title="Edit Link"
-                              >
-                                <Edit2 className="h-4 w-4" />
-                              </button>
-                              <button
-                                onClick={() => handleDeleteLink(link.id)}
-                                disabled={deletingLinkId === link.id}
-                                className="p-1 text-zinc-400 hover:text-red-600 rounded hover:bg-red-50 transition-colors cursor-pointer disabled:opacity-50"
-                                title="Delete Link"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </button>
-                            </div>
-                          </td>
+                  <DndContext
+                    sensors={sensors}
+                    collisionDetection={closestCenter}
+                    onDragEnd={handleDragEnd}
+                  >
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="border-b border-zinc-200 text-[10px] font-black uppercase tracking-widest text-zinc-400 bg-zinc-50/50">
+                          <th className="py-3 pl-4 pr-2 w-8"></th>
+                          <th className="py-3 px-4">Title</th>
+                          <th className="py-3 px-4">Platform</th>
+                          <th className="py-3 px-4">Order</th>
+                          <th className="py-3 px-4">Clicks</th>
+                          <th className="py-3 px-4">Status</th>
+                          <th className="py-3 px-4 text-right">Actions</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody className="divide-y divide-zinc-100 text-xs font-medium">
+                        <SortableContext
+                          items={links.map(l => l.id)}
+                          strategy={verticalListSortingStrategy}
+                        >
+                          {links.map((link, index) => (
+                            <SortableLinkRow
+                              key={link.id}
+                              link={link}
+                              index={index}
+                              totalLinks={links.length}
+                              handleToggleLink={handleToggleLink}
+                              handleMoveLink={handleMoveLink}
+                              setLinkToEdit={setLinkToEdit}
+                              setIsLinktreeEditorOpen={setIsLinktreeEditorOpen}
+                              handleDeleteLink={handleDeleteLink}
+                              deletingLinkId={deletingLinkId}
+                            />
+                          ))}
+                        </SortableContext>
+                      </tbody>
+                    </table>
+                  </DndContext>
                 </div>
               )}
             </div>
