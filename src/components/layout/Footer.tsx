@@ -25,7 +25,7 @@ const socialLinks = [
   },
   {
     name: "Twitter",
-    url: "https://www.instagram.com/trendzhauzmedia/", // Temporary Instagram fallback until X profile is ready
+    url: "https://www.tiktok.com/@trendzhauzmedia?_r=1&_t=ZS-98fDHyRIgT3",
     icon: TwitterIcon,
   },
 ];
