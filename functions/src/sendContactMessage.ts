@@ -14,7 +14,11 @@
 
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { defineSecret } from "firebase-functions/params";
-import { getFirestore, FieldValue } from "firebase-admin/firestore";
+import {
+  getFirestore,
+  FieldValue,
+  Timestamp,
+} from "firebase-admin/firestore";
 import { createHash } from "node:crypto";
 import { Resend } from "resend";
 
@@ -227,23 +231,35 @@ export const sendContactMessage = onCall(
     const db = getFirestore();
 
     // ── 3) PER-EMAIL RATE LIMIT — max 1 message per 5 minutes ──
-    const recentSnap = await db
-      .collection("contactMessages")
-      .where("email", "==", email)
-      .orderBy("createdAt", "desc")
-      .limit(1)
-      .get();
+    // Fail-open: if the rate-limit query can't run (e.g. a missing index),
+    // log a warning and continue — validation, the honeypot, and the per-IP
+    // limit still protect the form, and the visitor never sees an error.
+    let lastCreatedAt: Timestamp | null = null;
+    try {
+      const recentSnap = await db
+        .collection("contactMessages")
+        .where("email", "==", email)
+        .orderBy("createdAt", "desc")
+        .limit(1)
+        .get();
 
-    if (!recentSnap.empty) {
-      const lastCreatedAt = recentSnap.docs[0].data().createdAt;
-      if (lastCreatedAt && typeof lastCreatedAt.toDate === "function") {
-        const ageMs = Date.now() - lastCreatedAt.toDate().getTime();
-        if (ageMs < EMAIL_RATE_MINUTES * 60 * 1000) {
-          throw new HttpsError(
-            "resource-exhausted",
-            "Please wait a few minutes before sending another message.",
-          );
+      if (!recentSnap.empty) {
+        const data = recentSnap.docs[0].data();
+        if (data.createdAt && typeof data.createdAt.toDate === "function") {
+          lastCreatedAt = data.createdAt as Timestamp;
         }
+      }
+    } catch (err) {
+      console.warn("Per-email rate limit check skipped:", err);
+    }
+
+    if (lastCreatedAt) {
+      const ageMs = Date.now() - lastCreatedAt.toDate().getTime();
+      if (ageMs < EMAIL_RATE_MINUTES * 60 * 1000) {
+        throw new HttpsError(
+          "resource-exhausted",
+          "Please wait a few minutes before sending another message.",
+        );
       }
     }
 
