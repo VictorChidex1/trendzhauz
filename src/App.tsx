@@ -23,6 +23,8 @@ const AdminLogin = lazy(() => import("@/pages/AdminLogin"));
 const AdminPanel = lazy(() => import("@/pages/AdminPanel"));
 const ForgotPassword = lazy(() => import("@/pages/ForgotPassword"));
 const ResetPassword = lazy(() => import("@/pages/ResetPassword"));
+const PrivacyPolicyPage = lazy(() => import("@/pages/PrivacyPolicyPage"));
+const TermsOfServicePage = lazy(() => import("@/pages/TermsOfServicePage"));
 
 import { useLocation } from "react-router-dom";
 
@@ -57,6 +59,8 @@ function AppContent() {
           <Route path="/advertise" element={<AdvertisePage />} />
           <Route path="/contact" element={<ContactPage />} />
           <Route path="/links" element={<LinkHub />} />
+          <Route path="/privacy" element={<PrivacyPolicyPage />} />
+          <Route path="/terms" element={<TermsOfServicePage />} />
 
           {/* Article Detail — category-based URL: /{category}/{slug} */}
           <Route path="/:category/:slug" element={<BlogPostView />} />

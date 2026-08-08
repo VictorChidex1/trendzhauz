@@ -9,10 +9,14 @@ const footerLinks = {
     { name: "Videos", path: "/videos" },
     { name: "News", path: "/news" },
   ],
-  Platform: [{ name: "Bio Links", path: "/links" }],
   Company: [
     { name: "Advertise", path: "/advertise" },
     { name: "Contact", path: "/contact" },
+    { name: "Bio Links", path: "/links" },
+  ],
+  Legal: [
+    { name: "Privacy Policy", path: "/privacy" },
+    { name: "Terms of Service", path: "/terms" },
   ],
 };
 
@@ -87,9 +91,9 @@ export function Footer() {
     <footer className="w-full bg-zinc-50 dark:bg-zinc-950 text-zinc-600 dark:text-zinc-400 border-t border-zinc-200 dark:border-zinc-900 transition-colors duration-300">
       {/* Main Footer Grid */}
       <div className="w-full px-4 sm:px-6 lg:px-8 py-14">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-3 gap-10">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-10">
           {/* Brand Column */}
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-4 lg:col-span-2">
             <Link to="/" className="inline-flex items-center">
               <img
                 src="/assets/Trendzhauz-logo.png"
