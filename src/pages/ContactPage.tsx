@@ -64,8 +64,8 @@ const SOCIALS = [
     icon: FacebookIcon,
   },
   {
-    name: "TikTok",
-    url: "https://www.tiktok.com/@trendzhauzmedia?_r=1&_t=ZS-98fDHyRIgT3",
+    name: "Twitter",
+    url: "https://x.com/trendzhzmedia?s=11",
     icon: TikTokIcon,
   },
 ];
@@ -82,7 +82,8 @@ export default function ContactPage() {
             Contact Us
           </span>
           <h1 className="mt-5 text-4xl sm:text-5xl lg:text-6xl font-black uppercase tracking-tighter text-white max-w-3xl">
-            Let's Talk Music, <span className="text-brand">Partnerships</span> & Ideas
+            Let's Talk Music, <span className="text-brand">Partnerships</span> &
+            Ideas
           </h1>
           <p className="mt-5 text-sm sm:text-base text-zinc-400 font-medium leading-relaxed max-w-xl">
             Whether you're an artist dropping a new project, a brand looking to

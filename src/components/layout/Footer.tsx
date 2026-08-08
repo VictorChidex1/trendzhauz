@@ -29,7 +29,7 @@ const socialLinks = [
   },
   {
     name: "Twitter",
-    url: "https://www.tiktok.com/@trendzhauzmedia?_r=1&_t=ZS-98fDHyRIgT3",
+    url: "https://x.com/trendzhzmedia?s=11",
     icon: TwitterIcon,
   },
 ];
