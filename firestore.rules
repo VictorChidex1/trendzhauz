@@ -286,6 +286,31 @@ service cloud.firestore {
 
 
     // ══════════════════════════════════════════════════════════════════════
+    // 6. CONTACT MESSAGES COLLECTION — Public contact / advertising inquiries
+    // ══════════════════════════════════════════════════════════════════════
+    // Written EXCLUSIVELY by the server-side sendContactMessage Cloud Function
+    // (Admin SDK bypasses these rules). Clients can NEVER create messages —
+    // the only write path is the callable function, which enforces input
+    // validation, honeypot detection, and per-email/per-IP rate limiting.
+    // Super-admins can read inquiries in the Admin Inbox and delete spam.
+    match /contactMessages/{messageId} {
+      allow read: if isSuperAdmin();
+      allow create: if false;
+      allow update: if isSuperAdmin();
+      allow delete: if isSuperAdmin();
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    // 7. CONTACT RATE-LIMIT COUNTERS — Server-only abuse protection buckets
+    // ══════════════════════════════════════════════════════════════════════
+    // Written by sendContactMessage (Admin SDK). Zero client access — bots
+    // cannot read or reset their own rate-limit buckets.
+    match /contactRateLimits/{bucketId} {
+      allow read, write: if false;
+    }
+
+
+    // ══════════════════════════════════════════════════════════════════════
     // 5. DEFAULT DENY — Deny-all fallback for any unmatched collection.
     // ══════════════════════════════════════════════════════════════════════
     // This is the last line of defence: any collection that is NOT explicitly

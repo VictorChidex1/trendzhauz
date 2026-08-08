@@ -33,6 +33,11 @@ import {
   updateUserRole,
   deleteUserProfile,
 } from "@/services/users";
+import {
+  fetchContactMessages,
+  deleteContactMessage,
+  type ContactMessageRecord,
+} from "@/services/contact";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import { PostEditorModal } from "@/components/admin/PostEditorModal";
 import { EditProfileModal } from "@/components/admin/EditProfileModal";
@@ -42,6 +47,7 @@ import { DeletePostModal } from "@/components/admin/DeletePostModal";
 import { SortableLinkRow } from "@/components/admin/SortableLinkRow";
 import { OverviewTab } from "@/components/admin/tabs/OverviewTab";
 import { PostsTab } from "@/components/admin/tabs/PostsTab";
+import { MessagesTab } from "@/components/admin/tabs/MessagesTab";
 import type { LinktreeItem } from "@/types/linktree";
 import { db } from "@/services/firebase";
 import { collection, getDocs, query, orderBy, doc, updateDoc, deleteDoc } from "firebase/firestore";
@@ -67,6 +73,11 @@ export default function AdminPanel() {
   const [usersList, setUsersList] = React.useState<UserProfile[]>([]);
   const [isLoadingUsers, setIsLoadingUsers] = React.useState(false);
   const [isAddUserModalOpen, setIsAddUserModalOpen] = React.useState(false);
+
+  // Contact Messages State (Super-Admin Inbox)
+  const [messages, setMessages] = React.useState<ContactMessageRecord[]>([]);
+  const [isLoadingMessages, setIsLoadingMessages] = React.useState(false);
+  const [deletingMessageId, setDeletingMessageId] = React.useState<string | null>(null);
 
   // Post Editor & Delete Modal State
   const [isEditorModalOpen, setIsEditorModalOpen] = React.useState(false);
@@ -108,6 +119,20 @@ export default function AdminPanel() {
     }
   }, [isAdmin]);
 
+  // Load Contact Messages from Firestore (Super-Admin Inbox)
+  const loadMessages = React.useCallback(async () => {
+    if (!isAdmin) return;
+    setIsLoadingMessages(true);
+    try {
+      const data = await fetchContactMessages();
+      setMessages(data);
+    } catch (err) {
+      console.error("Error loading contact messages in AdminPanel:", err);
+    } finally {
+      setIsLoadingMessages(false);
+    }
+  }, [isAdmin]);
+
   // Load Linktree Links
   const loadLinks = React.useCallback(async () => {
     if (!isAdmin) return;
@@ -132,8 +157,9 @@ export default function AdminPanel() {
     if (isAdmin) {
       loadUsers();
       loadLinks();
+      loadMessages();
     }
-  }, [loadPosts, loadUsers, loadLinks, isAdmin]);
+  }, [loadPosts, loadUsers, loadLinks, loadMessages, isAdmin]);
 
   // Handle Edit Post Modal Open
   const handleOpenEdit = (post: Post) => {
@@ -207,6 +233,21 @@ export default function AdminPanel() {
     } catch (err) {
       console.error("Failed to delete user profile:", err);
       alert("Failed to delete user profile.");
+    }
+  };
+
+  // Handle Delete Contact Message (Super-Admin Inbox)
+  const handleDeleteMessage = async (messageId: string) => {
+    if (!window.confirm("Are you sure you want to delete this message?")) return;
+    setDeletingMessageId(messageId);
+    try {
+      await deleteContactMessage(messageId);
+      await loadMessages();
+    } catch (err) {
+      console.error("Failed to delete contact message:", err);
+      alert("Failed to delete message.");
+    } finally {
+      setDeletingMessageId(null);
     }
   };
 
@@ -367,7 +408,10 @@ export default function AdminPanel() {
             <button
               onClick={() => {
                 loadPosts();
-                if (isAdmin) loadUsers();
+                if (isAdmin) {
+                  loadUsers();
+                  loadMessages();
+                }
               }}
               className="p-2 text-zinc-500 hover:text-brand transition-colors rounded-md hover:bg-zinc-100"
               title="Refresh dataset"
@@ -516,6 +560,16 @@ export default function AdminPanel() {
                 </div>
               )}
             </div>
+          )}
+
+          {/* Contact & Ad Inbox (Super-Admin) */}
+          {activeTab === "inbox" && isAdmin && (
+            <MessagesTab
+              messages={messages}
+              isLoadingMessages={isLoadingMessages}
+              deletingMessageId={deletingMessageId}
+              onRequestDelete={(message) => handleDeleteMessage(message.id)}
+            />
           )}
 
           {/* Team Members Management Table View (Super-Admin) */}

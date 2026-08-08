@@ -10,6 +10,10 @@ const footerLinks = {
     { name: "News", path: "/news" },
   ],
   Platform: [{ name: "Bio Links", path: "/links" }],
+  Company: [
+    { name: "Advertise", path: "/advertise" },
+    { name: "Contact", path: "/contact" },
+  ],
 };
 
 const socialLinks = [

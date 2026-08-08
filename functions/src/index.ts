@@ -19,6 +19,9 @@ db.settings({ ignoreUndefinedProperties: true });
 // Custom password-reset email (Resend + Admin generatePasswordResetLink)
 export { requestPasswordReset } from "./requestPasswordReset";
 
+// Public contact / advertising form submissions (Resend + Firestore Inbox)
+export { sendContactMessage } from "./sendContactMessage";
+
 // Auto-publish scheduled posts
 export { publishScheduled } from "./publishScheduled";
 

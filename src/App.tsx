@@ -14,6 +14,8 @@ const MusicPage = lazy(() => import("@/pages/MusicPage"));
 const ReviewsPage = lazy(() => import("@/pages/ReviewsPage"));
 const VideosPage = lazy(() => import("@/pages/VideosPage"));
 const NewsPage = lazy(() => import("@/pages/NewsPage"));
+const AdvertisePage = lazy(() => import("@/pages/AdvertisePage"));
+const ContactPage = lazy(() => import("@/pages/ContactPage"));
 const BlogPostView = lazy(() => import("@/pages/BlogPostView"));
 const LinkHub = lazy(() => import("@/pages/LinkHub"));
 const AdminLogin = lazy(() => import("@/pages/AdminLogin"));
@@ -48,6 +50,8 @@ function AppContent() {
           <Route path="/reviews" element={<ReviewsPage />} />
           <Route path="/videos" element={<VideosPage />} />
           <Route path="/news" element={<NewsPage />} />
+          <Route path="/advertise" element={<AdvertisePage />} />
+          <Route path="/contact" element={<ContactPage />} />
           <Route path="/links" element={<LinkHub />} />
 
           {/* Article Detail — category-based URL: /{category}/{slug} */}

@@ -9,6 +9,7 @@ import {
   X,
   ExternalLink,
   Edit2,
+  Inbox,
 } from "lucide-react";
 import type { UserProfile } from "@/types/user";
 import type { AdminTab } from "@/types/admin";
@@ -146,6 +147,21 @@ export function AdminSidebar({
                 >
                   <ExternalLink className="h-4 w-4" />
                   <span>Bio Links</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setActiveTab("inbox");
+                    onCloseMobile();
+                  }}
+                  className={`w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-md text-xs font-black uppercase tracking-wider transition-colors ${
+                    activeTab === "inbox"
+                      ? "bg-zinc-100 text-brand"
+                      : "text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900"
+                  }`}
+                >
+                  <Inbox className="h-4 w-4" />
+                  <span>Inbox</span>
                 </button>
               </>
             )}

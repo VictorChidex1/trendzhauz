@@ -12,6 +12,7 @@ const navItems = [
   { name: "Music", path: "/music" },
   { name: "Videos", path: "/videos" },
   { name: "News", path: "/news" },
+  { name: "Advertise", path: "/advertise" },
   { name: "Bio Links", path: "/links" },
 ];
 

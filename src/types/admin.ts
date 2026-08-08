@@ -1,1 +1,1 @@
-export type AdminTab = "overview" | "posts" | "team" | "linktree";
+export type AdminTab = "overview" | "posts" | "team" | "linktree" | "inbox";
