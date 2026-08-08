@@ -5,6 +5,7 @@ import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 import { MainNavbar } from "@/components/layout/MainNavbar";
 import { Footer } from "@/components/layout/Footer";
 import { ScrollToTop } from "@/components/ui/ScrollToTop";
+import { RouteScrollReset } from "@/components/ui/RouteScrollReset";
 import { PageLoader } from "@/components/ui/PageLoader";
 import { pruneExpiredCache } from "@/utils/queryCache";
 import BlogHome from "@/pages/BlogHome";
@@ -37,6 +38,9 @@ function AppContent() {
 
   return (
     <div className="theme min-h-[100svh] flex flex-col bg-background text-foreground transition-colors duration-300">
+      {/* Auto-scroll to top on every route change */}
+      <RouteScrollReset />
+
       {/* Show Main Navigation Bar only on public routes */}
       {!isIsolatedRoute && <MainNavbar />}
 
