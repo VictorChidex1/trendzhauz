@@ -19,10 +19,13 @@ export default function TermsOfServicePage() {
       content: (
         <>
           <p className="mb-4">
-            Unless otherwise indicated, the Site is our proprietary property and all source code, databases, functionality, software, website designs, audio, video, text, photographs, and graphics on the Site (collectively, the "Content") and the trademarks, service marks, and logos contained therein (the "Marks") are owned or controlled by us or licensed to us.
+            <strong className="text-zinc-700 dark:text-zinc-300">TrendzHauz Proprietary Content:</strong> Unless otherwise indicated, the Site itself, including our original editorial content, reviews, source code, functionality, website designs, and logos (collectively, the "TrendzHauz Content") are owned or controlled by us and are protected by copyright and trademark laws.
+          </p>
+          <p className="mb-4">
+            <strong className="text-zinc-700 dark:text-zinc-300">Third-Party Content:</strong> TrendzHauz Media is a promotional and journalistic platform. The music, music videos, artist photographs, and promotional materials featured on our Site belong to their respective artists, record labels, and copyright holders. We do not claim ownership of these third-party intellectual properties. They are used on our platform solely for promotional, review, and journalistic purposes.
           </p>
           <p>
-            The Content and the Marks are provided on the Site "AS IS" for your information and personal use only. No part of the Site and no Content or Marks may be copied, reproduced, aggregated, republished, uploaded, posted, publicly displayed, encoded, translated, transmitted, distributed, sold, licensed, or otherwise exploited for any commercial purpose whatsoever, without our express prior written permission.
+            You may not copy, reproduce, or exploit TrendzHauz's proprietary content for commercial purposes without our express written permission. Likewise, you must respect the copyright of the artists and creators featured on our platform.
           </p>
         </>
       ),
