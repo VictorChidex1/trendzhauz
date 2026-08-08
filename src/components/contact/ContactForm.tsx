@@ -12,8 +12,6 @@ interface ContactFormProps {
   sourcePage: ContactSourcePage;
 }
 
-const SUCCESS_TOAST_KEY = "trendzhauz-contact-sent";
-
 export function ContactForm({ subjectPreset, sourcePage }: ContactFormProps) {
   const [name, setName] = React.useState("");
   const [email, setEmail] = React.useState("");
@@ -23,14 +21,23 @@ export function ContactForm({ subjectPreset, sourcePage }: ContactFormProps) {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [showSuccessToast, setShowSuccessToast] = React.useState(false);
+  const toastTimerRef = React.useRef<number | null>(null);
 
   React.useEffect(() => {
-    if (sessionStorage.getItem(SUCCESS_TOAST_KEY) !== "1") return;
-    sessionStorage.removeItem(SUCCESS_TOAST_KEY);
-    setShowSuccessToast(true);
-    const timer = setTimeout(() => setShowSuccessToast(false), 4000);
-    return () => clearTimeout(timer);
+    return () => {
+      if (toastTimerRef.current !== null) {
+        window.clearTimeout(toastTimerRef.current);
+      }
+    };
   }, []);
+
+  const resetForm = () => {
+    setName("");
+    setEmail("");
+    setSubject(subjectPreset);
+    setMessage("");
+    setWebsite("");
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,8 +68,12 @@ export function ContactForm({ subjectPreset, sourcePage }: ContactFormProps) {
         sourcePage,
         website,
       });
-      sessionStorage.setItem(SUCCESS_TOAST_KEY, "1");
-      window.location.reload();
+      resetForm();
+      setShowSuccessToast(true);
+      toastTimerRef.current = window.setTimeout(
+        () => setShowSuccessToast(false),
+        4000
+      );
     } catch (err: any) {
       setError(err.message || "Failed to send your message. Please try again.");
     } finally {
