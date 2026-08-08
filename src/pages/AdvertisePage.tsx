@@ -196,7 +196,7 @@ export default function AdvertisePage() {
           </div>
 
           {/* Channel Marquee / Pill Strip */}
-          <div className="mt-16 pt-8 border-t border-white/10 w-full max-w-4xl flex flex-wrap justify-center sm:justify-start gap-3 opacity-80">
+          <div className="mt-16 pt-8 border-t border-zinc-300 dark:border-white/10 w-full max-w-4xl flex flex-wrap justify-center sm:justify-start gap-3">
             {[
               "Afrobeats",
               "Amapiano",
@@ -207,7 +207,7 @@ export default function AdvertisePage() {
             ].map((tag) => (
               <span
                 key={tag}
-                className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 bg-zinc-900/50 px-3 py-1.5 rounded-sm border border-white/5"
+                className="text-[10px] font-bold uppercase tracking-wider text-zinc-700 dark:text-zinc-300 bg-zinc-200/80 dark:bg-white/5 px-3 py-1.5 rounded-sm border border-zinc-300 dark:border-white/10"
               >
                 {tag}
               </span>
