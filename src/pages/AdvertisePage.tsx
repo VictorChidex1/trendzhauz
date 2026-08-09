@@ -129,7 +129,7 @@ const FAQS = [
   {
     question: "Do you offer custom campaign bundles?",
     answer:
-      "Absolutely. If you want a combination of a Sponsored Review, Article Post, Display Ads, and Social Media blasts, let us know in the inquiry form and we'll craft a custom discounted package.",
+      "Absolutely. If you want a combination of a Sponsored Reviews, Article Posts, Display Ads, Playlist Placements, and Social Media Blasts into one powerful promotional package. Tell us what you need through our inquiry form, and we’ll create a custom package tailored to your goals with a special discounted rate when you bundle multiple services.",
   },
 ];
 
