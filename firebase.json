@@ -44,6 +44,10 @@
     ],
     "rewrites": [
       {
+        "source": "/sitemap.xml",
+        "function": { "functionId": "seoSitemap", "region": "us-central1" }
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }

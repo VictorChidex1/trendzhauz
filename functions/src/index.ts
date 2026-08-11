@@ -25,6 +25,9 @@ export { sendContactMessage } from "./sendContactMessage";
 // Auto-publish scheduled posts
 export { publishScheduled } from "./publishScheduled";
 
+// Dynamic sitemap generation (Phase C)
+export { seoSitemap } from "./seoSitemap";
+
 // ─── Helper: Format Firestore Timestamp to readable string ───
 function formatTimestamp(ts: FirebaseFirestore.Timestamp | undefined): string {
   if (!ts || !ts.toDate) return "Unknown Date";
