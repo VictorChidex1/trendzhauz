@@ -4,6 +4,8 @@
  * - onPostChanged (instant aggregation refresh on post writes)
  * - requestPasswordReset (Resend-branded password reset emails)
  * - publishScheduled (auto-publish scheduled posts)
+ * - seoSitemap (dynamic sitemap XML — Phase C)
+ * - seoGateway (bot-specific HTML interceptor — Phase D)
  */
 
 import { onSchedule } from "firebase-functions/v2/scheduler";
@@ -27,6 +29,9 @@ export { publishScheduled } from "./publishScheduled";
 
 // Dynamic sitemap generation (Phase C)
 export { seoSitemap } from "./seoSitemap";
+
+// SEO bot gateway (Phase D)
+export { seoGateway } from "./seoGateway";
 
 // ─── Helper: Format Firestore Timestamp to readable string ───
 function formatTimestamp(ts: FirebaseFirestore.Timestamp | undefined): string {

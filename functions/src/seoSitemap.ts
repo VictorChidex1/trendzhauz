@@ -1,10 +1,12 @@
 import { onRequest } from "firebase-functions/v2/https";
-import { initializeApp, getApps } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 
-if (!getApps().length) initializeApp();
-const db = getFirestore();
-db.settings({ ignoreUndefinedProperties: true });
+// Admin SDK is initialized by index.ts.
+// Call getFirestore() lazily inside the handler to avoid
+// double db.settings() conflict at module-load time.
+function getDb() {
+  return getFirestore();
+}
 
 const SITE_URL = "https://trendzhauz.com";
 
@@ -53,6 +55,7 @@ async function buildSitemap(): Promise<string> {
   }
 
   // ── Published articles ──
+  const db = getDb();
   const allPublished = await db
     .collection("posts")
     .where("status", "==", "published")

@@ -13,7 +13,8 @@
   "hosting": {
     "public": "dist",
     "predeploy": [
-      "npm run build"
+      "npm run build",
+      "node scripts/build-gateway-template.cjs"
     ],
     "ignore": [
       "firebase.json",
@@ -46,6 +47,50 @@
       {
         "source": "/sitemap.xml",
         "function": { "functionId": "seoSitemap", "region": "us-central1" }
+      },
+      {
+        "source": "/",
+        "function": { "functionId": "seoGateway", "region": "us-central1" }
+      },
+      {
+        "source": "/music",
+        "function": { "functionId": "seoGateway", "region": "us-central1" }
+      },
+      {
+        "source": "/reviews",
+        "function": { "functionId": "seoGateway", "region": "us-central1" }
+      },
+      {
+        "source": "/videos",
+        "function": { "functionId": "seoGateway", "region": "us-central1" }
+      },
+      {
+        "source": "/news",
+        "function": { "functionId": "seoGateway", "region": "us-central1" }
+      },
+      {
+        "source": "/advertise",
+        "function": { "functionId": "seoGateway", "region": "us-central1" }
+      },
+      {
+        "source": "/contact",
+        "function": { "functionId": "seoGateway", "region": "us-central1" }
+      },
+      {
+        "source": "/links",
+        "function": { "functionId": "seoGateway", "region": "us-central1" }
+      },
+      {
+        "source": "/privacy",
+        "function": { "functionId": "seoGateway", "region": "us-central1" }
+      },
+      {
+        "source": "/terms",
+        "function": { "functionId": "seoGateway", "region": "us-central1" }
+      },
+      {
+        "source": "/:category/:slug",
+        "function": { "functionId": "seoGateway", "region": "us-central1" }
       },
       {
         "source": "**",

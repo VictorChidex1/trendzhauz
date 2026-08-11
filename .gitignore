@@ -12,6 +12,8 @@ dist
 dist-ssr
 functions/lib
 functions/node_modules
+# Auto-generated predeploy template (regenerated on every firebase deploy)
+functions/src/templates/
 *.local
 .env
 .env.*
