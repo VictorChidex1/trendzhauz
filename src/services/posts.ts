@@ -9,6 +9,7 @@ import {
   orderBy,
   where,
   limit,
+  startAfter,
   serverTimestamp,
   Timestamp,
 } from "firebase/firestore";
@@ -74,24 +75,34 @@ export function generateSearchIndex(title: string): string[] {
 }
 
 /**
- * Fetch all posts from Firestore ordered by creation date (CMS — includes scheduled).
+ * Fetch posts with optional cursor pagination for the admin panel.
+ * Returns one extra doc to detect whether more pages exist.
  */
-export async function fetchPosts(): Promise<Post[]> {
+export async function fetchPosts(options?: {
+  limit?: number;
+  startAfter?: Timestamp;
+}): Promise<{ posts: Post[]; hasMore: boolean }> {
   try {
+    const pageSize = options?.limit ?? 100;
+    if (options?.startAfter) {
+      const q = query(
+        collection(db, POSTS_COLLECTION),
+        startAfter(options.startAfter),
+        orderBy("createdAt", "desc"),
+        limit(pageSize + 1),
+      );
+      const snap = await getDocs(q);
+      const allDocs = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Post));
+      return { posts: allDocs.slice(0, pageSize), hasMore: allDocs.length > pageSize };
+    }
     const q = query(
       collection(db, POSTS_COLLECTION),
       orderBy("createdAt", "desc"),
-      limit(500)
+      limit(pageSize + 1),
     );
-    const querySnapshot = await getDocs(q);
-
-    return querySnapshot.docs.map((docSnap) => {
-      const data = docSnap.data();
-      return {
-        id: docSnap.id,
-        ...data,
-      } as Post;
-    });
+    const snap = await getDocs(q);
+    const allDocs = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Post));
+    return { posts: allDocs.slice(0, pageSize), hasMore: allDocs.length > pageSize };
   } catch (error) {
     console.error("Error fetching posts:", error);
     throw error;

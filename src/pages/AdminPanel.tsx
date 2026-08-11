@@ -50,7 +50,7 @@ import { PostsTab } from "@/components/admin/tabs/PostsTab";
 import { MessagesTab } from "@/components/admin/tabs/MessagesTab";
 import type { LinktreeItem } from "@/types/linktree";
 import { db } from "@/services/firebase";
-import { collection, getDocs, query, orderBy, doc, updateDoc, deleteDoc } from "firebase/firestore";
+import { collection, getDocs, query, orderBy, doc, updateDoc, deleteDoc, Timestamp } from "firebase/firestore";
 import { PageSeo } from "@/components/seo/PageSeo";
 
 export default function AdminPanel() {
@@ -66,6 +66,10 @@ export default function AdminPanel() {
   // Posts State
   const [posts, setPosts] = React.useState<Post[]>([]);
   const [isLoadingPosts, setIsLoadingPosts] = React.useState(true);
+  const [hasMorePosts, setHasMorePosts] = React.useState(true);
+  const [isLoadingMorePosts, setIsLoadingMorePosts] = React.useState(false);
+  const lastCursorRef = React.useRef<Timestamp | null>(null);
+  const initialLoadDone = React.useRef(false);
   const [searchQuery, setSearchQuery] = React.useState("");
   const [filterCategory, setFilterCategory] = React.useState<string>("all");
   const [filterStatus, setFilterStatus] = React.useState<string>("all");
@@ -93,18 +97,47 @@ export default function AdminPanel() {
   const [linkToEdit, setLinkToEdit] = React.useState<LinktreeItem | null>(null);
   const [deletingLinkId, setDeletingLinkId] = React.useState<string | null>(null);
 
-  // Load Posts from Firestore
-  const loadPosts = React.useCallback(async () => {
+  // Load Posts from Firestore — initial page
+  const refreshPosts = React.useCallback(async () => {
     setIsLoadingPosts(true);
+    setHasMorePosts(true);
+    initialLoadDone.current = false;
+    lastCursorRef.current = null;
     try {
-      const data = await fetchPosts();
-      setPosts(data);
+      const result = await fetchPosts({ limit: 100 });
+      setPosts(result.posts);
+      setHasMorePosts(result.hasMore);
+      if (result.posts.length > 0) {
+        lastCursorRef.current = result.posts[result.posts.length - 1].createdAt;
+      }
     } catch (err) {
       console.error("Error loading posts in AdminPanel:", err);
     } finally {
       setIsLoadingPosts(false);
+      initialLoadDone.current = true;
     }
   }, []);
+
+  // Load more posts — appends next page
+  const loadMorePosts = React.useCallback(async () => {
+    if (isLoadingMorePosts || !hasMorePosts) return;
+    setIsLoadingMorePosts(true);
+    try {
+      const result = await fetchPosts({
+        limit: 100,
+        startAfter: lastCursorRef.current ?? undefined,
+      });
+      setPosts((prev) => [...prev, ...result.posts]);
+      setHasMorePosts(result.hasMore);
+      if (result.posts.length > 0) {
+        lastCursorRef.current = result.posts[result.posts.length - 1].createdAt;
+      }
+    } catch (err) {
+      console.error("Error loading more posts in AdminPanel:", err);
+    } finally {
+      setIsLoadingMorePosts(false);
+    }
+  }, [isLoadingMorePosts, hasMorePosts]);
 
   // Load Users from Firestore (Super-Admin)
   const loadUsers = React.useCallback(async () => {
@@ -154,13 +187,13 @@ export default function AdminPanel() {
   }, [isAdmin]);
 
   React.useEffect(() => {
-    loadPosts();
+    refreshPosts();
     if (isAdmin) {
       loadUsers();
       loadLinks();
       loadMessages();
     }
-  }, [loadPosts, loadUsers, loadLinks, loadMessages, isAdmin]);
+  }, [refreshPosts, loadUsers, loadLinks, loadMessages, isAdmin]);
 
   // Handle Edit Post Modal Open
   const handleOpenEdit = (post: Post) => {
@@ -187,7 +220,7 @@ export default function AdminPanel() {
     setDeletingPostId(postToDelete.id);
     try {
       await deletePost(postToDelete.id);
-      await loadPosts();
+      await refreshPosts();
       setPostToDelete(null);
     } catch (err) {
       console.error("Failed to delete post:", err);
@@ -409,7 +442,7 @@ export default function AdminPanel() {
           <div className="flex items-center space-x-3">
             <button
               onClick={() => {
-                loadPosts();
+                refreshPosts();
                 if (isAdmin) {
                   loadUsers();
                   loadMessages();
@@ -462,6 +495,9 @@ export default function AdminPanel() {
             <PostsTab
               filteredPosts={filteredPosts}
               isLoadingPosts={isLoadingPosts}
+              hasMorePosts={hasMorePosts}
+              isLoadingMorePosts={isLoadingMorePosts}
+              onLoadMore={loadMorePosts}
               isAdmin={isAdmin}
               currentUserId={profile?.uid}
               searchQuery={searchQuery}
@@ -689,7 +725,7 @@ export default function AdminPanel() {
         onClose={() => setIsEditorModalOpen(false)}
         postToEdit={postToEdit}
         authorProfile={profile}
-        onSuccess={loadPosts}
+        onSuccess={refreshPosts}
       />
 
       {/* Add Team Member Modal (Super-Admin) */}

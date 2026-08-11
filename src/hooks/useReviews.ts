@@ -3,12 +3,14 @@
  *
  * DEFAULT MODE (no filters): server-side cursor pagination + SWR cache via
  * the shared useCursorPaginatedPosts hook. "Highest Rated" sorting is done
- * server-side with orderBy("rating", "desc") — no full fetch.
+ * server-side with orderBy("rating", "desc").
  *
- * FILTERED MODE (format / genre / search active): falls back to a full
- * category onSnapshot fetch + in-memory filtering/sorting (existing
- * pipeline). This is intentionally Phase 1 — Phase 2 migrates the filters
- * to server-side queries.
+ * FILTERED MODE (format / genre / search active): server-side Firestore
+ * queries with dynamic WHERE clauses + cursor pagination + getCountFromServer.
+ * Genre and projectType are pushed to Firestore as equality filters.
+ * Search uses searchIndex array-contains; when search is active, genre
+ * and projectType are applied in-memory as secondary filters on the
+ * server-fetched results to avoid combinatorial index explosion.
  */
 
 import * as React from "react";
@@ -16,10 +18,13 @@ import {
   collection,
   query,
   where,
-  onSnapshot,
+  getDocs,
+  getCountFromServer,
+  startAfter,
   orderBy,
   limit,
   type QueryDocumentSnapshot,
+  type QueryConstraint,
 } from "firebase/firestore";
 import { db } from "../services/firebase";
 import { useCursorPaginatedPosts } from "./useCursorPaginatedPosts";
@@ -89,109 +94,176 @@ export function useReviews(
     enabled: !isFiltered,
   });
 
-  // Filtered mode: full category snapshot + in-memory pipeline.
-  const [allReviews, setAllReviews] = React.useState<StoryCard[]>([]);
-  const [filteredLoading, setFilteredLoading] = React.useState(false);
+  // ── Filtered Mode: server-side Firestore queries + cursor pagination ──
+  const [filteredPosts, setFilteredPosts] = React.useState<StoryCard[]>([]);
   const [filteredPage, setFilteredPage] = React.useState(1);
+  const [filteredTotalCount, setFilteredTotalCount] = React.useState(0);
+  const [filteredLoading, setFilteredLoading] = React.useState(false);
+  const pageCursors = React.useRef<Map<number, QueryDocumentSnapshot>>(new Map());
 
+  const hasSearch = searchQuery.trim() !== "";
+
+  // Build Firestore query constraints from the active filters.
+  const listConstraints = React.useMemo((): QueryConstraint[] => {
+    const c: QueryConstraint[] = [
+      where("status", "==", "published"),
+      where("category", "==", "Reviews"),
+    ];
+
+    // Push equality filters to Firestore only when NOT searching.
+    // When search is active, genre/projectType are applied in-memory
+    // on the server-fetched results (avoids combinatorial index explosion).
+    if (!hasSearch) {
+      if (genreFilter !== "All") c.push(where("genre", "==", genreFilter));
+      if (projectTypeFilter !== "All") c.push(where("projectType", "==", projectTypeFilter));
+    }
+
+    if (hasSearch) {
+      const token = searchQuery.trim().toLowerCase().split(/\s+/)[0];
+      c.push(where("searchIndex", "array-contains", token));
+    }
+
+    if (sortBy === "highest-rated") {
+      c.push(orderBy("rating", "desc"));
+      c.push(orderBy("createdAt", "desc"));
+    } else {
+      c.push(orderBy("createdAt", "desc"));
+    }
+
+    return c;
+  }, [hasSearch, genreFilter, projectTypeFilter, searchQuery, sortBy]);
+
+  // Count query: same WHERE clauses, no ORDER BY, no LIMIT.
+  const countConstraints = React.useMemo((): QueryConstraint[] => {
+    return listConstraints.filter(
+      (c) => c.type !== "orderBy" && c.type !== "limit"
+    );
+  }, [listConstraints]);
+
+  // Reset to page 1 when filters change.
+  React.useEffect(() => {
+    if (isFiltered) {
+      setFilteredPage(1);
+      pageCursors.current.clear();
+    }
+  }, [isFiltered, genreFilter, projectTypeFilter, searchQuery, sortBy]);
+
+  // Mode switch resets.
+  const { resetPage: serverResetPage } = server;
+  React.useEffect(() => {
+    if (!isFiltered) serverResetPage();
+  }, [isFiltered, serverResetPage]);
+
+  // Fetch total count (runs once per filter combination).
   React.useEffect(() => {
     if (!isFiltered) {
-      setAllReviews([]);
+      setFilteredTotalCount(0);
       return;
     }
 
+    let cancelled = false;
+
+    async function loadCount() {
+      try {
+        const q = query(collection(db, "posts"), ...countConstraints);
+        const snap = await getCountFromServer(q);
+        if (!cancelled) {
+          const raw = snap.data().count;
+          // When search is active + genre/projectType filters applied
+          // in-memory, the Firestore count is an upper bound.
+          setFilteredTotalCount(raw);
+        }
+      } catch (err) {
+        console.error("useReviews getCountFromServer error:", err);
+        if (!cancelled) setFilteredTotalCount(0);
+      }
+    }
+
+    loadCount();
+    return () => { cancelled = true; };
+  }, [isFiltered, countConstraints]);
+
+  // Fetch page data.
+  React.useEffect(() => {
+    if (!isFiltered) {
+      setFilteredPosts([]);
+      return;
+    }
+
+    let cancelled = false;
     setFilteredLoading(true);
 
-    const q = query(
-      collection(db, "posts"),
-      where("status", "==", "published"),
-      where("category", "==", "Reviews"),
-      orderBy("createdAt", "desc"),
-      limit(200)
-    );
+    async function loadPage() {
+      try {
+        const constraints = [...listConstraints];
+        if (filteredPage > 1) {
+          const cursor = pageCursors.current.get(filteredPage - 1);
+          if (cursor) constraints.push(startAfter(cursor));
+        }
+        constraints.push(limit(postsPerPage));
 
-    const unsubscribe = onSnapshot(
-      q,
-      (snapshot) => {
+        const q = query(collection(db, "posts"), ...constraints);
+        const snap = await getDocs(q);
+
+        if (cancelled) return;
+
         const now = Date.now();
-        const cards: StoryCard[] = snapshot.docs
+        let cards: StoryCard[] = snap.docs
           .map((d) => ({ ...(d.data() as Post), id: d.id }))
           .filter((p) => {
             const t = getMillis(p.createdAt);
             return t === 0 || t <= now + 60000;
           })
           .map(toStoryCard);
-        setAllReviews(cards);
-        setFilteredLoading(false);
-      },
-      (error) => {
-        console.error("useReviews onSnapshot error:", error);
-        setAllReviews([]);
-        setFilteredLoading(false);
+
+        // Cache the cursor for the next page.
+        if (snap.docs.length > 0) {
+          pageCursors.current.set(
+            filteredPage,
+            snap.docs[snap.docs.length - 1]
+          );
+        }
+
+        // When search is active, apply genre/projectType in-memory
+        // as secondary filters on the server-fetched results.
+        if (hasSearch) {
+          if (genreFilter !== "All") {
+            cards = cards.filter(
+              (c) => (c.genre || "").toLowerCase() === genreFilter.toLowerCase()
+            );
+          }
+          if (projectTypeFilter !== "All") {
+            cards = cards.filter((c) => c.projectType === projectTypeFilter);
+          }
+        }
+
+        if (!cancelled) {
+          setFilteredPosts(cards);
+          setFilteredLoading(false);
+        }
+      } catch (err) {
+        console.error("useReviews filtered query error:", err);
+        if (!cancelled) {
+          setFilteredPosts([]);
+          setFilteredLoading(false);
+        }
       }
-    );
-
-    return () => unsubscribe();
-  }, [isFiltered]);
-
-  // Mode switch always lands on page 1.
-  const { resetPage: serverResetPage } = server;
-  React.useEffect(() => {
-    if (isFiltered) {
-      setFilteredPage(1);
-    } else {
-      serverResetPage();
-    }
-  }, [isFiltered, serverResetPage]);
-
-  // Filter and Sort in memory (filtered mode only).
-  const processedReviews = React.useMemo(() => {
-    let list = [...allReviews];
-
-    if (projectTypeFilter !== "All") {
-      list = list.filter((r) => r.projectType === projectTypeFilter);
     }
 
-    if (genreFilter !== "All") {
-      list = list.filter((r) =>
-        (r.genre || "").toLowerCase().includes(genreFilter.toLowerCase())
-      );
-    }
+    loadPage();
+    return () => { cancelled = true; };
+  }, [isFiltered, listConstraints, filteredPage, postsPerPage, hasSearch, genreFilter, projectTypeFilter]);
 
-    if (searchQuery.trim() !== "") {
-      const qTerm = searchQuery.toLowerCase().trim();
-      list = list.filter(
-        (r) =>
-          (r.title || "").toLowerCase().includes(qTerm) ||
-          (r.artistName || "").toLowerCase().includes(qTerm) ||
-          (r.projectTitle || "").toLowerCase().includes(qTerm)
-      );
-    }
-
-    if (sortBy === "highest-rated") {
-      list.sort((a, b) => (b.rating || 0) - (a.rating || 0));
-    } else {
-      list.sort(
-        (a, b) => (b.rawCreatedAt || 0) - (a.rawCreatedAt || 0)
-      );
-    }
-
-    return list;
-  }, [allReviews, projectTypeFilter, genreFilter, searchQuery, sortBy]);
+  const totalPages = Math.max(1, Math.ceil(filteredTotalCount / postsPerPage));
 
   if (isFiltered) {
-    const totalEstimate = processedReviews.length;
-    const totalPages = Math.max(1, Math.ceil(totalEstimate / postsPerPage));
-    const start = (filteredPage - 1) * postsPerPage;
-    const pageReviews = processedReviews.slice(start, start + postsPerPage);
-
     return {
-      reviews: pageReviews,
+      reviews: filteredPosts,
       loading: filteredLoading,
       currentPage: filteredPage,
       setCurrentPage: setFilteredPage,
       totalPages,
-      totalEstimate,
+      totalEstimate: filteredTotalCount,
     };
   }
 

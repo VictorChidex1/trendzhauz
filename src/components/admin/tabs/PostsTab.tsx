@@ -4,6 +4,9 @@ import type { Post } from "@/types/post";
 interface PostsTabProps {
   filteredPosts: Post[];
   isLoadingPosts: boolean;
+  hasMorePosts: boolean;
+  isLoadingMorePosts: boolean;
+  onLoadMore: () => void;
   isAdmin: boolean;
   currentUserId?: string;
   searchQuery: string;
@@ -21,6 +24,9 @@ interface PostsTabProps {
 export function PostsTab({
   filteredPosts,
   isLoadingPosts,
+  hasMorePosts,
+  isLoadingMorePosts,
+  onLoadMore,
   isAdmin,
   currentUserId,
   searchQuery,
@@ -210,6 +216,19 @@ export function PostsTab({
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Load More Button */}
+      {hasMorePosts && !isLoadingPosts && (
+        <div className="flex justify-center pt-2">
+          <button
+            onClick={onLoadMore}
+            disabled={isLoadingMorePosts}
+            className="text-xs font-black uppercase tracking-widest text-brand border border-brand/30 rounded-md px-4 py-2 hover:bg-brand hover:text-white transition-colors disabled:opacity-50 cursor-pointer"
+          >
+            {isLoadingMorePosts ? "Loading..." : "Load More Articles"}
+          </button>
         </div>
       )}
     </div>
