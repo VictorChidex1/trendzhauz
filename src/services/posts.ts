@@ -8,6 +8,7 @@ import {
   query,
   orderBy,
   where,
+  limit,
   serverTimestamp,
   Timestamp,
 } from "firebase/firestore";
@@ -79,7 +80,8 @@ export async function fetchPosts(): Promise<Post[]> {
   try {
     const q = query(
       collection(db, POSTS_COLLECTION),
-      orderBy("createdAt", "desc")
+      orderBy("createdAt", "desc"),
+      limit(500)
     );
     const querySnapshot = await getDocs(q);
 
@@ -106,7 +108,8 @@ export async function fetchPostsByCategory(
     const q = query(
       collection(db, POSTS_COLLECTION),
       where("category", "==", category),
-      orderBy("createdAt", "desc")
+      orderBy("createdAt", "desc"),
+      limit(500)
     );
     const querySnapshot = await getDocs(q);
 

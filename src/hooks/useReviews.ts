@@ -17,6 +17,8 @@ import {
   query,
   where,
   onSnapshot,
+  orderBy,
+  limit,
   type QueryDocumentSnapshot,
 } from "firebase/firestore";
 import { db } from "../services/firebase";
@@ -103,7 +105,9 @@ export function useReviews(
     const q = query(
       collection(db, "posts"),
       where("status", "==", "published"),
-      where("category", "==", "Reviews")
+      where("category", "==", "Reviews"),
+      orderBy("createdAt", "desc"),
+      limit(200)
     );
 
     const unsubscribe = onSnapshot(

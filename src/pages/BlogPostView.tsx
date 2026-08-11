@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useParams, Link } from "react-router-dom";
-import { collection, query, where, getDocs, limit, doc, updateDoc, increment } from "firebase/firestore";
+import { collection, query, where, getDocs, limit, orderBy, doc, updateDoc, increment } from "firebase/firestore";
 import { db } from "@/services/firebase";
 import type { Post } from "@/types/post";
 import {
@@ -83,36 +83,40 @@ export default function BlogPostView() {
               });
             }
 
-            // Fetch related posts with zero-index requirement (single field equality filter)
+            // Fetch related posts with targeted limit(3) queries
             try {
-              const publishedQuery = query(
+              let related: Post[] = [];
+
+              // Query 1: same category, newest first
+              const sameCatQuery = query(
                 collection(db, "posts"),
                 where("status", "==", "published"),
+                where("category", "==", loadedPost.category || "News"),
+                orderBy("createdAt", "desc"),
+                limit(3),
               );
-              const publishedSnap = await getDocs(publishedQuery);
-              const allPublished = publishedSnap.docs
+              const sameCatSnap = await getDocs(sameCatQuery);
+              related = sameCatSnap.docs
                 .map((d) => ({ ...(d.data() as Post), id: d.id }))
-                .filter((p) => p.id !== docSnap.id);
+                .filter((p) => p.id !== docSnap.id)
+                .slice(0, 3);
 
-              // Sort in memory by createdAt descending
-              allPublished.sort((a, b) => {
-                const timeA = a.createdAt?.toMillis?.() ?? 0;
-                const timeB = b.createdAt?.toMillis?.() ?? 0;
-                return timeB - timeA;
-              });
-
-              const sameCategory = allPublished.filter(
-                (p) =>
-                  (p.category || "").toLowerCase() ===
-                  (loadedPost.category || "").toLowerCase(),
-              );
-
-              let related = sameCategory.slice(0, 3);
+              // Query 2: if not enough, fill from any category
               if (related.length < 3) {
-                const others = allPublished.filter(
-                  (p) => !related.some((r) => r.id === p.id),
+                const existingIds = new Set(related.map((r) => r.id));
+                existingIds.add(docSnap.id);
+                const anyCatQuery = query(
+                  collection(db, "posts"),
+                  where("status", "==", "published"),
+                  orderBy("createdAt", "desc"),
+                  limit(6),
                 );
-                related = [...related, ...others].slice(0, 3);
+                const anyCatSnap = await getDocs(anyCatQuery);
+                const others = anyCatSnap.docs
+                  .map((d) => ({ ...(d.data() as Post), id: d.id }))
+                  .filter((p) => !existingIds.has(p.id))
+                  .slice(0, 3 - related.length);
+                related = [...related, ...others];
               }
 
               if (!cancelled) {

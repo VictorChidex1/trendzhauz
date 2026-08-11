@@ -172,7 +172,9 @@ export function useHeroSlides() {
 
     const q = query(
       collection(db, "posts"),
-      where("status", "==", "published")
+      where("status", "==", "published"),
+      orderBy("createdAt", "desc"),
+      limit(12)
     );
 
     const unsubscribe = onSnapshot(
@@ -267,7 +269,9 @@ export function useLatestStories(postsPerPage = 12) {
       pageCursors.current = {};
       const q = query(
         collection(db, "posts"),
-        where("status", "==", "published")
+        where("status", "==", "published"),
+        orderBy("createdAt", "desc"),
+        limit(36)
       );
 
       const unsubscribe = onSnapshot(
@@ -371,7 +375,9 @@ export function useTrendingPosts() {
 
     const q = query(
       collection(db, "posts"),
-      where("status", "==", "published")
+      where("status", "==", "published"),
+      orderBy("views", "desc"),
+      limit(5)
     );
 
     const unsubscribe = onSnapshot(
@@ -412,8 +418,42 @@ export function useEditorPicks(categoryFilter?: string) {
   const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
+    if (categoryFilter) {
+      const capitalized =
+        categoryFilter.charAt(0).toUpperCase() + categoryFilter.slice(1);
+      const q = query(
+        collection(db, "posts"),
+        where("status", "==", "published"),
+        where("category", "==", capitalized),
+        orderBy("createdAt", "desc"),
+        limit(12)
+      );
+
+      const unsubscribe = onSnapshot(
+        q,
+        (snapshot) => {
+          const livePosts = parsePublishedPosts(snapshot.docs);
+          const editorOnly = livePosts.filter((p) => p.isEditorPick);
+          const source = editorOnly.length > 0 ? editorOnly : livePosts;
+          const livePicks: EditorPick[] = source.slice(0, 3).map((data) => ({
+            category: data.category,
+            title: data.title,
+            coverImageUrl: data.coverImageUrl || "/assets/placeholder-cover.jpg",
+            createdAt: formatDate(data.createdAt),
+            slug: data.slug,
+          }));
+          setPicks(livePicks);
+          setLoading(false);
+        },
+        (error) => {
+          console.error("useEditorPicks onSnapshot error:", error);
+          setLoading(false);
+        }
+      );
+      return () => unsubscribe();
+    }
+
     if (
-      !categoryFilter &&
       data &&
       isFresh &&
       (data.editorPicks || []).length > 0
@@ -425,19 +465,17 @@ export function useEditorPicks(categoryFilter?: string) {
 
     const q = query(
       collection(db, "posts"),
-      where("status", "==", "published")
+      where("status", "==", "published"),
+      orderBy("createdAt", "desc"),
+      limit(12)
     );
 
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
         const livePosts = parsePublishedPosts(snapshot.docs);
-        const targetPosts = categoryFilter
-          ? livePosts.filter((p) => (p.category || "").toLowerCase() === categoryFilter.toLowerCase())
-          : livePosts;
-
-        const editorOnly = targetPosts.filter((p) => p.isEditorPick);
-        const source = editorOnly.length > 0 ? editorOnly : targetPosts;
+        const editorOnly = livePosts.filter((p) => p.isEditorPick);
+        const source = editorOnly.length > 0 ? editorOnly : livePosts;
 
         const livePicks: EditorPick[] = source.slice(0, 3).map((data) => ({
           category: data.category,
