@@ -18,6 +18,7 @@ import {
   Moon,
   Globe,
 } from "lucide-react";
+import { PageSeo } from "@/components/seo/PageSeo";
 
 export default function LinkHub() {
   const [links, setLinks] = useState<LinktreeItem[]>([]);
@@ -160,6 +161,11 @@ export default function LinkHub() {
     <div
       className={`relative min-h-[100svh] flex flex-col items-center py-16 px-4 overflow-hidden transition-colors duration-500 ${isDarkMode ? "bg-[#0A0A0A] text-white" : "bg-[#FAFAFA] text-zinc-900"}`}
     >
+      <PageSeo
+        title="Links"
+        description="All the essential TrendzHauz Media links in one place — music, videos, social channels, and more."
+        path="/links"
+      />
       {/* Theme Toggle Button */}
       <button
         onClick={() => setIsDarkMode(!isDarkMode)}

@@ -2,6 +2,7 @@ import * as React from "react";
 import { useState } from "react";
 import { Mail, MessageSquareHeart, Clock3, MapPin, ChevronDown, Sparkles } from "lucide-react";
 import { ContactForm } from "@/components/contact/ContactForm";
+import { PageSeo } from "@/components/seo/PageSeo";
 
 function InstagramIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
@@ -97,6 +98,11 @@ export default function ContactPage() {
 
   return (
     <div className="bg-background">
+      <PageSeo
+        title="Contact Us"
+        description="Get in touch with the TrendzHauz Media team — partnerships, submissions, feedback, or general inquiries. We'd love to hear from you."
+        path="/contact"
+      />
       {/* 1. HERO SECTION */}
       <section className="relative w-full bg-zinc-950 overflow-hidden min-h-[70vh] flex flex-col justify-center">
         {/* Dynamic Backgrounds */}

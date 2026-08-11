@@ -15,6 +15,8 @@ import { useEditorPicks } from "@/hooks/useBlogData";
 import {
   useVideosPosts,
 } from "@/hooks/useVideosPosts";
+import { PageSeo } from "@/components/seo/PageSeo";
+import { getCollectionPageSchema } from "@/seo/schemas";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -97,6 +99,12 @@ export default function VideosPage() {
 
   return (
     <div className="flex flex-col flex-1 w-full bg-background">
+      <PageSeo
+        title="Videos"
+        description="Watch the freshest music videos, live sessions, and behind-the-scenes clips from your favorite African and global artists."
+        path="/videos"
+        jsonLd={getCollectionPageSchema("Videos — TrendzHauz Media", "/videos")}
+      />
       {heroPost && (
         <section className="relative w-full min-h-[600px] lg:min-h-[700px] flex flex-col group bg-zinc-950">
           <img

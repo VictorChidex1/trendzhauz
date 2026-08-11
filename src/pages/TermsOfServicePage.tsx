@@ -1,6 +1,7 @@
 
 import { Scale, Sparkles, ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
+import { PageSeo } from "@/components/seo/PageSeo";
 
 export default function TermsOfServicePage() {
   const lastUpdated = "August 8, 2026";
@@ -90,6 +91,11 @@ export default function TermsOfServicePage() {
 
   return (
     <div className="bg-background selection:bg-brand/30">
+      <PageSeo
+        title="Terms of Service"
+        description="Terms and conditions governing your use of TrendzHauz Media — including content usage, intellectual property, and user responsibilities."
+        path="/terms"
+      />
       
       {/* 1. HERO SECTION */}
       <section className="relative w-full bg-zinc-950 overflow-hidden min-h-[60vh] flex flex-col justify-center">

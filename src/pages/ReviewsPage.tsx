@@ -13,6 +13,8 @@ import {
 } from "lucide-react";
 import { useReviews } from "@/hooks/useReviews";
 import type { StoryCard } from "@/types/post";
+import { PageSeo } from "@/components/seo/PageSeo";
+import { getCollectionPageSchema } from "@/seo/schemas";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -244,6 +246,12 @@ export default function ReviewsPage() {
 
   return (
     <div className="flex-1 flex flex-col w-full bg-background transition-colors duration-300 pb-20">
+      <PageSeo
+        title="Reviews"
+        description="In-depth album and project reviews with honest verdicts — ratings, score breakdowns, and final calls from TrendzHauz Media."
+        path="/reviews"
+        jsonLd={getCollectionPageSchema("Reviews — TrendzHauz Media", "/reviews")}
+      />
       {/* ── SPOTLIGHT BILLBOARD (Hero Banner) ── */}
       {spotlightReview && currentPage === 1 && !inlineSearchQuery && (
         <section className="relative w-full min-h-[580px] md:h-[65vh] md:min-h-[500px] bg-zinc-950 overflow-hidden flex items-end pt-24 md:pt-0">

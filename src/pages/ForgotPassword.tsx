@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { FirebaseError } from "firebase/app";
 import { requestPasswordResetEmail } from "@/services/passwordReset";
+import { PageSeo } from "@/components/seo/PageSeo";
 
 export default function ForgotPassword() {
   const [email, setEmail] = React.useState("");
@@ -69,6 +70,7 @@ export default function ForgotPassword() {
 
   return (
     <div className="min-h-[100svh] w-full flex flex-col items-center justify-center p-4 sm:p-6 bg-slate-50 relative overflow-hidden text-zinc-900">
+      <PageSeo title="Forgot Password" description="TrendzHauz Media — Password Reset" path="/admin/forgot-password" noindex />
       <div className="absolute top-6 left-6 z-20">
         <Link
           to="/admin"

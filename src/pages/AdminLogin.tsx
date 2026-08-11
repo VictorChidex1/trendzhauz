@@ -12,6 +12,7 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { PageSeo } from "@/components/seo/PageSeo";
 
 export default function AdminLogin() {
   const { user, login, loading: authLoading } = useAuth();
@@ -69,6 +70,7 @@ export default function AdminLogin() {
 
   return (
     <div className="min-h-[100svh] w-full flex flex-col items-center justify-center p-4 sm:p-6 bg-slate-50 relative overflow-hidden text-zinc-900">
+      <PageSeo title="Admin Login" description="TrendzHauz Media — Administration Login" path="/admin" noindex />
       {/* Return to Public Site Link at Top Left */}
       <div className="absolute top-6 left-6 z-20">
         <Link

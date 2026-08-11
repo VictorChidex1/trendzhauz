@@ -18,6 +18,7 @@ import {
   Mail,
 } from "lucide-react";
 import { ContactForm } from "@/components/contact/ContactForm";
+import { PageSeo } from "@/components/seo/PageSeo";
 
 const AUDIENCE_STATS = [
   {
@@ -144,6 +145,11 @@ export default function AdvertisePage() {
 
   return (
     <div className="bg-background">
+      <PageSeo
+        title="Advertise With Us"
+        description="Promote your brand with TrendzHauz Media — sponsored posts, banner placements, video partnerships, and audio campaigns that reach African music fans worldwide."
+        path="/advertise"
+      />
       {/* 1. HERO SECTION */}
       <section className="relative w-full bg-zinc-950 overflow-hidden min-h-[80vh] flex flex-col justify-center">
         {/* Dynamic Backgrounds */}

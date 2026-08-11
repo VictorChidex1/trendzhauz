@@ -51,6 +51,7 @@ import { MessagesTab } from "@/components/admin/tabs/MessagesTab";
 import type { LinktreeItem } from "@/types/linktree";
 import { db } from "@/services/firebase";
 import { collection, getDocs, query, orderBy, doc, updateDoc, deleteDoc } from "firebase/firestore";
+import { PageSeo } from "@/components/seo/PageSeo";
 
 export default function AdminPanel() {
   const { profile, logout, isAdmin, refreshProfile } = useAuth();
@@ -368,6 +369,7 @@ export default function AdminPanel() {
 
   return (
     <div className="min-h-[100svh] bg-slate-50 text-zinc-900 flex flex-col lg:flex-row">
+      <PageSeo title="Admin Panel" description="TrendzHauz Media — Content Management Dashboard" path="/admin/panel" noindex />
       {/* Sidebar Navigation */}
       <AdminSidebar
         activeTab={activeTab}

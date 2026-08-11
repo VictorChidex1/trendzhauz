@@ -27,6 +27,7 @@ const PrivacyPolicyPage = lazy(() => import("@/pages/PrivacyPolicyPage"));
 const TermsOfServicePage = lazy(() => import("@/pages/TermsOfServicePage"));
 
 import { useLocation } from "react-router-dom";
+import { PageSeo } from "@/components/seo/PageSeo";
 
 function AppContent() {
   const location = useLocation();
@@ -83,6 +84,7 @@ function AppContent() {
             path="*"
             element={
               <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
+                <PageSeo title="404 — Page Not Found" description="The page you are looking for does not exist." path={location.pathname} noindex />
                 <h1 className="text-4xl font-black text-brand tracking-tighter uppercase">
                   404
                 </h1>

@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { confirmPasswordReset, verifyPasswordResetCode } from "firebase/auth";
 import { auth } from "@/services/firebase";
+import { PageSeo } from "@/components/seo/PageSeo";
 
 export default function ResetPassword() {
   const [searchParams] = useSearchParams();
@@ -108,6 +109,7 @@ export default function ResetPassword() {
 
   return (
     <div className="min-h-[100svh] w-full flex flex-col items-center justify-center p-4 sm:p-6 bg-slate-50 relative overflow-hidden text-zinc-900">
+      <PageSeo title="Reset Password" description="TrendzHauz Media — Set New Password" path="/admin/reset-password" noindex />
       {/* Return to Login Link at Top Left */}
       <div className="absolute top-6 left-6 z-20">
         <Link

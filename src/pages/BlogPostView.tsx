@@ -18,6 +18,8 @@ import {
 import { ArticleCard } from "@/components/blog/ArticleCard";
 import { ArticleRenderer } from "@/components/blog/ArticleRenderer";
 import { useTrendingPosts, useEditorPicks } from "@/hooks/useBlogData";
+import { PageSeo } from "@/components/seo/PageSeo";
+import { getArticleSchema, getBreadcrumbSchema } from "@/seo/schemas";
 
 export default function BlogPostView() {
   const { category, slug } = useParams<{ category: string; slug: string }>();
@@ -185,8 +187,39 @@ export default function BlogPostView() {
 
   const readTime = Math.max(1, Math.ceil((post.content || "").length / 1500));
 
+  const postPath = `/${displayCategory.toLowerCase()}/${post.slug}`;
+  const postImage = post.coverImageUrl || post.coverImage;
+
   return (
     <article className="flex-1 flex flex-col w-full bg-background transition-colors duration-300">
+      <PageSeo
+        type="article"
+        title={post.title}
+        description={post.description}
+        path={postPath}
+        image={postImage}
+        publishedTime={post.createdAt?.toDate?.()?.toISOString()}
+        modifiedTime={post.updatedAt?.toDate?.()?.toISOString()}
+        authorName={post.authorName}
+        section={displayCategory}
+        jsonLd={[
+          getArticleSchema({
+            title: post.title,
+            description: post.description || "",
+            image: postImage || "",
+            path: postPath,
+            publishedTime: post.createdAt?.toDate?.()?.toISOString(),
+            modifiedTime: post.updatedAt?.toDate?.()?.toISOString(),
+            authorName: post.authorName,
+            section: displayCategory,
+          }),
+          getBreadcrumbSchema([
+            { name: "Home", url: "/" },
+            { name: displayCategory, url: categoryPath },
+            { name: post.title, url: postPath },
+          ]),
+        ]}
+      />
       {/* Secret Draft Preview Banner */}
       {post.status === "draft" && (
         <div className="w-full bg-amber-500 text-black px-4 py-3 flex items-center justify-center gap-2">

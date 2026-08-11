@@ -14,6 +14,8 @@ import { UniversalMusicPlayer } from "@/components/blog/UniversalMusicPlayer";
 import { useEditorPicks } from "@/hooks/useBlogData";
 import { findFirstEmbedUrl } from "@/utils/mediaUrl";
 import { useMusicPosts } from "@/hooks/useMusicPosts";
+import { PageSeo } from "@/components/seo/PageSeo";
+import { getCollectionPageSchema } from "@/seo/schemas";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -96,6 +98,12 @@ export default function MusicPage() {
 
   return (
     <div className="flex flex-col flex-1 w-full bg-background">
+      <PageSeo
+        title="Music"
+        description="Stream the latest Afrobeats, hip-hop, and global hits — new music drops, trending singles, and exclusive mixes from TrendzHauz Media."
+        path="/music"
+        jsonLd={getCollectionPageSchema("Music — TrendzHauz Media", "/music")}
+      />
       {heroPost && (
         <section className="relative w-full min-h-[600px] lg:min-h-[700px] flex flex-col group bg-zinc-950">
           <img

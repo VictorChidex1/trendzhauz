@@ -15,6 +15,8 @@ import {
 } from "lucide-react";
 import { useEditorPicks } from "@/hooks/useBlogData";
 import { useNewsPosts } from "@/hooks/useNewsPosts";
+import { PageSeo } from "@/components/seo/PageSeo";
+import { getCollectionPageSchema } from "@/seo/schemas";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -163,6 +165,12 @@ export default function NewsPage() {
 
   return (
     <div className="flex flex-col flex-1 w-full bg-background">
+      <PageSeo
+        title="News"
+        description="Breaking entertainment news, artist updates, and African music culture stories from TrendzHauz Media."
+        path="/news"
+        jsonLd={getCollectionPageSchema("News — TrendzHauz Media", "/news")}
+      />
       {leadStory && (
         <section className="relative w-full min-h-[600px] lg:min-h-[700px] flex flex-col group bg-zinc-950">
           <img

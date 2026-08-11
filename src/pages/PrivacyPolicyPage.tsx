@@ -1,6 +1,7 @@
 
 import { Shield, Sparkles, ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
+import { PageSeo } from "@/components/seo/PageSeo";
 
 export default function PrivacyPolicyPage() {
   const lastUpdated = "August 8, 2026";
@@ -85,6 +86,11 @@ export default function PrivacyPolicyPage() {
 
   return (
     <div className="bg-background selection:bg-brand/30">
+      <PageSeo
+        title="Privacy Policy"
+        description="Learn how TrendzHauz Media collects, uses, and protects your personal data — our privacy commitment to every visitor."
+        path="/privacy"
+      />
       
       {/* 1. HERO SECTION (Identical styling to ContactPage) */}
       <section className="relative w-full bg-zinc-950 overflow-hidden min-h-[60vh] flex flex-col justify-center">
