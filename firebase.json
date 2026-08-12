@@ -14,8 +14,8 @@
     "public": "dist",
     "predeploy": [
       "npm run build",
-      "node scripts/prerender-hubs.cjs",
-      "node scripts/build-gateway-template.cjs"
+      "node scripts/build-gateway-template.cjs",
+      "node scripts/prerender-hubs.cjs"
     ],
     "ignore": [
       "firebase.json",
