@@ -1,9 +1,9 @@
 /**
  * Reads preloaded aggregation data embedded in the HTML by the
- * build-time prerender script.
+ * build-time prerender script (dist/index.html).
  *
  * The preloaded data is stored in aggregations/preloaded in Firestore
- * and refreshed by onPostChanged on every publish. The prerender
+ * and refreshed by onPostChanged + the hourly aggregator. The prerender
  * script fetches this document at build time and embeds it as:
  *
  *   <script id="__PRELOADED__" type="application/json">...</script>
@@ -12,6 +12,10 @@
  * exists, they render immediately and query Firestore in the background
  * for eventual consistency. If stale or missing, they fall back to the
  * normal Firestore query path.
+ *
+ * In the Hybrid architecture, preload is injected into the homepage only
+ * (content hubs like /music, /reviews etc. are served dynamically by
+ * seoGateway without a preload blob).
  */
 import type {
   HeroSlide,
@@ -38,8 +42,8 @@ export function getPreloadedData(): PreloadedPayload | null {
 
   try {
     const data: PreloadedPayload = JSON.parse(el.textContent);
-    const age = Date.now() - new Date(data.preloadedAt).getTime();
-    if (age > MAX_AGE_MS) return null;
+    const t = new Date(data.preloadedAt).getTime();
+    if (!Number.isFinite(t) || Date.now() - t > MAX_AGE_MS) return null;
     return data;
   } catch {
     return null;

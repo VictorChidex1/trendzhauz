@@ -3,7 +3,8 @@
  * so the build-time prerender script and React hooks can use it
  * for immediate page rendering before Firestore queries complete.
  *
- * Called from onPostChanged after runAggregation() succeeds.
+ * Called from onPostChanged (after runAggregation succeeds) and
+ * aggregateHomepageData (hourly scheduler) to keep preload fresh.
  */
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
 

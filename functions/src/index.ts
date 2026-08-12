@@ -5,7 +5,8 @@
  * - requestPasswordReset (Resend-branded password reset emails)
  * - publishScheduled (auto-publish scheduled posts)
  * - seoSitemap (dynamic sitemap XML — Phase C)
- * - seoGateway (bot-specific HTML interceptor — Phase D)
+ * - seoGateway (bot/human content-hub + article HTML interceptor — Phase D/E Hybrid)
+ * - writePreloadCache (keep aggregations/preloaded fresh for homepage static inject)
  */
 
 import { onSchedule } from "firebase-functions/v2/scheduler";
@@ -264,6 +265,7 @@ export const aggregateHomepageData = onSchedule(
   async () => {
     try {
       await runAggregation();
+      await writePreloadCache();
     } catch (error) {
       console.error("❌ [aggregateHomepageData] Aggregation failed:", error);
       throw error; // Re-throw so Cloud Functions marks this execution as failed

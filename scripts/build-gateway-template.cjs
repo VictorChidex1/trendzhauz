@@ -3,8 +3,9 @@
  * into the Functions source tree so seoGateway can serve the exact
  * built HTML with correct asset hashes to human visitors.
  *
- * Runs automatically during `firebase deploy --only hosting` because
- * it is listed in firebase.json hosting.predeploy after npm run build.
+ * Runs during `firebase deploy` via both hosting.predeploy and
+ * functions.predeploy (double build, but guarantees functions-only
+ * deploys never ship a stale or missing template).
  */
 const fs = require("fs");
 const path = require("path");

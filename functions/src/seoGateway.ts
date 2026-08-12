@@ -15,6 +15,12 @@ function getDb() {
 const SITE_URL = "https://trendzhauz.com";
 const SITE_NAME = "TrendzHauz Media";
 
+const CONTENT_HUB_PATHS = ["/music", "/reviews", "/videos", "/news"];
+
+function isContentHub(path: string): boolean {
+  return CONTENT_HUB_PATHS.includes(path);
+}
+
 // ── SPA shell template (generated at deploy) ──
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 let SPA_SHELL: string;
@@ -27,55 +33,45 @@ try {
     "</title></head><body><div id=\"root\"></div><script type=\"module\" src=\"/src/main.tsx\"></script></body></html>";
 }
 
-// ── Preloaded aggregation cache (60s TTL — fresh per publish, cheap to refresh) ──
-let cachedPreload: { json: string | null; ts: number } = {
-  json: null,
-  ts: 0,
-};
-const PRELOAD_CACHE_TTL_MS = 60 * 1000;
+// ── Cache bounds ──
+const MAX_HUB_CACHE_ENTRIES = 20;
+const MAX_ARTICLE_CACHE_ENTRIES = 200;
 
-// ── Hub page HTML cache (path → HTML, 60s TTL) ──
+// ── Hub page HTML cache (content hubs only, key = `${path}:${bot|human}`) ──
 const hubCache = new Map<string, { html: string; ts: number }>();
 const HUB_CACHE_TTL_MS = 60 * 1000;
 
 // ── Article page cache ──
-const articleCache = new Map<
-  string,
-  { html: string; ts: number }
->();
+const articleCache = new Map<string, { html: string; ts: number }>();
 const ARTICLE_CACHE_TTL_MS = 5 * 60 * 1000;
 
-function setCacheHeaders(res: { set: (k: string, v: string) => void }): void {
-  res.set("Cache-Control", "public, max-age=60, s-maxage=300");
+function purgeExpired(
+  map: Map<string, { html: string; ts: number }>,
+  ttl: number,
+  max: number,
+): void {
+  const now = Date.now();
+  for (const [key, entry] of map) {
+    if (now - entry.ts >= ttl) map.delete(key);
+  }
+  if (map.size > max) {
+    const oldest = [...map.entries()]
+      .sort((a, b) => a[1].ts - b[1].ts)
+      .slice(0, map.size - max)
+      .map(([k]) => k);
+    for (const k of oldest) map.delete(k);
+  }
 }
 
-async function getPreloadedJson(): Promise<string | null> {
-  const now = Date.now();
-  if (cachedPreload.json !== null && now - cachedPreload.ts < PRELOAD_CACHE_TTL_MS) {
-    return cachedPreload.json;
-  }
-  try {
-    const db = getDb();
-    const snap = await db.doc("aggregations/preloaded").get();
-    if (!snap.exists) {
-      cachedPreload = { json: null, ts: now };
-      return null;
-    }
-    const data = snap.data() || {};
-    const stripped = {
-      preloadedAt: data.preloadedAt,
-      heroSlides: data.heroSlides,
-      trending: data.trending,
-      editorPicks: data.editorPicks,
-      latestStories: data.latestStories,
-    };
-    const json = JSON.stringify(stripped);
-    cachedPreload = { json, ts: now };
-    return json;
-  } catch (err) {
-    console.error("seoGateway preload fetch error:", err);
-    return cachedPreload.json; // serve stale if available
-  }
+function setCacheHeaders(
+  res: { set: (k: string, v: string) => void },
+  maxAgeSeconds: number,
+): void {
+  res.set("Vary", "User-Agent");
+  res.set(
+    "Cache-Control",
+    `public, max-age=${maxAgeSeconds}, s-maxage=300`,
+  );
 }
 
 function escapeHtml(str: string): string {
@@ -86,55 +82,71 @@ function escapeHtml(str: string): string {
     .replace(/"/g, "&quot;");
 }
 
-function injectPreloadIntoSpashell(
+function normalizePath(raw: string): string {
+  const p = raw === "" ? "/" : raw;
+  if (p.length > 1 && p.endsWith("/")) return p.slice(0, -1);
+  return p;
+}
+
+// ── Inject full SEO head tags into SPA shell for content hub routes ──
+function injectHubHead(
   html: string,
-  preloadedJson: string | null,
+  path: string,
+): string {
+  const meta = STATIC_SEO[path];
+  const title = meta?.title ?? SITE_NAME;
+  const description =
+    meta?.description ?? "TrendzHauz Media";
+
+  return html
+    .replace(/<title>[\s\S]*?<\/title>/, `<title>${escapeHtml(title)}</title>`)
+    .replace(
+      /<meta\s+name="description"\s+content="[^"]*"\s*\/?>/,
+      `<meta name="description" content="${escapeHtml(description)}">`,
+    )
+    .replace(
+      /<meta\s+property="og:title"\s+content="[^"]*"\s*\/?>/,
+      `<meta property="og:title" content="${escapeHtml(title)}">`,
+    )
+    .replace(
+      /<meta\s+property="og:description"\s+content="[^"]*"\s*\/?>/,
+      `<meta property="og:description" content="${escapeHtml(description)}">`,
+    )
+    .replace(
+      /<meta\s+property="og:url"\s+content="[^"]*"\s*\/?>/,
+      `<meta property="og:url" content="${escapeHtml(SITE_URL + path)}">`,
+    )
+    .replace(
+      /<meta\s+property="twitter:title"\s+content="[^"]*"\s*\/?>/,
+      `<meta property="twitter:title" content="${escapeHtml(title)}">`,
+    )
+    .replace(
+      /<meta\s+property="twitter:description"\s+content="[^"]*"\s*\/?>/,
+      `<meta property="twitter:description" content="${escapeHtml(description)}">`,
+    );
+}
+
+function injectSkeleton(
+  html: string,
   title: string,
   description: string,
 ): string {
-  // Strip any stale preload tag (template may carry one from build)
-  const clean = html.replace(
-    /<script id="__PRELOADED__"[^>]*>[\s\S]*?<\/script>/g,
-    "",
-  );
-
-  const preloadTag = preloadedJson
-    ? `<script id="__PRELOADED__" type="application/json">${preloadedJson}</script>`
-    : "";
-
   const skeleton = `<h1 style="font-family:system-ui;text-align:center;padding:2rem 1rem;color:inherit">${escapeHtml(title)}</h1>
 <p style="font-family:system-ui;text-align:center;max-width:600px;margin:0 auto 2rem;padding:0 1rem;color:inherit;opacity:0.7">${escapeHtml(description)}</p>`;
-
-  return clean
-    .replace("</head>", `${preloadTag}\n</head>`)
-    .replace('<div id="root">', `<div id="root">${skeleton}`);
-}
-
-function injectPreloadIntoBotHtml(
-  html: string,
-  preloadedJson: string | null,
-): string {
-  if (!preloadedJson) return html;
   return html.replace(
-    "</head>",
-    `<script id="__PRELOADED__" type="application/json">${preloadedJson}</script>\n</head>`,
+    '<div id="root">',
+    `<div id="root">${skeleton}`,
   );
 }
 
-const HUB_PATHS = [
-  "/music",
-  "/reviews",
-  "/videos",
-  "/news",
-  "/advertise",
-  "/contact",
-  "/links",
-  "/privacy",
-  "/terms",
-];
+function buildHumanHubHtml(path: string): string {
+  const meta = STATIC_SEO[path];
+  const title = meta?.title ?? SITE_NAME;
+  const description = meta?.description ?? "TrendzHauz Media";
 
-function isHubRoute(path: string): boolean {
-  return HUB_PATHS.includes(path);
+  let html = injectHubHead(SPA_SHELL, path);
+  html = injectSkeleton(html, title, description);
+  return html;
 }
 
 export const seoGateway = onRequest(
@@ -147,46 +159,48 @@ export const seoGateway = onRequest(
   },
   async (req, res) => {
     const userAgent = req.headers["user-agent"] || null;
-    const path = req.path === "" ? "/" : req.path;
+    const path = normalizePath(req.path);
     const segments = path.split("/").filter(Boolean);
     const isArticle = segments.length === 2;
+    const isBotReq = isBot(userAgent);
+
+    res.set("Content-Type", "text/html; charset=utf-8");
 
     // ── Human visitors ──
-    if (!isBot(userAgent)) {
-      res.set("Content-Type", "text/html; charset=utf-8");
+    if (!isBotReq) {
+      // Content hub: full SEO head tags + visible skeleton
+      if (isContentHub(path)) {
+        const cacheKey = `${path}:human`;
+        const cached = hubCache.get(cacheKey);
+        if (cached && Date.now() - cached.ts < HUB_CACHE_TTL_MS) {
+          setCacheHeaders(res, 60);
+          res.send(cached.html);
+          return;
+        }
 
-      // Hub routes: inject preloaded JSON + visible skeleton
-      if (isHubRoute(path)) {
-        const preloadedJson = await getPreloadedJson();
-        const hubMeta = STATIC_SEO[path];
-        const title = hubMeta?.title ?? SITE_NAME;
-        const description =
-          hubMeta?.description ?? "TrendzHauz Media";
-        const html = injectPreloadIntoSpashell(
-          SPA_SHELL,
-          preloadedJson,
-          title,
-          description,
-        );
-        setCacheHeaders(res);
+        const html = buildHumanHubHtml(path);
+
+        purgeExpired(hubCache, HUB_CACHE_TTL_MS, MAX_HUB_CACHE_ENTRIES);
+        hubCache.set(cacheKey, { html, ts: Date.now() });
+        setCacheHeaders(res, 60);
         res.send(html);
         return;
       }
 
       // Other routes: plain SPA shell
+      res.set("Vary", "User-Agent");
       res.set("Cache-Control", "public, max-age=0");
       res.send(SPA_SHELL);
       return;
     }
 
     // ── Bot visitors ──
-    res.set("Content-Type", "text/html; charset=utf-8");
-
-    // Hub route cache check (shared human+bot cache key)
-    if (isHubRoute(path) && !isArticle) {
-      const cached = hubCache.get(path);
+    // Content hub cache check
+    if (isContentHub(path) && !isArticle) {
+      const cacheKey = `${path}:bot`;
+      const cached = hubCache.get(cacheKey);
       if (cached && Date.now() - cached.ts < HUB_CACHE_TTL_MS) {
-        setCacheHeaders(res);
+        setCacheHeaders(res, 60);
         res.send(cached.html);
         return;
       }
@@ -197,26 +211,28 @@ export const seoGateway = onRequest(
       const articleKey = `article:${path}`;
       const cached = articleCache.get(articleKey);
       if (cached && Date.now() - cached.ts < ARTICLE_CACHE_TTL_MS) {
-        setCacheHeaders(res);
+        setCacheHeaders(res, 60);
         res.send(cached.html);
         return;
       }
     }
 
-    // ── Bot: hub/static route ──
+    // ── Bot: content hub / static route ──
     if (!isArticle || segments.length < 2) {
       const html = buildStaticBotHtml(path, SITE_URL);
 
-      if (isHubRoute(path)) {
-        const preloadedJson = await getPreloadedJson();
-        const finalHtml = injectPreloadIntoBotHtml(html, preloadedJson);
-        hubCache.set(path, { html: finalHtml, ts: Date.now() });
-        setCacheHeaders(res);
-        res.send(finalHtml);
+      if (isContentHub(path)) {
+        const cacheKey = `${path}:bot`;
+        purgeExpired(hubCache, HUB_CACHE_TTL_MS, MAX_HUB_CACHE_ENTRIES);
+        hubCache.set(cacheKey, { html, ts: Date.now() });
+        setCacheHeaders(res, 60);
+        res.send(html);
         return;
       }
 
-      setCacheHeaders(res);
+      // Non-hub static routes (shouldn't reach this in Hybrid — Hosting serves
+      // static files for /advertise etc. first; safe fallback.)
+      setCacheHeaders(res, 60);
       res.send(html);
       return;
     }
@@ -236,8 +252,13 @@ export const seoGateway = onRequest(
 
       if (snap.empty) {
         const html = build404Html(SITE_URL);
+        purgeExpired(
+          articleCache,
+          ARTICLE_CACHE_TTL_MS,
+          MAX_ARTICLE_CACHE_ENTRIES,
+        );
         articleCache.set(articleKey, { html, ts: Date.now() });
-        setCacheHeaders(res);
+        setCacheHeaders(res, 60);
         res.status(404).send(html);
         return;
       }
@@ -263,14 +284,19 @@ export const seoGateway = onRequest(
         SITE_URL,
       );
 
+      purgeExpired(
+        articleCache,
+        ARTICLE_CACHE_TTL_MS,
+        MAX_ARTICLE_CACHE_ENTRIES,
+      );
       articleCache.set(articleKey, { html, ts: Date.now() });
-      setCacheHeaders(res);
+      setCacheHeaders(res, 60);
       res.send(html);
     } catch (err) {
       console.error("seoGateway article error:", err);
       const cached = articleCache.get(articleKey);
       if (cached) {
-        setCacheHeaders(res);
+        setCacheHeaders(res, 60);
         res.send(cached.html);
         return;
       }
