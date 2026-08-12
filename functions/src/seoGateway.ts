@@ -2,11 +2,13 @@ import { onRequest } from "firebase-functions/v2/https";
 import { getFirestore } from "firebase-admin/firestore";
 import {
   isBot,
+  isBlockedBot,
   STATIC_SEO,
   buildStaticBotHtml,
   buildArticleBotHtml,
   build404Html,
 } from "./seo/config";
+import { getArticleSnapshot } from "./seo/article-snapshot";
 
 function getDb() {
   return getFirestore();
@@ -66,11 +68,12 @@ function purgeExpired(
 function setCacheHeaders(
   res: { set: (k: string, v: string) => void },
   maxAgeSeconds: number,
+  sMaxAgeSeconds = 300,
 ): void {
   res.set("Vary", "User-Agent");
   res.set(
     "Cache-Control",
-    `public, max-age=${maxAgeSeconds}, s-maxage=300`,
+    `public, max-age=${maxAgeSeconds}, s-maxage=${sMaxAgeSeconds}`,
   );
 }
 
@@ -166,6 +169,12 @@ export const seoGateway = onRequest(
 
     res.set("Content-Type", "text/html; charset=utf-8");
 
+    // ── Blocked crawlers: short-circuit before any Firestore/Storage work ──
+    if (isBlockedBot(userAgent)) {
+      res.status(429).send("Too Many Requests");
+      return;
+    }
+
     // ── Human visitors ──
     if (!isBotReq) {
       // Content hub: full SEO head tags + visible skeleton
@@ -238,8 +247,27 @@ export const seoGateway = onRequest(
     }
 
     // ── Bot: article route ──
-    const [, slug] = segments;
+    const [categorySegment, slug] = segments;
     const articleKey = `article:${path}`;
+
+    // Phase F: serve the on-publish snapshot when available (cheap + fresh).
+    try {
+      const snapshotHtml = await getArticleSnapshot(categorySegment, slug);
+      if (snapshotHtml) {
+        purgeExpired(
+          articleCache,
+          ARTICLE_CACHE_TTL_MS,
+          MAX_ARTICLE_CACHE_ENTRIES,
+        );
+        articleCache.set(articleKey, { html: snapshotHtml, ts: Date.now() });
+        setCacheHeaders(res, 60, 3600);
+        res.send(snapshotHtml);
+        return;
+      }
+    } catch (err) {
+      console.error("seoGateway snapshot read error:", err);
+      // fall through to the Firestore builder below
+    }
 
     try {
       const db = getDb();

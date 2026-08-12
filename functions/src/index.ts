@@ -7,6 +7,7 @@
  * - seoSitemap (dynamic sitemap XML — Phase C)
  * - seoGateway (bot/human content-hub + article HTML interceptor — Phase D/E Hybrid)
  * - writePreloadCache (keep aggregations/preloaded fresh for homepage static inject)
+ * - article snapshots (Phase F — on-publish HTML snapshots for bot article serving)
  */
 
 import { onSchedule } from "firebase-functions/v2/scheduler";
@@ -36,6 +37,12 @@ export { seoGateway } from "./seoGateway";
 
 // Preload cache writer (Phase E enhancement)
 import { writePreloadCache } from "./seo/preload-hubs";
+
+// Article HTML snapshot writer (Phase F)
+import {
+  writeArticleSnapshot,
+  deleteArticleSnapshot,
+} from "./seo/article-snapshot";
 
 // ─── Helper: Format Firestore Timestamp to readable string ───
 function formatTimestamp(ts: FirebaseFirestore.Timestamp | undefined): string {
@@ -280,6 +287,16 @@ function isPublished(
   return data?.status === "published";
 }
 
+function snapshotKeys(
+  doc: FirebaseFirestore.DocumentData | undefined
+): { category: string; slug: string } | null {
+  if (!doc || !doc.slug) return null;
+  return {
+    category: String(doc.category || "news"),
+    slug: String(doc.slug),
+  };
+}
+
 // True when before/after differ ONLY in volatile fields (views/updatedAt).
 // Auto view-increments and manual CMS view edits therefore cost zero recomputes.
 function onlyVolatileFieldsChanged(
@@ -319,6 +336,14 @@ export const onPostChanged = onDocumentWritten(
     try {
       await runAggregation();
       await writePreloadCache();
+
+      // Phase F: keep the bot article snapshot in sync with the post.
+      if (after && isPublished(after)) {
+        await writeArticleSnapshot(after);
+      } else {
+        const keys = snapshotKeys(before) ?? snapshotKeys(after);
+        if (keys) await deleteArticleSnapshot(keys.category, keys.slug);
+      }
     } catch (error) {
       console.error("❌ [onPostChanged] Aggregation failed:", error);
       throw error;

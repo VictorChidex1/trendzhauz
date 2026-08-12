@@ -29,6 +29,19 @@ export function isBot(userAgent: string | null): boolean {
   );
 }
 
+// User-Agent substrings to reject immediately (runaway/abusive crawlers).
+// Populate when a specific bot floods requests so we short-circuit before
+// any Firestore/Storage work. Empty by default — costs nothing.
+export const BLOCKED_UA_PATTERNS: string[] = [];
+
+export function isBlockedBot(userAgent: string | null): boolean {
+  if (!userAgent) return false;
+  const ua = userAgent.toLowerCase();
+  return BLOCKED_UA_PATTERNS.some((pattern) =>
+    ua.includes(pattern.toLowerCase()),
+  );
+}
+
 export interface SeoMeta {
   title: string;
   description: string;
@@ -352,6 +365,152 @@ export function buildArticleBotHtml(
       jsonLd,
       visibleTitle: postData.title,
       visibleContent: excerpt || postData.description || "",
+    },
+    siteUrl,
+  );
+}
+
+function excerptWords(content: string, maxWords: number): string {
+  const text = (content || "")
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return text.split(" ").slice(0, maxWords).join(" ");
+}
+
+export interface ArticleSnapshotPost {
+  title: string;
+  description: string;
+  slug: string;
+  category: string;
+  coverImageUrl?: string;
+  createdAt?: { toDate: () => Date };
+  updatedAt?: { toDate: () => Date };
+  authorName?: string;
+  content?: string;
+  rating?: number;
+  verdict?: string;
+  artistName?: string;
+  projectTitle?: string;
+  projectType?: string;
+}
+
+function buildReviewJsonLd(
+  post: ArticleSnapshotPost,
+  siteUrl: string,
+  canonicalPath: string,
+  image: string,
+  publishedTime: string | undefined,
+): string {
+  const itemName = post.projectTitle || post.title;
+  return JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "Review",
+    name: `Review: ${post.title}`,
+    description: post.description,
+    url: siteUrl + canonicalPath,
+    datePublished: publishedTime,
+    inLanguage: "en-NG",
+    author: {
+      "@type": "Person",
+      name: post.authorName || "TrendzHauz Editor",
+    },
+    itemReviewed: {
+      "@type": post.projectType === "Album" ? "MusicAlbum" : "MusicRecording",
+      name: itemName,
+      ...(post.artistName
+        ? { byArtist: { "@type": "MusicGroup", name: post.artistName } }
+        : {}),
+      image,
+      publisher: { "@type": "Organization", name: SITE_NAME },
+    },
+    reviewRating: {
+      "@type": "Rating",
+      ratingValue: post.rating,
+      bestRating: 10,
+      worstRating: 0,
+    },
+  });
+}
+
+export function buildArticleSnapshotHtml(
+  post: ArticleSnapshotPost,
+  siteUrl: string,
+): string {
+  const categoryLower = (post.category || "news").toLowerCase();
+  const canonicalPath = `/${categoryLower}/${post.slug}`;
+  const image = post.coverImageUrl || "";
+  const created = post.createdAt?.toDate?.();
+  const updated = post.updatedAt?.toDate?.();
+  const publishedTime = created?.toISOString();
+  const modifiedTime = updated?.toISOString();
+  const body = excerptWords(post.content || "", 300);
+  const isReview =
+    categoryLower === "reviews" && typeof post.rating === "number";
+
+  const jsonLd: Array<Record<string, unknown>> = [];
+  if (isReview) {
+    jsonLd.push(
+      JSON.parse(
+        buildReviewJsonLd(
+          post,
+          siteUrl,
+          canonicalPath,
+          image,
+          publishedTime,
+        ),
+      ),
+    );
+  } else {
+    jsonLd.push(
+      JSON.parse(
+        buildArticleJsonLd(
+          {
+            title: post.title,
+            description: post.description,
+            image,
+            canonicalPath,
+            publishedTime,
+            modifiedTime,
+            authorName: post.authorName,
+            section: post.category,
+          },
+          siteUrl,
+        ),
+      ),
+    );
+  }
+  jsonLd.push(
+    JSON.parse(
+      buildBreadcrumbJsonLd(
+        [
+          { name: "Home", url: "/" },
+          { name: post.category, url: `/${categoryLower}` },
+          { name: post.title, url: canonicalPath },
+        ],
+        siteUrl,
+      ),
+    ),
+  );
+
+  const visibleContent = [body, post.verdict ? `Verdict: ${post.verdict}` : null]
+    .filter(Boolean)
+    .join("\n");
+
+  return buildBotHtml(
+    {
+      title: post.title + " | " + SITE_NAME,
+      description: post.description || "",
+      image,
+      canonicalPath,
+      section: post.category,
+      publishedTime,
+      modifiedTime,
+      authorName: post.authorName,
+      jsonLd,
+      visibleTitle: post.title,
+      visibleContent: visibleContent || post.description || "",
     },
     siteUrl,
   );

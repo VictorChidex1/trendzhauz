@@ -62,6 +62,9 @@ export async function uploadBlogCover(
 
   const snapshot = await uploadBytes(storageRef, file, {
     contentType: file.type,
+    // Long-lived immutable cache so browsers/CDN never re-download a cover
+    // that is never mutated (Phase F Layer 1 — media egress containment).
+    cacheControl: "public, max-age=31536000, immutable",
     customMetadata: {
       uploadedBy: uploaderUid,
       originalName: file.name.slice(0, 200),
