@@ -33,6 +33,9 @@ export { seoSitemap } from "./seoSitemap";
 // SEO bot gateway (Phase D)
 export { seoGateway } from "./seoGateway";
 
+// Preload cache writer (Phase E enhancement)
+import { writePreloadCache } from "./seo/preload-hubs";
+
 // ─── Helper: Format Firestore Timestamp to readable string ───
 function formatTimestamp(ts: FirebaseFirestore.Timestamp | undefined): string {
   if (!ts || !ts.toDate) return "Unknown Date";
@@ -313,6 +316,7 @@ export const onPostChanged = onDocumentWritten(
 
     try {
       await runAggregation();
+      await writePreloadCache();
     } catch (error) {
       console.error("❌ [onPostChanged] Aggregation failed:", error);
       throw error;

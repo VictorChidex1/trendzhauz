@@ -20,6 +20,7 @@ import type {
 } from "../types/post";
 import { useHomepageAggregation } from "./useHomepageAggregation";
 import type { HomepageAggregation } from "./useHomepageAggregation";
+import { getPreloadedData } from "@/utils/preload";
 
 // HELPER: Convert Firestore Timestamp / Date into epoch milliseconds
 function getMillis(val: unknown): number {
@@ -164,6 +165,13 @@ export function useHeroSlides() {
   const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
+    // Phase 1: check preloaded data (embedded in HTML at build time)
+    const preloaded = getPreloadedData();
+    if (preloaded?.heroSlides?.length) {
+      setSlides(preloaded.heroSlides as HeroSlide[]);
+      setLoading(false);
+    }
+
     if (data && isFresh && (data.heroSlides || []).length > 0) {
       setSlides(buildHeroSlides(data));
       setLoading(false);
@@ -254,6 +262,13 @@ export function useLatestStories(postsPerPage = 12) {
 
   // Load the aggregation slice, or fall back to the real-time listener
   React.useEffect(() => {
+    // Phase 1: check preloaded data
+    const preloaded = getPreloadedData();
+    if (preloaded?.latestStories?.length && !aggregationActive) {
+      setAllPosts(preloaded.latestStories as StoryCard[]);
+      setLoading(false);
+    }
+
     if (aggregationActive && data) {
       setAllPosts(data.latestStories || []);
       setDeepPosts([]);
@@ -367,6 +382,13 @@ export function useTrendingPosts() {
   const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
+    // Phase 1: check preloaded data
+    const preloaded = getPreloadedData();
+    if (preloaded?.trending?.length) {
+      setPosts(preloaded.trending);
+      setLoading(false);
+    }
+
     if (data && isFresh && (data.trending || []).length > 0) {
       setPosts(data.trending || []);
       setLoading(false);
@@ -418,6 +440,15 @@ export function useEditorPicks(categoryFilter?: string) {
   const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
+    // Phase 1: check preloaded data (homepage only — no category-specific preloads)
+    if (!categoryFilter) {
+      const preloaded = getPreloadedData();
+      if (preloaded?.editorPicks?.length) {
+        setPicks(preloaded.editorPicks);
+        setLoading(false);
+      }
+    }
+
     if (categoryFilter) {
       const capitalized =
         categoryFilter.charAt(0).toUpperCase() + categoryFilter.slice(1);

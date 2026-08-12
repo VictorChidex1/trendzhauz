@@ -28,6 +28,76 @@ if (!fs.existsSync(DIST_HTML)) {
   process.exit(1);
 }
 
+// ── Read .env for Firestore REST API access ──
+let FIREBASE_API_KEY = "";
+let FIREBASE_PROJECT_ID = "";
+try {
+  const envPath = path.join(ROOT, ".env");
+  if (fs.existsSync(envPath)) {
+    const envRaw = fs.readFileSync(envPath, "utf-8");
+    for (const line of envRaw.split("\n")) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith("#")) continue;
+      const eq = trimmed.indexOf("=");
+      if (eq === -1) continue;
+      const k = trimmed.slice(0, eq).trim();
+      const v = trimmed.slice(eq + 1).trim();
+      if (k === "VITE_FIREBASE_API_KEY") FIREBASE_API_KEY = v;
+      if (k === "VITE_FIREBASE_PROJECT_ID") FIREBASE_PROJECT_ID = v;
+    }
+  }
+} catch {
+  // .env unavailable — skip preloading silently
+}
+
+// ── Unwrap Firestore REST value into plain JSON ──
+function unwrapFirestoreValue(val) {
+  if (val === null || val === undefined) return null;
+  if (val.stringValue !== undefined) return val.stringValue;
+  if (val.integerValue !== undefined) return parseInt(val.integerValue, 10);
+  if (val.doubleValue !== undefined) return val.doubleValue;
+  if (val.booleanValue !== undefined) return val.booleanValue;
+  if (val.timestampValue !== undefined) return val.timestampValue;
+  if (val.nullValue !== undefined) return null;
+  if (val.mapValue) {
+    const obj = {};
+    if (val.mapValue.fields) {
+      for (const [k, v] of Object.entries(val.mapValue.fields)) {
+        obj[k] = unwrapFirestoreValue(v);
+      }
+    }
+    return obj;
+  }
+  if (val.arrayValue) {
+    return (val.arrayValue.values || []).map(unwrapFirestoreValue);
+  }
+  return null;
+}
+
+// ── Fetch preloaded aggregation data from Firestore ──
+async function fetchPreloadedData() {
+  if (!FIREBASE_API_KEY || !FIREBASE_PROJECT_ID) return null;
+  try {
+    const url =
+      "https://firestore.googleapis.com/v1/projects/" +
+      FIREBASE_PROJECT_ID +
+      "/databases/(default)/documents/aggregations/preloaded?key=" +
+      FIREBASE_API_KEY;
+    const res = await fetch(url);
+    if (res.ok) {
+      const doc = await res.json();
+      if (doc.fields) {
+        const unwrapped = unwrapFirestoreValue({ mapValue: { fields: doc.fields } });
+        console.log("  ✅ Preloaded aggregation data fetched from Firestore.");
+        return JSON.stringify(unwrapped);
+      }
+    }
+  } catch (err) {
+    console.warn("  ⚠️  Could not fetch preloaded data:", err.message);
+  }
+  return null;
+}
+
 const SITE_NAME = "TrendzHauz Media";
 const OG_LOCALE = "en_NG";
 const LOGO_URL = "/assets/Trendzhauz-logo.png";
@@ -130,9 +200,12 @@ const sourceHtml = fs.readFileSync(DIST_HTML, "utf-8");
 const oldSeoBlock = /<!-- Primary SEO Metadata -->[\s\S]*?<!-- Web App Manifest/;
 const cleanHtml = sourceHtml.replace(oldSeoBlock, "<!-- Web App Manifest");
 
-let written = 0;
+async function main() {
+  const preloadedJson = await fetchPreloadedData();
 
-for (const hub of HUBS) {
+  let written = 0;
+
+  for (const hub of HUBS) {
   const routePath = "/" + hub.route;
   const canonical = "https://trendzhauz.com" + routePath;
 
@@ -168,7 +241,8 @@ for (const hub of HUBS) {
 <meta property="twitter:description" content="${escapeHtml(hub.description)}" />
 <meta property="twitter:image" content="${escapeHtml("https://trendzhauz.com" + LOGO_URL)}" />
 
-<script type="application/ld+json">${jsonLd}</script>`;
+<script type="application/ld+json">${jsonLd}</script>
+${preloadedJson ? `<script id="__PRELOADED__" type="application/json">${escapeHtml(preloadedJson)}</script>` : ""}`;
 
   let outHtml = cleanHtml.replace(
     "<!-- Web App Manifest",
@@ -190,4 +264,10 @@ for (const hub of HUBS) {
   console.log(`  ✅ ${hub.route}`);
 }
 
-console.log(`\n✅ Phase E: ${written} hub routes pre-rendered into dist/*/index.html`);
+  console.log(`\n✅ Phase E: ${written} hub routes pre-rendered into dist/*/index.html`);
+}
+
+main().catch((err) => {
+  console.error("❌ Prerender failed:", err);
+  process.exit(1);
+});
