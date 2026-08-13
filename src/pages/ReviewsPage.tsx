@@ -74,7 +74,7 @@ export default function ReviewsPage() {
   // Spotlight featured review (first item when on page 1 and no aggressive search)
   const spotlightReview: StoryCard | null =
     reviews.length > 0 ? reviews[0] : null;
-  const remainingReviews = reviews.length > 1 ? reviews.slice(1) : reviews;
+
 
   // 3️⃣ Renders mini SVG Rating Ring with Popover Score Matrix Tooltip
   const RatingRing = ({ review }: { review: StoryCard }) => {
@@ -476,10 +476,7 @@ export default function ReviewsPage() {
               animate="visible"
               className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
             >
-              {(currentPage === 1 && spotlightReview && !inlineSearchQuery
-                ? remainingReviews
-                : reviews
-              ).map((review) => {
+              {reviews.map((review) => {
                 const isHighRating = (review.rating || 0) >= 8.0;
 
                 return (
