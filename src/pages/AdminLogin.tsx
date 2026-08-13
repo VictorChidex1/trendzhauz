@@ -141,7 +141,7 @@ export default function AdminLogin() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="editor@trendzhauz.com"
+                placeholder="editor@trendzhauzmedia.com"
                 required
                 className="w-full bg-zinc-50 border border-zinc-300 rounded-md pl-10 pr-4 py-2.5 text-xs text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:border-brand focus:bg-white transition-colors font-medium shadow-xs"
               />

@@ -13,9 +13,12 @@
  * Storage rules), so no public read rule is needed for article-html/.
  */
 import { getStorage } from "firebase-admin/storage";
-import { buildArticleSnapshotHtml, type ArticleSnapshotPost } from "./config";
+import {
+  buildArticleSnapshotHtml,
+  SITE_URL,
+  type ArticleSnapshotPost,
+} from "./config";
 
-const SITE_URL = "https://trendzhauz.com";
 const PREFIX = "article-html";
 
 function snapshotPath(category: string, slug: string): string {

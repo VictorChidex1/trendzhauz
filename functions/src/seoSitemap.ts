@@ -1,5 +1,6 @@
 import { onRequest } from "firebase-functions/v2/https";
 import { getFirestore } from "firebase-admin/firestore";
+import { SITE_URL } from "./seo/config";
 
 // Admin SDK is initialized by index.ts.
 // Call getFirestore() lazily inside the handler to avoid
@@ -7,8 +8,6 @@ import { getFirestore } from "firebase-admin/firestore";
 function getDb() {
   return getFirestore();
 }
-
-const SITE_URL = "https://trendzhauz.com";
 
 const STATIC_ROUTES = [
   "/",

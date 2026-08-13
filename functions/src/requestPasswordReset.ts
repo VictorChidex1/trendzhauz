@@ -15,14 +15,12 @@ const resendApiKey = defineSecret("RESEND_API_KEY");
 
 /** Allowed password-reset landing pages (prevents open-redirect abuse). */
 const ALLOWED_CONTINUE_BASES = [
-  "https://trendzhauz.vercel.app/admin/reset-password",
-  "https://trendzhauz.com/admin/reset-password",
-  "https://www.trendzhauz.com/admin/reset-password",
+  "https://trendzhauzmedia.com/admin/reset-password",
   "http://localhost:5173/admin/reset-password",
   "http://127.0.0.1:5173/admin/reset-password",
 ] as const;
 
-const DEFAULT_CONTINUE = "https://trendzhauz.vercel.app/admin/reset-password";
+const DEFAULT_CONTINUE = "https://trendzhauzmedia.com/admin/reset-password";
 
 const FROM_ADDRESS = "TrendzHauz Media <onboarding@resend.dev>";
 const REPLY_TO = "trendzhauz@gmail.com";
@@ -85,7 +83,7 @@ function buildResetEmailHtml(params: {
           <!-- Header Banner with Logo & Accent -->
           <tr>
             <td style="background-color:#ffffff;padding:32px 36px 24px;border-bottom:2px solid #f97316;text-align:center;" bgcolor="#ffffff">
-              <img src="https://trendzhauz.vercel.app/assets/Trendzhauz-logo.png" 
+              <img src="https://trendzhauzmedia.com/assets/Trendzhauz-logo.png" 
                    alt="TrendzHauz Media" 
                    style="height:42px;width:auto;display:inline-block;border:0;outline:none;" 
                    onError="this.style.display='none';" />

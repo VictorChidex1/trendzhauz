@@ -29,7 +29,7 @@ if (!fs.existsSync(DIST_HTML)) {
 const SITE_NAME = "TrendzHauz Media";
 const OG_LOCALE = "en_NG";
 const LOGO_URL = "/assets/Trendzhauz-logo.png";
-const SITE_URL = "https://trendzhauz.com";
+const { SITE_URL } = require("./site-config.cjs");
 
 const STATIC_HUBS = [
   {

@@ -5,7 +5,7 @@
  * canonical domain is a single, one-line change at go-live.
  */
 export const SITE_URL: string =
-  import.meta.env.VITE_SITE_URL || "https://trendzhauz.com";
+  import.meta.env.VITE_SITE_URL || "https://trendzhauzmedia.com";
 
 export const SITE_NAME = "TrendzHauz Media";
 

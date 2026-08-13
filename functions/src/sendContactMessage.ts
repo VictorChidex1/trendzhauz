@@ -27,7 +27,7 @@ const resendApiKey = defineSecret("RESEND_API_KEY");
 /** Where all contact/advertising inquiries are delivered. */
 const ADMIN_INBOX = "trendzhauz@gmail.com";
 
-/** Test-mode sender until Phase B domain verification switches to noreply@trendzhauz.com. */
+/** Test-mode sender until Phase B domain verification switches to noreply@trendzhauzmedia.com. */
 const FROM_ADDRESS = "TrendzHauz Media <onboarding@resend.dev>";
 
 const SUBJECTS = ["advertising", "partnership", "general"] as const;
@@ -93,7 +93,7 @@ function buildContactEmailHtml(params: {
           <!-- Header Banner with Logo & Accent -->
           <tr>
             <td style="background-color:#ffffff;padding:32px 36px 24px;border-bottom:2px solid #f97316;text-align:center;" bgcolor="#ffffff">
-              <img src="https://trendzhauz.vercel.app/assets/Trendzhauz-logo.png"
+              <img src="https://trendzhauzmedia.com/assets/Trendzhauz-logo.png"
                    alt="TrendzHauz Media"
                    style="height:42px;width:auto;display:inline-block;border:0;outline:none;"
                    onError="this.style.display='none';" />

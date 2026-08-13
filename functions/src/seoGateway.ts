@@ -4,6 +4,7 @@ import {
   isBot,
   isBlockedBot,
   STATIC_SEO,
+  SITE_URL,
   buildStaticBotHtml,
   buildArticleBotHtml,
   build404Html,
@@ -14,7 +15,6 @@ function getDb() {
   return getFirestore();
 }
 
-const SITE_URL = "https://trendzhauz.com";
 const SITE_NAME = "TrendzHauz Media";
 
 const CONTENT_HUB_PATHS = ["/music", "/reviews", "/videos", "/news"];

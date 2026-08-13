@@ -62,6 +62,8 @@ export interface StaticSeoEntry {
   description: string;
 }
 
+export const SITE_URL = "https://trendzhauzmedia.com";
+
 const SITE_NAME = "TrendzHauz Media";
 const DEFAULT_DESCRIPTION =
   "Discover music reviews, breaking news, videos, and exclusive artist features from Nigeria-based TrendzHauz Media — your source for global entertainment and African music culture.";
