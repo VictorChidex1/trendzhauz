@@ -122,6 +122,9 @@ export const STATIC_SEO: Record<string, StaticSeoEntry> = {
   },
 };
 
+// Phase G: derive optimized og:image variants for crawler meta tags.
+import { deriveVariantUrl } from "./image-variants-core";
+
 /**
  * Reusable JSON-LD builders for the server-side gateway.
  * These duplicate the frontend schemas.ts logic but are self-contained
@@ -317,7 +320,9 @@ export function buildArticleBotHtml(
 ): string {
   const categoryLower = (postData.category || "news").toLowerCase();
   const canonicalPath = `/${categoryLower}/${postData.slug}`;
-  const image = postData.coverImageUrl || "";
+  const image =
+    deriveVariantUrl(postData.coverImageUrl || "", 1280, "webp") ??
+    (postData.coverImageUrl || "");
   const created = postData.createdAt?.toDate?.();
   const updated = postData.updatedAt?.toDate?.();
   const publishedTime = created?.toISOString();
@@ -442,7 +447,9 @@ export function buildArticleSnapshotHtml(
 ): string {
   const categoryLower = (post.category || "news").toLowerCase();
   const canonicalPath = `/${categoryLower}/${post.slug}`;
-  const image = post.coverImageUrl || "";
+  const image =
+    deriveVariantUrl(post.coverImageUrl || "", 1280, "webp") ??
+    (post.coverImageUrl || "");
   const created = post.createdAt?.toDate?.();
   const updated = post.updatedAt?.toDate?.();
   const publishedTime = created?.toISOString();

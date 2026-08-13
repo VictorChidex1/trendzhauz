@@ -8,6 +8,7 @@
  * - seoGateway (bot/human content-hub + article HTML interceptor — Phase D/E Hybrid)
  * - writePreloadCache (keep aggregations/preloaded fresh for homepage static inject)
  * - article snapshots (Phase F — on-publish HTML snapshots for bot article serving)
+ * - blog cover image variants (Phase G — AVIF/WebP 480px & 1280px pipeline)
  */
 
 import { onSchedule } from "firebase-functions/v2/scheduler";
@@ -43,6 +44,12 @@ import {
   writeArticleSnapshot,
   deleteArticleSnapshot,
 } from "./seo/article-snapshot";
+
+// Blog cover image variants — AVIF/WebP at 480px & 1280px (Phase G)
+export {
+  processBlogCover,
+  cleanupBlogCoverVariants,
+} from "./seo/image-variants";
 
 // ─── Helper: Format Firestore Timestamp to readable string ───
 function formatTimestamp(ts: FirebaseFirestore.Timestamp | undefined): string {
