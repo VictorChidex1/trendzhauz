@@ -254,7 +254,7 @@ export default function ReviewsPage() {
       />
       {/* ── SPOTLIGHT BILLBOARD (Hero Banner) ── */}
       {spotlightReview && currentPage === 1 && !inlineSearchQuery && (
-        <section className="relative w-full min-h-[580px] md:h-[65vh] md:min-h-[500px] bg-zinc-950 overflow-hidden flex items-end pt-24 md:pt-0">
+        <section className="relative w-full min-h-[600px] lg:min-h-[700px] bg-zinc-950 overflow-hidden flex flex-col">
           <div className="absolute inset-0 w-full h-full transform-gpu">
             <img
               src={spotlightReview.coverImageUrl}
@@ -267,7 +267,8 @@ export default function ReviewsPage() {
             <div className="absolute -bottom-40 -left-40 w-96 h-96 rounded-full bg-brand/5 blur-[120px] pointer-events-none" />
           </div>
 
-          <div className="relative z-10 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 pb-6 sm:pb-8 md:pb-16 flex flex-col md:flex-row md:items-end md:justify-between gap-4 sm:gap-6 md:gap-8">
+          <div className="relative z-10 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 flex flex-col justify-end flex-1 pt-32 pb-12 lg:pb-16">
+            <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 md:gap-8">
             <div className="max-w-2xl space-y-3 sm:space-y-4">
               <div className="inline-flex items-center space-x-2 bg-brand text-white text-[9px] sm:text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-sm shadow-md">
                 <Flame className="h-3 w-3 fill-current" />
@@ -316,6 +317,7 @@ export default function ReviewsPage() {
               <div className="text-[9px] font-black tracking-widest text-zinc-400 uppercase hidden md:block">
                 OVERALL RATING
               </div>
+            </div>
             </div>
           </div>
         </section>
