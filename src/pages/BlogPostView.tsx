@@ -20,12 +20,18 @@ import { ArticleRenderer } from "@/components/blog/ArticleRenderer";
 import { useTrendingPosts, useEditorPicks } from "@/hooks/useBlogData";
 import { PageSeo } from "@/components/seo/PageSeo";
 import { getArticleSchema, getBreadcrumbSchema } from "@/seo/schemas";
+import { ArticleSkeleton } from "@/components/ui/skeletons";
+import { getCachedData, setCachedData } from "@/utils/queryCache";
 
 export default function BlogPostView() {
   const { category, slug } = useParams<{ category: string; slug: string }>();
-  const [post, setPost] = React.useState<Post | null>(null);
+  const articleCacheKey = `article:${(slug || "").trim().toLowerCase()}`;
+  const [post, setPost] = React.useState<Post | null>(() =>
+    getCachedData<Post>(articleCacheKey)
+  );
   const [relatedPosts, setRelatedPosts] = React.useState<Post[]>([]);
-  const [loading, setLoading] = React.useState(true);
+  const [relatedLoading, setRelatedLoading] = React.useState(false);
+  const [loading, setLoading] = React.useState(() => post === null);
   const [error, setError] = React.useState<string | null>(null);
 
   const { posts: trendingPosts } = useTrendingPosts();
@@ -34,13 +40,68 @@ export default function BlogPostView() {
   React.useEffect(() => {
     if (!slug) return;
     const currentSlug = slug.trim().toLowerCase();
+    const cacheKey = `article:${currentSlug}`;
     let cancelled = false;
 
     window.scrollTo({ top: 0, behavior: "smooth" });
 
+    async function loadRelated(loadedPost: Post, postId: string) {
+      if (cancelled) return;
+      setRelatedLoading(true);
+      try {
+        let related: Post[] = [];
+
+        // Query 1: same category, newest first
+        const sameCatQuery = query(
+          collection(db, "posts"),
+          where("status", "==", "published"),
+          where("category", "==", loadedPost.category || "News"),
+          orderBy("createdAt", "desc"),
+          limit(3),
+        );
+        const sameCatSnap = await getDocs(sameCatQuery);
+        related = sameCatSnap.docs
+          .map((d) => ({ ...(d.data() as Post), id: d.id }))
+          .filter((p) => p.id !== postId)
+          .slice(0, 3);
+
+        // Query 2: if not enough, fill from any category
+        if (related.length < 3) {
+          const existingIds = new Set(related.map((r) => r.id));
+          existingIds.add(postId);
+          const anyCatQuery = query(
+            collection(db, "posts"),
+            where("status", "==", "published"),
+            orderBy("createdAt", "desc"),
+            limit(6),
+          );
+          const anyCatSnap = await getDocs(anyCatQuery);
+          const others = anyCatSnap.docs
+            .map((d) => ({ ...(d.data() as Post), id: d.id }))
+            .filter((p) => !existingIds.has(p.id))
+            .slice(0, 3 - related.length);
+          related = [...related, ...others];
+        }
+
+        if (!cancelled) {
+          setRelatedPosts(related);
+        }
+      } catch (relErr) {
+        console.error("Error loading related posts:", relErr);
+      } finally {
+        if (!cancelled) setRelatedLoading(false);
+      }
+    }
+
     async function loadPost() {
-      setLoading(true);
       setError(null);
+      const cachedPost = getCachedData<Post>(cacheKey);
+      if (cachedPost) {
+        setPost(cachedPost);
+        setLoading(false);
+      } else {
+        setLoading(true);
+      }
       try {
         // Primary: query published post by exact slug match (satisfies Firestore public read rules for unauthenticated visitors)
         let q = query(
@@ -74,6 +135,8 @@ export default function BlogPostView() {
             const docSnap = snap.docs[0];
             const loadedPost = { ...(docSnap.data() as Post), id: docSnap.id };
             setPost(loadedPost);
+            setLoading(false);
+            setCachedData(cacheKey, loadedPost);
 
             // Auto view counting: +1 for every public open of a published post.
             if (loadedPost.status === "published") {
@@ -84,51 +147,11 @@ export default function BlogPostView() {
             }
 
             // Fetch related posts with targeted limit(3) queries
-            try {
-              let related: Post[] = [];
-
-              // Query 1: same category, newest first
-              const sameCatQuery = query(
-                collection(db, "posts"),
-                where("status", "==", "published"),
-                where("category", "==", loadedPost.category || "News"),
-                orderBy("createdAt", "desc"),
-                limit(3),
-              );
-              const sameCatSnap = await getDocs(sameCatQuery);
-              related = sameCatSnap.docs
-                .map((d) => ({ ...(d.data() as Post), id: d.id }))
-                .filter((p) => p.id !== docSnap.id)
-                .slice(0, 3);
-
-              // Query 2: if not enough, fill from any category
-              if (related.length < 3) {
-                const existingIds = new Set(related.map((r) => r.id));
-                existingIds.add(docSnap.id);
-                const anyCatQuery = query(
-                  collection(db, "posts"),
-                  where("status", "==", "published"),
-                  orderBy("createdAt", "desc"),
-                  limit(6),
-                );
-                const anyCatSnap = await getDocs(anyCatQuery);
-                const others = anyCatSnap.docs
-                  .map((d) => ({ ...(d.data() as Post), id: d.id }))
-                  .filter((p) => !existingIds.has(p.id))
-                  .slice(0, 3 - related.length);
-                related = [...related, ...others];
-              }
-
-              if (!cancelled) {
-                setRelatedPosts(related);
-              }
-            } catch (relErr) {
-              console.error("Error loading related posts:", relErr);
-            }
+            void loadRelated(loadedPost, docSnap.id);
           } else {
             setError("Article not found.");
+            setLoading(false);
           }
-          setLoading(false);
         }
       } catch (err: unknown) {
         console.error("Error loading article:", err);
@@ -148,24 +171,18 @@ export default function BlogPostView() {
   }, [slug]);
 
   if (loading) {
-    return (
-      <div className="flex-1 flex flex-col items-center justify-center min-h-[60vh] p-8">
-        <div className="w-12 h-12 border-4 border-brand border-t-transparent rounded-full animate-spin mb-4" />
-        <p className="text-muted-foreground text-sm font-semibold uppercase tracking-widest">
-          Loading Story...
-        </p>
-      </div>
-    );
+    return <ArticleSkeleton />;
   }
 
-  if (error || !post) {
+  if (!post) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center min-h-[60vh] p-8 text-center max-w-md mx-auto">
         <h2 className="text-2xl font-black uppercase text-foreground mb-2">
-          Story Not Found
+          {error ? "Something Went Wrong" : "Story Not Found"}
         </h2>
         <p className="text-muted-foreground text-sm mb-6">
-          The article you are looking for might have been moved or removed.
+          {error ||
+            "The article you are looking for might have been moved or removed."}
         </p>
         <Link
           to="/"
@@ -358,7 +375,7 @@ export default function BlogPostView() {
             <ArticleRenderer content={post.content} />
 
             {/* Related Stories & Read More CTA Section */}
-            {relatedPosts.length > 0 && (
+            {(relatedPosts.length > 0 || relatedLoading) && (
               <div className="pt-12 border-t border-zinc-200 dark:border-zinc-800 space-y-8">
                 <div className="flex items-center justify-between">
                   <div className="space-y-1">
@@ -378,25 +395,33 @@ export default function BlogPostView() {
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                  {relatedPosts.map((rel) => (
-                    <ArticleCard
-                      key={rel.id}
-                      title={rel.title}
-                      category={rel.category}
-                      slug={rel.slug}
-                      coverImageUrl={rel.coverImageUrl}
-                      description={rel.description}
-                      createdAt={
-                        rel.createdAt?.toDate
-                          ? rel.createdAt.toDate().toLocaleDateString("en-US", {
-                              month: "short",
-                              day: "numeric",
-                              year: "numeric",
-                            })
-                          : "Recent"
-                      }
-                    />
-                  ))}
+                  {relatedLoading && relatedPosts.length === 0
+                    ? Array.from({ length: 3 }).map((_, idx) => (
+                        <div key={idx} className="space-y-3 animate-pulse">
+                          <div className="aspect-[16/10] w-full bg-zinc-200 dark:bg-zinc-800 rounded-sm" />
+                          <div className="h-3 w-1/3 bg-zinc-200 dark:bg-zinc-800 rounded-sm" />
+                          <div className="h-5 w-3/4 bg-zinc-200 dark:bg-zinc-800 rounded-sm" />
+                        </div>
+                      ))
+                    : relatedPosts.map((rel) => (
+                        <ArticleCard
+                          key={rel.id}
+                          title={rel.title}
+                          category={rel.category}
+                          slug={rel.slug}
+                          coverImageUrl={rel.coverImageUrl}
+                          description={rel.description}
+                          createdAt={
+                            rel.createdAt?.toDate
+                              ? rel.createdAt.toDate().toLocaleDateString("en-US", {
+                                  month: "short",
+                                  day: "numeric",
+                                  year: "numeric",
+                                })
+                              : "Recent"
+                          }
+                        />
+                      ))}
                 </div>
 
                 {/* Bottom CTA button for mobile and desktop prominence */}

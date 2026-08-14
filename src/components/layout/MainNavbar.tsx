@@ -16,6 +16,18 @@ const navItems = [
   { name: "Bio Links", path: "/links" },
 ];
 
+const prefetchRoutes: Record<string, () => Promise<unknown>> = {
+  "/reviews": () => import("@/pages/ReviewsPage"),
+  "/music": () => import("@/pages/MusicPage"),
+  "/videos": () => import("@/pages/VideosPage"),
+  "/news": () => import("@/pages/NewsPage"),
+};
+
+function prefetch(path: string) {
+  const loader = prefetchRoutes[path];
+  if (loader) void loader().catch(() => {});
+}
+
 export function MainNavbar() {
   const { theme, toggleTheme } = useTheme();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
@@ -65,6 +77,9 @@ export function MainNavbar() {
               <NavLink
                 key={item.name}
                 to={item.path}
+                onMouseEnter={() => prefetch(item.path)}
+                onTouchStart={() => prefetch(item.path)}
+                onFocus={() => prefetch(item.path)}
                 className="relative px-4 py-2 text-foreground/75 hover:text-brand transition-colors duration-200"
               >
                 <span className="relative z-10">{item.name}</span>
@@ -186,6 +201,8 @@ export function MainNavbar() {
                     <NavLink
                       to={item.path}
                       onClick={() => setIsMobileMenuOpen(false)}
+                      onMouseEnter={() => prefetch(item.path)}
+                      onTouchStart={() => prefetch(item.path)}
                       className={`block py-3 px-4 rounded-sm transition-colors ${
                         isActive
                           ? "text-brand bg-zinc-100 dark:bg-zinc-900"

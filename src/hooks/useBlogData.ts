@@ -21,6 +21,7 @@ import type {
 import { useHomepageAggregation } from "./useHomepageAggregation";
 import type { HomepageAggregation } from "./useHomepageAggregation";
 import { getPreloadedData } from "@/utils/preload";
+import { getCachedData } from "@/utils/queryCache";
 
 // HELPER: Convert Firestore Timestamp / Date into epoch milliseconds
 function getMillis(val: unknown): number {
@@ -378,7 +379,10 @@ export function useLatestStories(postsPerPage = 12) {
 // HOOK 3: useTrendingPosts (aggregation doc, falls back to real-time query)
 export function useTrendingPosts() {
   const { data, isFresh } = useHomepageAggregation();
-  const [posts, setPosts] = React.useState<TrendingPost[]>([]);
+  const [posts, setPosts] = React.useState<TrendingPost[]>(() => {
+    const agg = getCachedData<HomepageAggregation>("aggregation");
+    return agg?.trending ?? [];
+  });
   const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
@@ -436,7 +440,11 @@ export function useTrendingPosts() {
 // HOOK 4: useEditorPicks (aggregation when unfiltered; live query for category filters)
 export function useEditorPicks(categoryFilter?: string) {
   const { data, isFresh } = useHomepageAggregation();
-  const [picks, setPicks] = React.useState<EditorPick[]>([]);
+  const [picks, setPicks] = React.useState<EditorPick[]>(() => {
+    if (categoryFilter) return [];
+    const agg = getCachedData<HomepageAggregation>("aggregation");
+    return agg?.editorPicks ?? [];
+  });
   const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {

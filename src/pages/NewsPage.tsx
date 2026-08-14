@@ -16,6 +16,7 @@ import {
 import { useEditorPicks } from "@/hooks/useBlogData";
 import { useNewsPosts } from "@/hooks/useNewsPosts";
 import { PageSeo } from "@/components/seo/PageSeo";
+import { HubGridSkeleton } from "@/components/ui/skeletons";
 import { getCollectionPageSchema } from "@/seo/schemas";
 
 const containerVariants = {
@@ -135,14 +136,7 @@ export default function NewsPage() {
   }, [posts, nowMs]);
 
   if (loading && posts.length === 0) {
-    return (
-      <div className="flex-1 flex flex-col items-center justify-center min-h-[60vh] p-8">
-        <div className="w-12 h-12 border-4 border-brand border-t-transparent rounded-full animate-spin mb-4" />
-        <p className="text-muted-foreground text-sm font-semibold uppercase tracking-widest">
-          Loading News...
-        </p>
-      </div>
-    );
+    return <HubGridSkeleton />;
   }
 
   if (error && posts.length === 0) {

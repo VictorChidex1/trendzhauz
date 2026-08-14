@@ -15,6 +15,7 @@ import { useEditorPicks } from "@/hooks/useBlogData";
 import { findFirstEmbedUrl } from "@/utils/mediaUrl";
 import { useMusicPosts } from "@/hooks/useMusicPosts";
 import { PageSeo } from "@/components/seo/PageSeo";
+import { HubGridSkeleton } from "@/components/ui/skeletons";
 import { getCollectionPageSchema } from "@/seo/schemas";
 
 const containerVariants = {
@@ -68,14 +69,7 @@ export default function MusicPage() {
   const heroMusicUrl = heroPost ? findFirstEmbedUrl(heroPost.content) : null;
 
   if (loading && posts.length === 0) {
-    return (
-      <div className="flex-1 flex flex-col items-center justify-center min-h-[60vh] p-8">
-        <div className="w-12 h-12 border-4 border-brand border-t-transparent rounded-full animate-spin mb-4" />
-        <p className="text-muted-foreground text-sm font-semibold uppercase tracking-widest">
-          Loading Music...
-        </p>
-      </div>
-    );
+    return <HubGridSkeleton />;
   }
 
   if (error && posts.length === 0) {

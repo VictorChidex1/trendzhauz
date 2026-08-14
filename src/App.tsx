@@ -6,7 +6,7 @@ import { MainNavbar } from "@/components/layout/MainNavbar";
 import { Footer } from "@/components/layout/Footer";
 import { ScrollToTop } from "@/components/ui/ScrollToTop";
 import { RouteScrollReset } from "@/components/ui/RouteScrollReset";
-import { PageLoader } from "@/components/ui/PageLoader";
+import { RouteSkeleton } from "@/components/ui/skeletons";
 import { pruneExpiredCache } from "@/utils/queryCache";
 import BlogHome from "@/pages/BlogHome";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
@@ -49,7 +49,7 @@ function AppContent() {
 
       {/* Main Page Layout Envelope */}
       <main className="flex-1 flex flex-col w-full">
-        <Suspense fallback={<PageLoader />}>
+        <Suspense fallback={<RouteSkeleton />}>
           <Routes>
           {/* Public Routing */}
           <Route path="/" element={<BlogHome />} />
