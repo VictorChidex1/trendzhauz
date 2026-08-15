@@ -4,8 +4,9 @@
  * - onPostChanged (instant aggregation refresh on post writes)
  * - requestPasswordReset (Resend-branded password reset emails)
  * - publishScheduled (auto-publish scheduled posts)
- * - seoSitemap (dynamic sitemap XML — Phase C)
- * - seoGateway (bot/human content-hub + article HTML interceptor — Phase D/E Hybrid)
+ * - web (merged HTTP function: /sitemap.xml sitemap + bot/human content-hub
+ *   and article HTML interceptor — Phases C/D/E, consolidated into one
+ *   function to reduce container image count)
  * - writePreloadCache (keep aggregations/preloaded fresh for homepage static inject)
  * - article snapshots (Phase F — on-publish HTML snapshots for bot article serving)
  * - blog cover image variants (Phase G — AVIF/WebP 480px & 1280px pipeline)
@@ -30,11 +31,8 @@ export { sendContactMessage } from "./sendContactMessage";
 // Auto-publish scheduled posts
 export { publishScheduled } from "./publishScheduled";
 
-// Dynamic sitemap generation (Phase C)
-export { seoSitemap } from "./seoSitemap";
-
-// SEO bot gateway (Phase D)
-export { seoGateway } from "./seoGateway";
+// Merged HTTP function: sitemap + SEO gateway (Phases C/D/E)
+export { web } from "./web";
 
 // Preload cache writer (Phase E enhancement)
 import { writePreloadCache } from "./seo/preload-hubs";
