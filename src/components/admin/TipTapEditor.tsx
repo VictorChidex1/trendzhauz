@@ -22,12 +22,15 @@ import {
   Unlink,
   Image as ImageIcon,
   Music,
+  AtSign,
   Undo,
   Redo,
   RotateCcw,
 } from "lucide-react";
 import { MediaLibraryModal } from "@/components/admin/MediaLibraryModal";
 import { MusicEmbed } from "@/components/admin/MusicEmbedExtension";
+import { SocialEmbed } from "@/components/admin/SocialEmbedExtension";
+import { parseSocialUrl } from "@/lib/socialEmbed";
 
 interface TipTapEditorProps {
   content: string;
@@ -69,6 +72,7 @@ export function TipTapEditor({
         },
       }),
       MusicEmbed,
+      SocialEmbed,
       Placeholder.configure({
         placeholder,
         emptyEditorClass:
@@ -160,6 +164,21 @@ export function TipTapEditor({
     }
 
     editor.chain().focus().setMusicEmbed({ src: url.trim() }).run();
+  };
+
+  const insertSocialEmbed = () => {
+    const url = window.prompt(
+      "Paste the social post link (X, Instagram, or TikTok):"
+    );
+    if (!url || !url.trim()) return;
+
+    const parsed = parseSocialUrl(url.trim());
+    if (!parsed) {
+      window.alert("Please enter a valid X, Instagram, or TikTok post URL.");
+      return;
+    }
+
+    editor.chain().focus().setSocialEmbed({ src: url.trim() }).run();
   };
 
   return (
@@ -413,6 +432,15 @@ export function TipTapEditor({
             title="Embed Music Player (Spotify, YouTube, Audiomack, Apple Music)"
           >
             <Music className="h-4 w-4" />
+          </button>
+
+          <button
+            type="button"
+            onClick={insertSocialEmbed}
+            className="p-1.5 text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 rounded transition-colors"
+            title="Embed Social Post (X, Instagram, TikTok)"
+          >
+            <AtSign className="h-4 w-4" />
           </button>
 
           <div className="w-px h-4 bg-zinc-300 mx-1 self-center ml-auto" />

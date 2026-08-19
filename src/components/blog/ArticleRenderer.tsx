@@ -1,13 +1,16 @@
 import * as React from "react";
 import { UniversalMusicPlayer } from "@/components/blog/UniversalMusicPlayer";
+import { SocialEmbed } from "@/components/blog/SocialEmbed";
 
 /**
- * ArticleRenderer — HTML-to-React Parser with Music Embed Hydration
+ * ArticleRenderer — HTML-to-React Parser with Embed Hydration
  *
  * Replaces raw `dangerouslySetInnerHTML` rendering with a component that:
- *  1. Splits the TipTap HTML content at `<div data-type="music-embed" ...>` boundaries
+ *  1. Splits the TipTap HTML content at `<div data-type="music-embed" ...>` and
+ *     `<div data-type="social-embed" ...>` boundaries
  *  2. Renders plain HTML segments as standard prose blocks
- *  3. Replaces music-embed divs with live <UniversalMusicPlayer /> React components
+ *  3. Replaces music-embed divs with live <UniversalMusicPlayer /> and
+ *     social-embed divs with live <SocialEmbed /> React components
  *
  * This approach avoids heavy third-party HTML parsers by using a lightweight
  * regex-based splitter that specifically targets our custom TipTap node output.
@@ -21,31 +24,34 @@ interface ArticleRendererProps {
 }
 
 /**
- * Regex to match our custom music-embed nodes in the serialized HTML.
+ * Regex to match our custom music/social embed nodes in the serialized HTML.
  * Uses a lookahead to match regardless of attribute order — TipTap's
  * mergeAttributes does not guarantee data-type comes before data-src.
  * Also handles self-closing tags (<div ... />) and standard close tags.
+ * Capture group 1 = data-type, capture group 2 = data-src.
  */
-const MUSIC_EMBED_REGEX =
-  /<div\s+(?=[^>]*data-type="music-embed")[^>]*data-src="([^"]+)"[^>]*(?:\/>|><\/div>)/g;
+const EMBED_REGEX =
+  /<div\s+(?=[^>]*data-type="(music-embed|social-embed)")[^>]*data-src="([^"]+)"[^>]*(?:\/>|><\/div>)/g;
+
+type EmbedType = "music-embed" | "social-embed";
 
 interface ContentSegment {
-  type: "html" | "music-embed";
+  type: "html" | EmbedType;
   value: string;
 }
 
 /**
  * Splits the HTML content string into alternating segments of
- * plain HTML and music-embed URLs.
+ * plain HTML, music-embed URLs, and social-embed URLs.
  */
 function splitContent(html: string): ContentSegment[] {
   const segments: ContentSegment[] = [];
   let lastIndex = 0;
 
   // Reset regex state (global flag means stateful)
-  MUSIC_EMBED_REGEX.lastIndex = 0;
+  EMBED_REGEX.lastIndex = 0;
 
-  let match = MUSIC_EMBED_REGEX.exec(html);
+  let match = EMBED_REGEX.exec(html);
   while (match !== null) {
     // Push any HTML content before this match
     if (match.index > lastIndex) {
@@ -55,11 +61,13 @@ function splitContent(html: string): ContentSegment[] {
       }
     }
 
-    // Push the music embed URL
-    segments.push({ type: "music-embed", value: match[1] });
+    // Push the embed URL, differentiated by the matched data-type
+    const embedType: EmbedType =
+      match[1] === "social-embed" ? "social-embed" : "music-embed";
+    segments.push({ type: embedType, value: match[2] });
 
     lastIndex = match.index + match[0].length;
-    match = MUSIC_EMBED_REGEX.exec(html);
+    match = EMBED_REGEX.exec(html);
   }
 
   // Push any remaining HTML after the last embed
@@ -76,7 +84,7 @@ function splitContent(html: string): ContentSegment[] {
 export function ArticleRenderer({ content, className = "" }: ArticleRendererProps) {
   const segments = React.useMemo(() => splitContent(content || ""), [content]);
 
-  // Fast path: no music embeds found → render plain HTML directly (same as before)
+  // Fast path: no embeds found → render plain HTML directly (same as before)
   if (segments.length === 1 && segments[0].type === "html") {
     return (
       <div
@@ -86,17 +94,21 @@ export function ArticleRenderer({ content, className = "" }: ArticleRendererProp
     );
   }
 
-  // Render segmented content: alternating HTML blocks and music players
+  // Render segmented content: alternating HTML blocks and embedded players
   return (
     <div className={className}>
       {segments.map((segment, index) => {
         if (segment.type === "music-embed") {
           return (
             <UniversalMusicPlayer
-              key={`embed-${index}`}
+              key={`music-${index}`}
               url={segment.value}
             />
           );
+        }
+
+        if (segment.type === "social-embed") {
+          return <SocialEmbed key={`social-${index}`} url={segment.value} />;
         }
 
         return (
