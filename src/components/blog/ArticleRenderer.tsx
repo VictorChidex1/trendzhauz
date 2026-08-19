@@ -1,6 +1,7 @@
 import * as React from "react";
 import { UniversalMusicPlayer } from "@/components/blog/UniversalMusicPlayer";
 import { SocialEmbed } from "@/components/blog/SocialEmbed";
+import { sanitizeArticleHtml } from "@/utils/sanitizeHtml";
 
 /**
  * ArticleRenderer — HTML-to-React Parser with Embed Hydration
@@ -82,7 +83,10 @@ function splitContent(html: string): ContentSegment[] {
 }
 
 export function ArticleRenderer({ content, className = "" }: ArticleRendererProps) {
-  const segments = React.useMemo(() => splitContent(content || ""), [content]);
+  const segments = React.useMemo(
+    () => splitContent(sanitizeArticleHtml(content || "")),
+    [content],
+  );
 
   // Fast path: no embeds found → render plain HTML directly (same as before)
   if (segments.length === 1 && segments[0].type === "html") {

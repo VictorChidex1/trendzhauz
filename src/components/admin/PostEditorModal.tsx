@@ -25,6 +25,7 @@ import { TipTapEditor } from "@/components/admin/TipTapEditor";
 import { DateTimePicker } from "@/components/admin/DateTimePicker";
 import { MediaLibraryModal } from "@/components/admin/MediaLibraryModal";
 import { generateExcerpt } from "@/utils/excerpt";
+import { sanitizeArticleHtml } from "@/utils/sanitizeHtml";
 
 interface PostEditorModalProps {
   isOpen: boolean;
@@ -244,7 +245,7 @@ export function PostEditorModal({
         title: title.trim(),
         slug: slug.trim() ? slugify(slug) : slugify(title),
         description: finalDescription.slice(0, 1000),
-        content: content,
+        content: sanitizeArticleHtml(content),
         category: category,
         coverImageUrl: coverImageUrl.trim() || "/assets/placeholder-cover.jpg",
         status: status,
