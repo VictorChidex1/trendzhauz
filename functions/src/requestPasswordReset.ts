@@ -9,6 +9,8 @@
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { defineSecret } from "firebase-functions/params";
 import { getAuth } from "firebase-admin/auth";
+import { getFirestore, FieldValue } from "firebase-admin/firestore";
+import { createHash } from "node:crypto";
 import { Resend } from "resend";
 
 const resendApiKey = defineSecret("RESEND_API_KEY");
@@ -24,6 +26,14 @@ const DEFAULT_CONTINUE = "https://trendzhauzmedia.com/admin/reset-password";
 
 const FROM_ADDRESS = "TrendzHauz Media <onboarding@resend.dev>";
 const REPLY_TO = "trendzhauz@gmail.com";
+
+// ── Rate limiting (server-only buckets in Firestore: resetRateLimits/) ──
+// Per-email: max 1 reset request per 5 minutes (stops inbox flooding).
+// Per-IP: max 5 requests per hour (stops mass enumeration from one network).
+const EMAIL_RESET_WINDOW_MS = 5 * 60 * 1000;
+const EMAIL_RESET_MAX = 1;
+const IP_RESET_WINDOW_MS = 60 * 60 * 1000;
+const IP_RESET_MAX = 5;
 
 interface RequestPasswordResetData {
   email?: string;
@@ -162,6 +172,58 @@ function buildResetEmailHtml(params: {
 }
 
 /**
+ * Transactional rate-limit bucket check.
+ *
+ * Reads the bucket inside a Firestore transaction (atomic — no concurrent
+ * read-then-write bypass), resets the counter when the window has expired,
+ * and throws `resource-exhausted` when the caller is over the limit.
+ *
+ * Callers wrap this in a fail-open try/catch: if the check itself errors
+ * (e.g. a transient Firestore outage), availability wins and the request
+ * proceeds — matching sendContactMessage's style.
+ */
+async function checkAndIncrement(
+  bucketRef: FirebaseFirestore.DocumentReference,
+  windowMs: number,
+  max: number,
+  message: string
+): Promise<void> {
+  await getFirestore().runTransaction(async (tx) => {
+    const snap = await tx.get(bucketRef);
+    const now = Date.now();
+
+    if (!snap.exists) {
+      tx.set(bucketRef, {
+        count: 1,
+        firstSeenAt: FieldValue.serverTimestamp(),
+      });
+      return;
+    }
+
+    const data = snap.data() as
+      | { count?: number; firstSeenAt?: { toDate?: () => Date } }
+      | undefined;
+    const count = typeof data?.count === "number" ? data.count : 0;
+    const firstSeenMs = data?.firstSeenAt?.toDate?.()?.getTime() ?? now;
+
+    if (now - firstSeenMs > windowMs) {
+      // Window expired → reset the bucket
+      tx.set(bucketRef, {
+        count: 1,
+        firstSeenAt: FieldValue.serverTimestamp(),
+      });
+      return;
+    }
+
+    if (count >= max) {
+      throw new HttpsError("resource-exhausted", message);
+    }
+
+    tx.update(bucketRef, { count: count + 1 });
+  });
+}
+
+/**
  * Callable: requestPasswordReset
  * Input: { email: string, continueUrl?: string }
  * Always returns { success: true } when the request is well-formed (no email enumeration).
@@ -185,6 +247,36 @@ export const requestPasswordReset = onCall(
         "invalid-argument",
         "A valid email address is required.",
       );
+    }
+
+    // ── RATE LIMITS (fail-open) ──
+    // Buckets are keyed by SHA-256 of the email / IP — raw values are never
+    // stored. If a check errors internally we log and continue (fail-open).
+    try {
+      const db = getFirestore();
+
+      const emailKey = createHash("sha256").update(email).digest("hex");
+      await checkAndIncrement(
+        db.doc(`resetRateLimits/e_${emailKey}`),
+        EMAIL_RESET_WINDOW_MS,
+        EMAIL_RESET_MAX,
+        "Please wait a few minutes before requesting another password reset."
+      );
+
+      const ipKey = createHash("sha256")
+        .update(request.rawRequest.ip || "unknown")
+        .digest("hex");
+      await checkAndIncrement(
+        db.doc(`resetRateLimits/ip_${ipKey}`),
+        IP_RESET_WINDOW_MS,
+        IP_RESET_MAX,
+        "Too many requests from this network. Please try again later."
+      );
+    } catch (err) {
+      if (err instanceof HttpsError) {
+        throw err;
+      }
+      console.warn("Password-reset rate limit check skipped (fail-open):", err);
     }
 
     const apiKey = resendApiKey.value();

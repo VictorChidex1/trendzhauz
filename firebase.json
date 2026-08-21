@@ -15,71 +15,95 @@
       "npm --prefix functions run build"
     ]
   },
-  "hosting": {
-    "public": "dist",
-    "predeploy": [
-      "npm run build",
-      "node scripts/build-gateway-template.cjs",
-      "node scripts/prerender-hubs.cjs"
-    ],
-    "ignore": [
-      "firebase.json",
-      "**/.*",
-      "**/node_modules/**"
-    ],
-    "redirects": [
-      {
-        "source": "/category/music",
-        "destination": "/music",
-        "type": 301
-      },
-      {
-        "source": "/category/reviews",
-        "destination": "/reviews",
-        "type": 301
-      },
-      {
-        "source": "/category/videos",
-        "destination": "/videos",
-        "type": 301
-      },
-      {
-        "source": "/category/news",
-        "destination": "/news",
-        "type": 301
-      }
-    ],
-    "rewrites": [
-      {
-        "source": "/sitemap.xml",
-        "function": { "functionId": "web", "region": "us-central1" }
-      },
-      {
-        "source": "/music",
-        "function": { "functionId": "web", "region": "us-central1" }
-      },
-      {
-        "source": "/reviews",
-        "function": { "functionId": "web", "region": "us-central1" }
-      },
-      {
-        "source": "/videos",
-        "function": { "functionId": "web", "region": "us-central1" }
-      },
-      {
-        "source": "/news",
-        "function": { "functionId": "web", "region": "us-central1" }
-      },
-      {
-        "source": "/:category/:slug",
-        "function": { "functionId": "web", "region": "us-central1" }
-      },
-      {
-        "source": "**",
-        "destination": "/index.html"
-      }
-    ]
-  },
+  "hosting": [
+    {
+      "target": "production",
+      "public": "dist",
+      "predeploy": [
+        "npm run build",
+        "node scripts/build-gateway-template.cjs",
+        "node scripts/prerender-hubs.cjs"
+      ],
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ],
+      "redirects": [
+        {
+          "source": "/category/music",
+          "destination": "/music",
+          "type": 301
+        },
+        {
+          "source": "/category/reviews",
+          "destination": "/reviews",
+          "type": 301
+        },
+        {
+          "source": "/category/videos",
+          "destination": "/videos",
+          "type": 301
+        },
+        {
+          "source": "/category/news",
+          "destination": "/news",
+          "type": 301
+        }
+      ],
+      "rewrites": [
+        {
+          "source": "/sitemap.xml",
+          "function": { "functionId": "web", "region": "us-central1" }
+        },
+        {
+          "source": "/music",
+          "function": { "functionId": "web", "region": "us-central1" }
+        },
+        {
+          "source": "/reviews",
+          "function": { "functionId": "web", "region": "us-central1" }
+        },
+        {
+          "source": "/videos",
+          "function": { "functionId": "web", "region": "us-central1" }
+        },
+        {
+          "source": "/news",
+          "function": { "functionId": "web", "region": "us-central1" }
+        },
+        {
+          "source": "/:category/:slug",
+          "function": { "functionId": "web", "region": "us-central1" }
+        },
+        {
+          "source": "**",
+          "destination": "/index.html"
+        }
+      ]
+    },
+    {
+      "target": "www",
+      "public": "dist",
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ],
+      "redirects": [
+        {
+          "source": "/",
+          "destination": "https://trendzhauzmedia.com/",
+          "type": 301
+        },
+        {
+          "source": "/:path*",
+          "destination": "https://trendzhauzmedia.com/:path*",
+          "type": 301
+        }
+      ]
+    }
+  ],
   "emulators": {
     "auth": {
       "port": 9099

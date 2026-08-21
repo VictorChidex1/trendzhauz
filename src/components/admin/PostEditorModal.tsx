@@ -33,6 +33,8 @@ interface PostEditorModalProps {
   postToEdit?: Post | null;
   authorProfile: UserProfile | null;
   onSuccess: () => void;
+  /** Super-admin only — gates the Editor's Pick toggle (also enforced by Firestore rules). */
+  isAdmin: boolean;
 }
 
 function toDate(value: unknown): Date | null {
@@ -59,6 +61,7 @@ export function PostEditorModal({
   postToEdit,
   authorProfile,
   onSuccess,
+  isAdmin,
 }: PostEditorModalProps) {
   const isEditing = Boolean(postToEdit);
 
@@ -683,21 +686,23 @@ export function PostEditorModal({
               />
             </div>
 
-            <div className="flex items-center space-x-3 pt-6">
-              <input
-                type="checkbox"
-                id="isEditorPick"
-                checked={isEditorPick}
-                onChange={(e) => setIsEditorPick(e.target.checked)}
-                className="h-4 w-4 text-brand border-zinc-300 rounded focus:ring-brand cursor-pointer"
-              />
-              <label
-                htmlFor="isEditorPick"
-                className="text-xs font-bold text-zinc-800 cursor-pointer"
-              >
-                Feature as Editor&apos;s Pick
-              </label>
-            </div>
+            {isAdmin && (
+              <div className="flex items-center space-x-3 pt-6">
+                <input
+                  type="checkbox"
+                  id="isEditorPick"
+                  checked={isEditorPick}
+                  onChange={(e) => setIsEditorPick(e.target.checked)}
+                  className="h-4 w-4 text-brand border-zinc-300 rounded focus:ring-brand cursor-pointer"
+                />
+                <label
+                  htmlFor="isEditorPick"
+                  className="text-xs font-bold text-zinc-800 cursor-pointer"
+                >
+                  Feature as Editor&apos;s Pick
+                </label>
+              </div>
+            )}
           </div>
         </form>
 

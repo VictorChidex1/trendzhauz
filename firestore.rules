@@ -113,8 +113,11 @@ service cloud.firestore {
 
     // ──────────────────────────────────────────────────────────────────────
     // Exact field whitelist for UPDATE — all editable fields.
-    // authorId and views remain immutable; createdAt MAY change so
-    // super-admins / owning writers can reschedule or backdate posts.
+    // authorId remains immutable. views are intentionally editable by
+    // writers on their own posts (accepted design). isEditorPick can only
+    // be changed by a super-admin (enforced in the update rule below).
+    // createdAt MAY change so super-admins / owning writers can reschedule
+    // or backdate posts.
     // ──────────────────────────────────────────────────────────────────────
     function hasValidUpdateFields() {
       let allowedFields = [
@@ -184,6 +187,7 @@ service cloud.firestore {
         && request.resource.data.coverImageUrl is string
         && request.resource.data.status in ['draft', 'published', 'scheduled']
         && request.resource.data.isEditorPick is bool
+        && (request.resource.data.isEditorPick == false || isSuperAdmin())
         && request.resource.data.authorId == request.auth.uid
         && request.resource.data.authorName is string
         && request.resource.data.views is number
@@ -192,7 +196,9 @@ service cloud.firestore {
 
       // ── UPDATE ──────────────────────────────────────────────────────────
       // Writers: own posts only. Super-admins: any post.
-      // authorId and views are immutable.
+      // authorId is immutable. views are intentionally editable by writers
+      // on their own posts (accepted design). isEditorPick can only be
+      // changed by a super-admin.
       // createdAt MAY change for reschedule / backdate (Model A).
       allow update: if hasValidUpdateFields()
         && isValidTitle()
@@ -206,6 +212,8 @@ service cloud.firestore {
         && request.resource.data.views is number
         && request.resource.data.views >= 0
         && request.resource.data.createdAt is timestamp
+        && (request.resource.data.isEditorPick == resource.data.isEditorPick
+            || isSuperAdmin())
         && (isSuperAdmin() || (isWriter() && isOwnPost()));
 
       // ── ANONYMOUS VIEW INCREMENT ────────────────────────────────────────
@@ -306,6 +314,17 @@ service cloud.firestore {
     // Written by sendContactMessage (Admin SDK). Zero client access — bots
     // cannot read or reset their own rate-limit buckets.
     match /contactRateLimits/{bucketId} {
+      allow read, write: if false;
+    }
+
+
+    // ══════════════════════════════════════════════════════════════════════
+    // 8. PASSWORD-RESET RATE-LIMIT COUNTERS — Server-only abuse protection
+    // ══════════════════════════════════════════════════════════════════════
+    // Written by requestPasswordReset (Admin SDK). Zero client access — bots
+    // cannot read or reset their own rate-limit buckets. Buckets are keyed by
+    // SHA-256 of the email / IP, never the raw values.
+    match /resetRateLimits/{bucketId} {
       allow read, write: if false;
     }
 

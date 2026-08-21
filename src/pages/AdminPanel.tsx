@@ -726,6 +726,7 @@ export default function AdminPanel() {
         postToEdit={postToEdit}
         authorProfile={profile}
         onSuccess={refreshPosts}
+        isAdmin={isAdmin}
       />
 
       {/* Add Team Member Modal (Super-Admin) */}

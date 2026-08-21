@@ -1,5 +1,13 @@
 {
   "projects": {
     "default": "trendzhauz-e84af"
+  },
+  "targets": {
+    "trendzhauz-e84af": {
+      "hosting": {
+        "production": ["trendzhauz-e84af"],
+        "www": ["trendzhauz-e84af-a5e00"]
+      }
+    }
   }
 }
