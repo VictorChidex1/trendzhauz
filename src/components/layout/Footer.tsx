@@ -175,9 +175,14 @@ export function Footer() {
             })}
           </div>
 
-          <p className="text-xs text-zinc-400 dark:text-zinc-600 uppercase tracking-widest">
+          <a
+            href="https://victor-chidera-25.vercel.app/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-zinc-400 dark:text-zinc-600 uppercase tracking-widest hover:text-orange-500 dark:hover:text-orange-400 transition-colors"
+          >
             Built with ❤️ by CV Digital
-          </p>
+          </a>
         </div>
       </div>
     </footer>
