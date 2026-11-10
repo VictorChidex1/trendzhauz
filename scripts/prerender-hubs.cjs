@@ -205,6 +205,7 @@ async function main() {
     const seoBlock = `<!-- Primary SEO Metadata -->
 <title>${escapeHtml(hub.title)}</title>
 <meta name="description" content="${escapeHtml(hub.description)}">
+<link rel="canonical" href="${escapeHtml(canonical)}" />
 <meta
   name="keywords"
   content="DJ Davisy, Trendzhauz, African music, Afrobeats, Music reviews, Entertainment news, Mixtapes, Nigeria"
@@ -240,14 +241,13 @@ async function main() {
       `<div id="root">${skeleton}`,
     );
 
-    const outDir = path.join(ROOT, "dist", hub.route);
-    fs.mkdirSync(outDir, { recursive: true });
-    fs.writeFileSync(path.join(outDir, "index.html"), outHtml, "utf-8");
+    const outFile = path.join(ROOT, "dist", `${hub.route}.html`);
+    fs.writeFileSync(outFile, outHtml, "utf-8");
     written++;
     console.log(`  ✅ ${hub.route}`);
   }
   console.log(
-    `\n✅ ${written} static hub routes pre-rendered into dist/*/index.html`,
+    `\n✅ ${written} static hub routes pre-rendered into dist/*.html`,
   );
 
   // ═══════════════════════════════════════════════════════════

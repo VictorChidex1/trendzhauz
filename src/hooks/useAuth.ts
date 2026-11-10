@@ -3,6 +3,8 @@ import {
   onAuthStateChanged,
   signInWithEmailAndPassword,
   signOut,
+  setPersistence,
+  browserSessionPersistence,
   type User,
 } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
@@ -23,38 +25,38 @@ export function useAuth(): UseAuthResult {
           const userDocRef = doc(db, "users", firebaseUser.uid);
           const docSnap = await getDoc(userDocRef);
 
-          if (docSnap.exists()) {
-            const data = docSnap.data() as Partial<UserProfile>;
-            // Always force uid from Auth — Firestore user docs often omit the uid field
-            // (document ID is the uid). Missing profile.uid broke Storage uploads.
-            setProfile({
-              uid: firebaseUser.uid,
-              email: data.email || firebaseUser.email || "",
-              displayName:
-                data.displayName ||
-                firebaseUser.displayName ||
-                "CMS User",
-              role: data.role === "super-admin" ? "super-admin" : "writer",
-              createdAt: data.createdAt,
-            });
+          if (!docSnap.exists()) {
+            // Missing /users/{uid} → fail closed: no privileged role.
+            setProfile(null);
           } else {
-            // Fallback profile object if user is in Auth but doc is pending
-            setProfile({
-              uid: firebaseUser.uid,
-              email: firebaseUser.email || "",
-              displayName: firebaseUser.displayName || "CMS User",
-              role: "writer",
-            });
+            const data = docSnap.data() as Partial<UserProfile>;
+            const role =
+              data.role === "super-admin" || data.role === "writer"
+                ? data.role
+                : null;
+
+            if (role) {
+              // Always force uid from Auth — Firestore user docs often omit the uid field
+              // (document ID is the uid). Missing profile.uid broke Storage uploads.
+              setProfile({
+                uid: firebaseUser.uid,
+                email: data.email || firebaseUser.email || "",
+                displayName:
+                  data.displayName ||
+                  firebaseUser.displayName ||
+                  "CMS User",
+                role,
+                createdAt: data.createdAt,
+              });
+            } else {
+              // Unknown/invalid role → fail closed: no privileged role.
+              setProfile(null);
+            }
           }
         } catch (error) {
           console.error("Failed to fetch user role profile from Firestore:", error);
-          // Still allow authenticated session for uploads/auth-bound actions
-          setProfile({
-            uid: firebaseUser.uid,
-            email: firebaseUser.email || "",
-            displayName: firebaseUser.displayName || "CMS User",
-            role: "writer",
-          });
+          // Fail closed: never grant a role when the profile cannot be read.
+          setProfile(null);
         }
       } else {
         setProfile(null);
@@ -69,6 +71,7 @@ export function useAuth(): UseAuthResult {
   const login = async (email: string, pass: string) => {
     setLoading(true);
     try {
+      await setPersistence(auth, browserSessionPersistence);
       await signInWithEmailAndPassword(auth, email.trim(), pass);
     } catch (error) {
       setLoading(false);
@@ -97,18 +100,30 @@ export function useAuth(): UseAuthResult {
     try {
       const userDocRef = doc(db, "users", auth.currentUser.uid);
       const docSnap = await getDoc(userDocRef);
-      if (docSnap.exists()) {
-        const data = docSnap.data() as Partial<UserProfile>;
-        setProfile({
-          uid: auth.currentUser.uid,
-          email: data.email || auth.currentUser.email || "",
-          displayName: data.displayName || auth.currentUser.displayName || "CMS User",
-          role: data.role === "super-admin" ? "super-admin" : "writer",
-          createdAt: data.createdAt,
-        });
+      if (!docSnap.exists()) {
+        setProfile(null);
+        return;
       }
+      const data = docSnap.data() as Partial<UserProfile>;
+      const role =
+        data.role === "super-admin" || data.role === "writer"
+          ? data.role
+          : null;
+      setProfile(
+        role
+          ? {
+              uid: auth.currentUser.uid,
+              email: data.email || auth.currentUser.email || "",
+              displayName:
+                data.displayName || auth.currentUser.displayName || "CMS User",
+              role,
+              createdAt: data.createdAt,
+            }
+          : null
+      );
     } catch (err) {
       console.error("Error refreshing profile:", err);
+      setProfile(null);
     }
   };
 
