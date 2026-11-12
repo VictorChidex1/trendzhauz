@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "deploy": "npm run build && node scripts/build-gateway-template.cjs && node scripts/prerender-hubs.cjs && npm --prefix functions run build && firebase deploy --only hosting:production,functions"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
