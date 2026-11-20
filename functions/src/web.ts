@@ -152,6 +152,62 @@ function buildHumanHubHtml(path: string): string {
   return html;
 }
 
+// ── Inject article-specific SEO head tags into SPA shell for human visitors ──
+function injectArticleHead(
+  html: string,
+  articlePath: string,
+  title: string,
+  description: string,
+  coverImageUrl?: string,
+): string {
+  const fullTitle = title + " | " + SITE_NAME;
+  const canonical = SITE_URL + articlePath;
+  const image = coverImageUrl || SITE_URL + "/assets/Trendzhauz-logo.png";
+
+  return html
+    .replace(/<title>[\s\S]*?<\/title>/, `<title>${escapeHtml(fullTitle)}</title>`)
+    .replace(
+      /<meta\s+name="description"\s+content="[^"]*"\s*\/?>/,
+      `<meta name="description" content="${escapeHtml(description)}">`,
+    )
+    .replace(
+      /<link\s+rel="canonical"\s+href="[^"]*"\s*\/?>/,
+      `<link rel="canonical" href="${escapeHtml(canonical)}" />`,
+    )
+    .replace(
+      /<meta\s+property="og:type"\s+content="[^"]*"\s*\/?>/,
+      `<meta property="og:type" content="article">`,
+    )
+    .replace(
+      /<meta\s+property="og:url"\s+content="[^"]*"\s*\/?>/,
+      `<meta property="og:url" content="${escapeHtml(canonical)}">`,
+    )
+    .replace(
+      /<meta\s+property="og:title"\s+content="[^"]*"\s*\/?>/,
+      `<meta property="og:title" content="${escapeHtml(fullTitle)}">`,
+    )
+    .replace(
+      /<meta\s+property="og:description"\s+content="[^"]*"\s*\/?>/,
+      `<meta property="og:description" content="${escapeHtml(description)}">`,
+    )
+    .replace(
+      /<meta\s+property="og:image"\s+content="[^"]*"\s*\/?>/,
+      `<meta property="og:image" content="${escapeHtml(image)}">`,
+    )
+    .replace(
+      /<meta\s+property="twitter:title"\s+content="[^"]*"\s*\/?>/,
+      `<meta property="twitter:title" content="${escapeHtml(fullTitle)}">`,
+    )
+    .replace(
+      /<meta\s+property="twitter:description"\s+content="[^"]*"\s*\/?>/,
+      `<meta property="twitter:description" content="${escapeHtml(description)}">`,
+    )
+    .replace(
+      /<meta\s+property="twitter:image"\s+content="[^"]*"\s*\/?>/,
+      `<meta property="twitter:image" content="${escapeHtml(image)}">`,
+    );
+}
+
 // ── Sitemap: static routes (served under /sitemap.xml) ──
 const STATIC_ROUTES = [
   "/",
@@ -303,6 +359,52 @@ export const web = onRequest(
         setCacheHeaders(res, 60);
         res.send(html);
         return;
+      }
+
+      // Article routes: inject article-specific SEO into SPA shell
+      if (isArticle) {
+        const humanKey = `human:${path}`;
+        const cached = articleCache.get(humanKey);
+        if (cached && Date.now() - cached.ts < ARTICLE_CACHE_TTL_MS) {
+          setCacheHeaders(res, 60);
+          res.send(cached.html);
+          return;
+        }
+
+        try {
+          const [, slug] = segments;
+          const db = getDb();
+          const snap = await db
+            .collection("posts")
+            .where("status", "==", "published")
+            .where("slug", "==", slug)
+            .limit(1)
+            .get();
+
+          if (!snap.empty) {
+            const data = snap.docs[0].data();
+            const html = injectArticleHead(
+              SPA_SHELL,
+              path,
+              String(data.title || ""),
+              String(data.description || ""),
+              data.coverImageUrl ? String(data.coverImageUrl) : undefined,
+            );
+
+            purgeExpired(
+              articleCache,
+              ARTICLE_CACHE_TTL_MS,
+              MAX_ARTICLE_CACHE_ENTRIES,
+            );
+            articleCache.set(humanKey, { html, ts: Date.now() });
+            setCacheHeaders(res, 60);
+            res.send(html);
+            return;
+          }
+        } catch (err) {
+          console.error("seoGateway human article error:", err);
+        }
+        // Fall through to plain SPA shell on error or article not found
       }
 
       // Other routes: plain SPA shell
